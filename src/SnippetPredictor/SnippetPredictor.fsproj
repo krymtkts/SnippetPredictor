@@ -1,16 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
 
     <!-- Disable pocof.xml generation. -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-
     <!-- Disable deps.json generation -->
     <GenerateDependencyFile>false</GenerateDependencyFile>
 
     <!-- Deploy the produced assembly -->
     <PublishDir>..\..\bin\SnippetPredictor</PublishDir>
+
+    <!-- Disable satellite assemblies generation -->
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
