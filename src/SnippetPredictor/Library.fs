@@ -19,18 +19,18 @@ module Snippet =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".snippets")
 
         let cancellationToken = new CancellationToken()
+
         if File.Exists(snippetPath) then
             task {
                 let! lines = File.ReadAllBytesAsync(snippetPath)
 
-                Encoding.UTF8.GetString(lines).Split([| '\n' |])
-                |> Array.iter snippets.Enqueue
+                Encoding.UTF8.GetString(lines).Split([| '\n' |]) |> Array.iter snippets.Enqueue
             }
-            |> _.WaitAsync(cancellationToken) |> ignore
+            |> _.WaitAsync(cancellationToken)
+            |> ignore
 
     let get (filter: string) : string seq =
-        snippets
-        |> Seq.filter (fun s -> s.Contains(filter))
+        snippets |> Seq.filter (fun s -> s.Contains(filter))
 
 type SamplePredictor(guid: string) =
     let id = Guid.Parse(guid)
@@ -41,8 +41,7 @@ type SamplePredictor(guid: string) =
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
 
-    do
-        Snippet.load ()
+    do Snippet.load ()
 
     interface ICommandPredictor with
         member __.Id = id
@@ -51,11 +50,8 @@ type SamplePredictor(guid: string) =
         member __.FunctionsToDefine: Dictionary<string, string> = Dictionary<string, string>()
 
         member __.GetSuggestion
-            (
-                client: PredictionClient,
-                context: PredictionContext,
-                cancellationToken: CancellationToken
-            ) : SuggestionPackage =
+            (client: PredictionClient, context: PredictionContext, cancellationToken: CancellationToken)
+            : SuggestionPackage =
             let input = context.InputAst.Extent.Text
 
             if String.IsNullOrWhiteSpace(input) then
