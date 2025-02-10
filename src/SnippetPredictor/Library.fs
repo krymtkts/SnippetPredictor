@@ -60,9 +60,11 @@ type SamplePredictor(guid: string) =
 
             if String.IsNullOrWhiteSpace(input) then
                 // NOTE: cannot pass null.
-                SuggestionPackage(List<PredictiveSuggestion>([]))
+                Seq.empty
             else
-                SuggestionPackage(List<PredictiveSuggestion>(Snippet.get input |> Seq.map PredictiveSuggestion))
+                Snippet.get input |> Seq.map PredictiveSuggestion
+            |> List<PredictiveSuggestion>
+            |> SuggestionPackage
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
 
