@@ -36,7 +36,7 @@ type SamplePredictor(guid: string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
-    let name = "SnippetPredictor"
+    let name = "Snippet"
 
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
