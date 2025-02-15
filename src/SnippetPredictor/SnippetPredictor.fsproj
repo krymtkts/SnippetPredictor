@@ -3,17 +3,18 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Version>0.1.0</Version>
-
+    <Nullable>enable</Nullable>
     <!-- Disable pocof.xml generation. -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <!-- Disable deps.json generation -->
     <GenerateDependencyFile>false</GenerateDependencyFile>
-
     <!-- Deploy the produced assembly -->
     <PublishDir>..\..\bin\SnippetPredictor</PublishDir>
-
     <!-- Disable satellite assemblies generation -->
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+    <!-- Set warning level to 4 and treat warnings as errors -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
@@ -23,6 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Snippet.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

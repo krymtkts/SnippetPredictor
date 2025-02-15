@@ -7,31 +7,6 @@ open System.Management.Automation.Subsystem
 open System.Management.Automation.Subsystem.Prediction
 open System.Threading
 
-module Snippet =
-    open System.IO
-    open System.Collections
-    open System.Text
-
-    let snippets = Concurrent.ConcurrentQueue<string>()
-
-    let load () =
-        let snippetPath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".snippets")
-
-        let cancellationToken = new CancellationToken()
-
-        if File.Exists(snippetPath) then
-            task {
-                let! lines = File.ReadAllBytesAsync(snippetPath)
-
-                Encoding.UTF8.GetString(lines).Split([| '\n' |]) |> Array.iter snippets.Enqueue
-            }
-            |> _.WaitAsync(cancellationToken)
-            |> ignore
-
-    let get (filter: string) : string seq =
-        snippets |> Seq.filter (fun s -> s.Contains(filter))
-
 type SamplePredictor(guid: string) =
     let id = Guid.Parse(guid)
 
@@ -52,14 +27,8 @@ type SamplePredictor(guid: string) =
         member __.GetSuggestion
             (client: PredictionClient, context: PredictionContext, cancellationToken: CancellationToken)
             : SuggestionPackage =
-            let input = context.InputAst.Extent.Text
-
-            if String.IsNullOrWhiteSpace(input) then
-                // NOTE: cannot pass null.
-                Seq.empty
-            else
-                Snippet.get input |> Seq.map PredictiveSuggestion
-            |> List<PredictiveSuggestion>
+            context.InputAst.Extent.Text
+            |> Snippet.getPredictiveSuggestions
             |> SuggestionPackage
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
