@@ -10,21 +10,29 @@ open System.Threading
 module Snippet =
     open System.IO
     open System.Collections
-    open System.Text
+    open System.Text.Json
+
+    type Snippets = { snippets: string[] }
+
+    [<Literal>]
+    let snippetFilesName = ".snippet-predictor.json"
 
     let snippets = Concurrent.ConcurrentQueue<string>()
 
     let load () =
         let snippetPath =
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".snippets")
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), snippetFilesName)
 
         let cancellationToken = new CancellationToken()
 
         if File.Exists(snippetPath) then
             task {
-                let! lines = File.ReadAllBytesAsync(snippetPath)
+                let! json = snippetPath |> File.ReadAllTextAsync
 
-                Encoding.UTF8.GetString(lines).Split([| '\n' |]) |> Array.iter snippets.Enqueue
+                json
+                |> JsonSerializer.Deserialize<Snippets>
+                |> _.snippets
+                |> Array.iter snippets.Enqueue
             }
             |> _.WaitAsync(cancellationToken)
             |> ignore
