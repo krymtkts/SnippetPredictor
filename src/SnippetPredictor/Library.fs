@@ -12,12 +12,13 @@ module Snippet =
     open System.Collections
     open System.Text.Json
 
-    type Snippets = { snippets: string[] }
+    type SnippetEntry = { snippet: string; tooltip: string }
+    type Snippets = { snippets: SnippetEntry[] }
 
     [<Literal>]
     let snippetFilesName = ".snippet-predictor.json"
 
-    let snippets = Concurrent.ConcurrentQueue<string>()
+    let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
 
     let load () =
         let snippetPath =
@@ -37,8 +38,8 @@ module Snippet =
             |> _.WaitAsync(cancellationToken)
             |> ignore
 
-    let get (filter: string) : string seq =
-        snippets |> Seq.filter (fun s -> s.Contains(filter))
+    let get (filter: string) : SnippetEntry seq =
+        snippets |> Seq.filter _.snippet.Contains(filter)
 
 type SamplePredictor(guid: string) =
     let id = Guid.Parse(guid)
@@ -66,8 +67,10 @@ type SamplePredictor(guid: string) =
                 // NOTE: cannot pass null.
                 Seq.empty
             else
-                Snippet.get input |> Seq.map PredictiveSuggestion
-            |> List<PredictiveSuggestion>
+                Snippet.get input
+                |> Seq.map (fun s -> s.snippet, s.tooltip)
+                |> Seq.map PredictiveSuggestion
+            |> Linq.Enumerable.ToList
             |> SuggestionPackage
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
