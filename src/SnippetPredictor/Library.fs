@@ -35,7 +35,9 @@ module Snippet =
 
                 json
                 |> JsonSerializer.Deserialize<Snippets>
-                |> _.snippets
+                |> function
+                    | null -> Array.empty
+                    | _ as snippets -> snippets.snippets
                 |> Array.iter snippets.Enqueue
             }
             |> _.WaitAsync(cancellationToken)
