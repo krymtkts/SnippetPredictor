@@ -41,20 +41,23 @@ module Snippet =
             |> _.WaitAsync(cancellationToken)
             |> ignore
 
-    let get (filter: string) : SnippetEntry seq =
+    let getFilter (input: string) =
+        // NOTE: Remove the snippet symbol from the input.
+        // NOTE: Snippet symbol is used to exclude other predictors from suggestions.
+        input.Replace(snippetSymbol, "")
+
+    let getSnippets (filter: string) : SnippetEntry seq =
         snippets |> Seq.filter _.snippet.Contains(filter)
 
-    let getPredictiveSuggestions (filter: string) : List<PredictiveSuggestion> =
-        if String.IsNullOrWhiteSpace(filter) then
-            // NOTE: cannot pass null.
+    let snippetToTuple (s: SnippetEntry) = s.snippet, s.tooltip
+
+    let getPredictiveSuggestions (input: string) : List<PredictiveSuggestion> =
+        if String.IsNullOrWhiteSpace(input) then
             Seq.empty
         else
-            // NOTE: Remove the snippet symbol from the input.
-            // NOTE: Snippet symbol is used to exclude other predictors from suggestions.
-            filter.Replace(snippetSymbol, "")
-            |> get
-            |> Seq.map (fun s -> s.snippet, s.tooltip)
-            |> Seq.map PredictiveSuggestion
+            input
+            |> (getFilter >> getSnippets)
+            |> Seq.map (snippetToTuple >> PredictiveSuggestion)
         |> Linq.Enumerable.ToList
 
 type SamplePredictor(guid: string) =
