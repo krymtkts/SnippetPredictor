@@ -44,6 +44,19 @@ module Snippet =
     let get (filter: string) : SnippetEntry seq =
         snippets |> Seq.filter _.snippet.Contains(filter)
 
+    let getPredictiveSuggestions (filter: string) : List<PredictiveSuggestion> =
+        if String.IsNullOrWhiteSpace(filter) then
+            // NOTE: cannot pass null.
+            Seq.empty
+        else
+            // NOTE: Remove the snippet symbol from the input.
+            // NOTE: Snippet symbol is used to exclude other predictors from suggestions.
+            filter.Replace(snippetSymbol, "")
+            |> get
+            |> Seq.map (fun s -> s.snippet, s.tooltip)
+            |> Seq.map PredictiveSuggestion
+        |> Linq.Enumerable.ToList
+
 type SamplePredictor(guid: string) =
     let id = Guid.Parse(guid)
 
@@ -64,19 +77,8 @@ type SamplePredictor(guid: string) =
         member __.GetSuggestion
             (client: PredictionClient, context: PredictionContext, cancellationToken: CancellationToken)
             : SuggestionPackage =
-            let input = context.InputAst.Extent.Text
-
-            if String.IsNullOrWhiteSpace(input) then
-                // NOTE: cannot pass null.
-                Seq.empty
-            else
-                // NOTE: Remove the snippet symbol from the input.
-                // NOTE: Snippet symbol is used to exclude other predictors from suggestions.
-                input.Replace(Snippet.snippetSymbol, "")
-                |> Snippet.get
-                |> Seq.map (fun s -> s.snippet, s.tooltip)
-                |> Seq.map PredictiveSuggestion
-            |> Linq.Enumerable.ToList
+            context.InputAst.Extent.Text
+            |> Snippet.getPredictiveSuggestions
             |> SuggestionPackage
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
