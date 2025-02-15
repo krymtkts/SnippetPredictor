@@ -18,6 +18,9 @@ module Snippet =
     [<Literal>]
     let snippetFilesName = ".snippet-predictor.json"
 
+    [<Literal>]
+    let snippetSymbol = ":snp"
+
     let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
 
     let load () =
@@ -67,7 +70,10 @@ type SamplePredictor(guid: string) =
                 // NOTE: cannot pass null.
                 Seq.empty
             else
-                Snippet.get input
+                // NOTE: Remove the snippet symbol from the input.
+                // NOTE: Snippet symbol is used to exclude other predictors from suggestions.
+                input.Replace(Snippet.snippetSymbol, "")
+                |> Snippet.get
                 |> Seq.map (fun s -> s.snippet, s.tooltip)
                 |> Seq.map PredictiveSuggestion
             |> Linq.Enumerable.ToList
