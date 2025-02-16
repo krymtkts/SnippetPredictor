@@ -80,7 +80,9 @@ let startRefreshTask (path: string) =
         try
             try
                 // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
-                use fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
+                use fs =
+                    new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
+
                 use sr = new StreamReader(fs)
                 let! json = sr.ReadToEndAsync()
                 snippets.Clear()
@@ -90,7 +92,9 @@ let startRefreshTask (path: string) =
 #endif
             with e ->
 #if DEBUG
-                  Logger.LogFile [ $"Error refreshing snippets: {e.Message}" ]
+                Logger.LogFile [ $"Error refreshing snippets: {e.Message}" ]
+#else
+                ()
 #endif
         finally
             semaphore.Release() |> ignore
@@ -114,7 +118,8 @@ let rec startFileWatchingEvent (directory: string) =
     handleRefresh |> w.Created.Add
     handleRefresh |> w.Changed.Add
 
-    w.Error.Add <| fun e ->
+    w.Error.Add
+    <| fun e ->
 #if DEBUG
         Logger.LogFile [ $"Error occurred in file watching event: {e.GetException().Message}" ]
 #endif
