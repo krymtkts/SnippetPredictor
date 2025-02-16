@@ -19,11 +19,14 @@ let snippetSymbol = ":snp"
 let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
 
 let parseSnippets (json: string) =
-    json
-    |> JsonSerializer.Deserialize<Snippets>
-    |> function
-        | null -> Array.empty
-        | _ as snippets -> snippets.snippets
+    try
+        json
+        |> JsonSerializer.Deserialize<Snippets>
+        |> function
+            | null -> Array.empty
+            | _ as snippets -> snippets.snippets
+    with _ ->
+        Array.empty
 
 let load () =
     let snippetPath =
