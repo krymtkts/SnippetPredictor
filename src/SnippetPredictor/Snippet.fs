@@ -66,16 +66,23 @@ let parseSnippets (json: string) =
     with _ ->
         Array.empty
 
+let semaphore = new SemaphoreSlim(1, 1)
+
 let startRefreshTask (path: string) =
     let cancellationToken = new CancellationToken()
 
     task {
-        let! json = path |> File.ReadAllTextAsync
-        snippets.Clear()
-        json |> parseSnippets |> Array.iter snippets.Enqueue
+        do! semaphore.WaitAsync(cancellationToken)
+
+        try
+            let! json = path |> File.ReadAllTextAsync
+            snippets.Clear()
+            json |> parseSnippets |> Array.iter snippets.Enqueue
 #if DEBUG
-        Logger.LogFile [ "Refreshed snippets." ]
+            Logger.LogFile [ "Refreshed snippets." ]
 #endif
+        finally
+            semaphore.Release() |> ignore
     }
     |> _.WaitAsync(cancellationToken)
     |> ignore
@@ -91,7 +98,7 @@ let startFileWatchingEvent (directory: string) =
 
     w.EnableRaisingEvents <- true
     w.IncludeSubdirectories <- false
-    w.NotifyFilter <- NotifyFilters.LastWrite ||| NotifyFilters.FileName ||| NotifyFilters.Size
+    w.NotifyFilter <- NotifyFilters.LastWrite
 
     handleRefresh |> w.Created.Add
     handleRefresh |> w.Changed.Add
