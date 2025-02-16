@@ -86,12 +86,6 @@ let handleRefresh (e: FileSystemEventArgs) =
 #endif
     startRefreshTask e.FullPath
 
-let handleClear (e: FileSystemEventArgs) =
-#if DEBUG
-    Logger.LogFile [ e.ChangeType.ToString(), sprintf "Snippets are cleared due to file change: %s" e.FullPath ]
-#endif
-    snippets.Clear()
-
 let startFileWatchingEvent (directory: string) =
     let w = new FileSystemWatcher(directory, snippetFilesName)
 
@@ -101,8 +95,6 @@ let startFileWatchingEvent (directory: string) =
 
     handleRefresh |> w.Created.Add
     handleRefresh |> w.Changed.Add
-    handleClear |> w.Deleted.Add
-    handleClear |> w.Renamed.Add
 
     watcher <- w |> Some
 #if DEBUG
