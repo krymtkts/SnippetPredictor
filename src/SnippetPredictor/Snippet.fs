@@ -104,7 +104,7 @@ let handleRefresh (e: FileSystemEventArgs) =
 #endif
     startRefreshTask e.FullPath
 
-let startFileWatchingEvent (directory: string) =
+let rec startFileWatchingEvent (directory: string) =
     let w = new FileSystemWatcher(directory, snippetFilesName)
 
     w.EnableRaisingEvents <- true
@@ -113,6 +113,13 @@ let startFileWatchingEvent (directory: string) =
 
     handleRefresh |> w.Created.Add
     handleRefresh |> w.Changed.Add
+
+    w.Error.Add <| fun e ->
+#if DEBUG
+        Logger.LogFile [ $"Error occurred in file watching event: {e.GetException().Message}" ]
+#endif
+        watcher |> Option.iter _.Dispose()
+        startFileWatchingEvent directory
 
     watcher <- w |> Some
 #if DEBUG
