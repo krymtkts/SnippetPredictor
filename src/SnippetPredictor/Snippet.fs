@@ -18,6 +18,13 @@ let snippetSymbol = ":snp"
 
 let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
 
+let parseSnippets (json: string) =
+    json
+    |> JsonSerializer.Deserialize<Snippets>
+    |> function
+        | null -> Array.empty
+        | _ as snippets -> snippets.snippets
+
 let load () =
     let snippetPath =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), snippetFilesName)
@@ -28,12 +35,7 @@ let load () =
         task {
             let! json = snippetPath |> File.ReadAllTextAsync
 
-            json
-            |> JsonSerializer.Deserialize<Snippets>
-            |> function
-                | null -> Array.empty
-                | _ as snippets -> snippets.snippets
-            |> Array.iter snippets.Enqueue
+            json |> parseSnippets |> Array.iter snippets.Enqueue
         }
         |> _.WaitAsync(cancellationToken)
         |> ignore
