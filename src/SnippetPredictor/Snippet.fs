@@ -73,13 +73,24 @@ let startRefreshTask (path: string) =
 
     task {
         do! semaphore.WaitAsync(cancellationToken)
+#if DEBUG
+        Logger.LogFile [ "Refreshing snippets." ]
+#endif
 
         try
-            let! json = path |> File.ReadAllTextAsync
-            snippets.Clear()
-            json |> parseSnippets |> Array.iter snippets.Enqueue
+            try
+                // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
+                use fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
+                use sr = new StreamReader(fs)
+                let! json = sr.ReadToEndAsync()
+                snippets.Clear()
+                json |> parseSnippets |> Array.iter snippets.Enqueue
 #if DEBUG
-            Logger.LogFile [ "Refreshed snippets." ]
+                Logger.LogFile [ "Refreshed snippets." ]
+#endif
+            with e ->
+#if DEBUG
+                  Logger.LogFile [ $"Error refreshing snippets: {e.Message}" ]
 #endif
         finally
             semaphore.Release() |> ignore
