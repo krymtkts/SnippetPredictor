@@ -91,6 +91,8 @@ let startRefreshTask (path: string) =
             with e ->
 #if DEBUG
                   Logger.LogFile [ $"Error refreshing snippets: {e.Message}" ]
+#else
+                  ()
 #endif
         finally
             semaphore.Release() |> ignore
