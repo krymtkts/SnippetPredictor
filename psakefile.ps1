@@ -56,14 +56,7 @@ Task Import -Depends Build {
     if ( -not ($ModuleName -and $ModuleVersion)) {
         throw "ModuleName or ModuleVersion not defined. $ModuleName, $ModuleVersion"
     }
-    switch ($Stage) {
-        'Debug' {
-            Import-Module (Resolve-Path "${ModuleSrcPath}/bin/Debug/*/publish/*.psd1") -Global
-        }
-        'Release' {
-            Import-Module "./bin/$ModuleName" -Global
-        }
-    }
+    Import-Module "./bin/$ModuleName" -Global
 }
 
 Task Release -PreCondition { $Stage -eq 'Release' } -Depends Import {
