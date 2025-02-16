@@ -29,9 +29,9 @@ let load () =
     let snippetPath =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), snippetFilesName)
 
-    let cancellationToken = new CancellationToken()
-
     if File.Exists(snippetPath) then
+        let cancellationToken = new CancellationToken()
+
         task {
             let! json = snippetPath |> File.ReadAllTextAsync
 
