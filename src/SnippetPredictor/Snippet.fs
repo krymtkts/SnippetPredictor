@@ -18,6 +18,8 @@ let snippetSymbol = ":snp"
 
 let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
 
+let mutable watcher: FileSystemWatcher option = None
+
 let parseSnippets (json: string) =
     try
         json
@@ -28,20 +30,45 @@ let parseSnippets (json: string) =
     with _ ->
         Array.empty
 
+let startRefreshTask (path: string) =
+    let cancellationToken = new CancellationToken()
+
+    task {
+        let! json = path |> File.ReadAllTextAsync
+        snippets.Clear()
+        json |> parseSnippets |> Array.iter snippets.Enqueue
+    }
+    |> _.WaitAsync(cancellationToken)
+    |> ignore
+
+let handleRefresh (e: FileSystemEventArgs) = startRefreshTask e.FullPath
+
+let handleClear (e: FileSystemEventArgs) = snippets.Clear()
+
+let startFileWatchingEvent (directory: string) =
+    let w = new FileSystemWatcher(directory, snippetFilesName)
+
+    w.EnableRaisingEvents <- true
+    w.IncludeSubdirectories <- false
+    w.NotifyFilter <- NotifyFilters.LastWrite ||| NotifyFilters.FileName ||| NotifyFilters.Size
+
+    handleRefresh |> w.Created.Add
+    handleRefresh |> w.Changed.Add
+    handleClear |> w.Deleted.Add
+    handleClear |> w.Renamed.Add
+
+    watcher <- w |> Some
+
 let load () =
-    let snippetPath =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), snippetFilesName)
+    let snippetDirectory =
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+
+    let snippetPath = Path.Combine(snippetDirectory, snippetFilesName)
 
     if File.Exists(snippetPath) then
-        let cancellationToken = new CancellationToken()
+        startRefreshTask snippetPath
 
-        task {
-            let! json = snippetPath |> File.ReadAllTextAsync
-
-            json |> parseSnippets |> Array.iter snippets.Enqueue
-        }
-        |> _.WaitAsync(cancellationToken)
-        |> ignore
+    startFileWatchingEvent snippetDirectory
 
 let getFilter (input: string) =
     // NOTE: Remove the snippet symbol from the input.
