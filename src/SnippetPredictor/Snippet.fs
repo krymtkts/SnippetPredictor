@@ -145,7 +145,7 @@ let load () =
 let getFilter (input: string) =
     // NOTE: Remove the snippet symbol from the input.
     // NOTE: Snippet symbol is used to exclude other predictors from suggestions.
-    input.Replace(snippetSymbol, "")
+    input.Replace(snippetSymbol, "").Trim()
 
 let getSnippets (filter: string) : SnippetEntry seq =
     snippets |> Seq.filter _.snippet.Contains(filter)
