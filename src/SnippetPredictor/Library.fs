@@ -56,7 +56,7 @@ type Init() =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
 
 [<Cmdlet(VerbsCommon.Get, "Snippet")>]
-[<OutputType(typeof<Config>)>]
+[<OutputType(typeof<SnippetConfig>)>]
 type GetSnippetCommand() =
     inherit Cmdlet()
 

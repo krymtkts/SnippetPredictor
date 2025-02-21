@@ -1,7 +1,7 @@
 ﻿namespace SnippetPredictor
 
 type SnippetEntry = { Snippet: string; Tooltip: string }
-type Config = { Snippets: SnippetEntry[] | null }
+type SnippetConfig = { Snippets: SnippetEntry[] | null }
 
 module Snippet =
 
@@ -79,7 +79,7 @@ module Snippet =
     [<NoComparison>]
     type ConfigState =
         | Empty
-        | Valid of Config
+        | Valid of SnippetConfig
         | Invalid of SnippetEntry
 
     let jsonOptions =
@@ -96,7 +96,7 @@ module Snippet =
             |> function
                 | "" -> ConfigState.Empty
                 | json ->
-                    JsonSerializer.Deserialize<Config>(json, jsonOptions)
+                    JsonSerializer.Deserialize<SnippetConfig>(json, jsonOptions)
                     |> function
                         | null ->
                             makeEntry $"{snippetFilesName} is null or invalid format." ""
@@ -231,7 +231,7 @@ module Snippet =
     let makeSnippetEntry (snippet: string) (tooltip: string) =
         { Snippet = snippet; Tooltip = tooltip }
 
-    let storeConfig (config: Config) =
+    let storeConfig (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)
         let snippetPath = getSnippetPath () |> snd
 
