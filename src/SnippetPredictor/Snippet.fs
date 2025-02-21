@@ -146,11 +146,14 @@ let rec startFileWatchingEvent (directory: string) =
     Logger.LogFile [ "Started file watching event." ]
 #endif
 
-let load () =
+let getSnippetPath () =
     let snippetDirectory =
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
-    let snippetPath = Path.Combine(snippetDirectory, snippetFilesName)
+    snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
+
+let load () =
+    let snippetDirectory, snippetPath = getSnippetPath ()
 
     if File.Exists(snippetPath) then
         startRefreshTask snippetPath
