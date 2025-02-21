@@ -44,8 +44,8 @@ module Debug =
                 ))
 #endif
 
-type SnippetEntry = { snippet: string; tooltip: string }
-type Config = { snippets: SnippetEntry[] | null }
+type SnippetEntry = { Snippet: string; Tooltip: string }
+type Config = { Snippets: SnippetEntry[] | null }
 
 [<Literal>]
 let snippetFilesName = ".snippet-predictor.json"
@@ -68,8 +68,8 @@ let readSnippetFile (path: string) =
     }
 
 let makeEntry (snippet: string) (tooltip: string) =
-    { snippet = $"'{snippet}'"
-      tooltip = tooltip }
+    { Snippet = $"'{snippet}'"
+      Tooltip = tooltip }
 
 [<RequireQualifiedAccess>]
 [<NoEquality>]
@@ -79,14 +79,21 @@ type ConfigState =
     | Valid of Config
     | Invalid of SnippetEntry
 
+let jsonOptions =
+    JsonSerializerOptions(
+        AllowTrailingCommas = true,
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        WriteIndented = true
+    )
+
 let parseSnippets (json: string) =
     try
         json.Trim()
         |> function
             | "" -> ConfigState.Empty
-            | _ ->
-                json
-                |> JsonSerializer.Deserialize<Config>
+            | json ->
+                JsonSerializer.Deserialize<Config>(json, jsonOptions)
                 |> function
                     | null ->
                         makeEntry $"{snippetFilesName} is null or invalid format." ""
@@ -121,7 +128,7 @@ let startRefreshTask (path: string) =
                 result
                 |> function
                     | ConfigState.Empty -> ()
-                    | ConfigState.Valid { snippets = snps } ->
+                    | ConfigState.Valid { Snippets = snps } ->
                         snps
                         |> function
                             | null -> Array.empty
@@ -192,9 +199,9 @@ let getFilter (input: string) =
     input.Replace(snippetSymbol, "").Trim()
 
 let getSnippets (filter: string) : SnippetEntry seq =
-    snippets |> Seq.filter _.snippet.Contains(filter)
+    snippets |> Seq.filter _.Snippet.Contains(filter)
 
-let snippetToTuple (s: SnippetEntry) = s.snippet, s.tooltip
+let snippetToTuple (s: SnippetEntry) = s.Snippet, s.Tooltip
 
 let getPredictiveSuggestions (input: string) : Generic.List<PredictiveSuggestion> =
     if String.IsNullOrWhiteSpace(input) then
@@ -205,30 +212,24 @@ let getPredictiveSuggestions (input: string) : Generic.List<PredictiveSuggestion
         |> Seq.map (snippetToTuple >> PredictiveSuggestion)
     |> Linq.Enumerable.ToList
 
+let toError (e: SnippetEntry) = $"{e.Snippet}: {e.Tooltip}" |> Error
+
 let loadConfig () =
     let snippetPath = getSnippetPath () |> snd
 
     if snippetPath |> (File.Exists >> not) then
-        Error $"The {snippetFilesName} file does not exist."
+        ConfigState.Empty
     else
-        snippetPath
-        |> parseSnippetFile
-        |> _.Result
-        |> function
-            | ConfigState.Empty -> Ok { snippets = null }
-            | ConfigState.Valid snippets -> Ok snippets
-            | ConfigState.Invalid e -> $"{e.snippet}: {e.tooltip}" |> Error
+        snippetPath |> parseSnippetFile |> _.Result
 
 let makeErrorRecord (e: string) =
     new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
 
 let makeSnippetEntry (snippet: string) (tooltip: string) =
-    { snippet = snippet; tooltip = tooltip }
+    { Snippet = snippet; Tooltip = tooltip }
 
 let storeConfig (config: Config) =
-    let json =
-        JsonSerializer.Serialize(config, JsonSerializerOptions(WriteIndented = true))
-
+    let json = JsonSerializer.Serialize(config, jsonOptions)
     let snippetPath = getSnippetPath () |> snd
 
     try
@@ -237,32 +238,44 @@ let storeConfig (config: Config) =
     with e ->
         e.Message |> Error
 
+let loadSnippets () =
+    loadConfig ()
+    |> function
+        | ConfigState.Empty -> Array.empty |> Ok
+        | ConfigState.Valid snippets ->
+            snippets
+            |> _.Snippets
+            |> function
+                | null -> Array.empty |> Ok
+                | snps -> snps |> Ok
+        | ConfigState.Invalid e -> e |> toError
+
 let addSnippets (snippets: SnippetEntry seq) =
     loadConfig ()
     |> function
-        | Ok config ->
+        | ConfigState.Empty -> { Snippets = Array.ofSeq snippets } |> storeConfig
+        | ConfigState.Valid config ->
             let newSnippets =
-                config.snippets
+                config.Snippets
                 |> function
                     | null -> Array.ofSeq snippets
                     | snps -> Array.append snps <| Array.ofSeq snippets
 
-            let config = { config with snippets = newSnippets }
-            storeConfig config
-        | Error e -> e |> Error
+            { config with Snippets = newSnippets } |> storeConfig
+        | ConfigState.Invalid e -> e |> toError
 
 let removeSnippets (snippets: string seq) =
     loadConfig ()
     |> function
-        | Ok config ->
+        | ConfigState.Empty -> Ok()
+        | ConfigState.Valid config ->
             let newSnippets =
-                config.snippets
+                config.Snippets
                 |> function
                     | null -> Array.empty
                     | snps ->
                         let removals = set snippets
-                        snps |> Array.filter (_.snippet >> removals.Contains >> not)
+                        snps |> Array.filter (_.Snippet >> removals.Contains >> not)
 
-            let config = { config with snippets = newSnippets }
-            storeConfig config
-        | Error e -> e |> Error
+            { config with Snippets = newSnippets } |> storeConfig
+        | ConfigState.Invalid e -> e |> toError

@@ -61,9 +61,9 @@ type GetSnippetCommand() =
     inherit Cmdlet()
 
     override __.EndProcessing() =
-        Snippet.loadConfig ()
+        Snippet.loadSnippets ()
         |> function
-            | Ok snippets -> snippets |> __.WriteObject
+            | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
 
 [<Cmdlet(VerbsCommon.Add, "Snippet")>]
@@ -77,7 +77,7 @@ type AddSnippetCommand() =
                 ValueFromPipeline = true,
                 ValueFromPipelineByPropertyName = true,
                 HelpMessage = "The text of the snippet")>]
-    member val Text = "" with get, set
+    member val Snippet = "" with get, set
 
     [<Parameter(Position = 1,
                 Mandatory = false,
@@ -86,7 +86,7 @@ type AddSnippetCommand() =
     member val Tooltip = "" with get, set
 
     override __.ProcessRecord() =
-        Snippet.makeSnippetEntry __.Text __.Tooltip |> snippets.Add
+        Snippet.makeSnippetEntry __.Snippet __.Tooltip |> snippets.Add
 
     override __.EndProcessing() =
         snippets
@@ -106,9 +106,9 @@ type RemoveSnippetCommand() =
                 ValueFromPipeline = true,
                 ValueFromPipelineByPropertyName = true,
                 HelpMessage = "The text of the snippet to remove")>]
-    member val Text = "" with get, set
+    member val Snippet = "" with get, set
 
-    override __.ProcessRecord() = __.Text |> snippets.Add
+    override __.ProcessRecord() = __.Snippet |> snippets.Add
 
     override __.EndProcessing() =
         snippets
