@@ -1,4 +1,4 @@
-﻿module Snippet
+module Snippet
 
 open System
 open System.IO
@@ -81,6 +81,12 @@ let parseSnippets (json: string) =
         makeEntry $"An error occurred while parsing {snippetFilesName}" e.Message
         |> Error
 
+let parseSnippetFile (path: string) =
+    task {
+        let! json = readSnippetFile path
+        return parseSnippets json
+    }
+
 let semaphore = new SemaphoreSlim(1, 1)
 
 let startRefreshTask (path: string) =
@@ -94,11 +100,10 @@ let startRefreshTask (path: string) =
 
         try
             try
-                let! json = readSnippetFile path
+                let! result = parseSnippetFile path
                 snippets.Clear()
 
-                json
-                |> parseSnippets
+                result
                 |> function
                     | Ok { snippets = snps } -> snps |> Array.iter snippets.Enqueue
                     | Error record -> record |> snippets.Enqueue
