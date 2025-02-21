@@ -1,4 +1,4 @@
-module Snippet
+﻿module Snippet
 
 open System
 open System.IO
@@ -246,6 +246,22 @@ let addSnippets (snippets: SnippetEntry seq) =
                 |> function
                     | null -> Array.ofSeq snippets
                     | snps -> Array.append snps <| Array.ofSeq snippets
+
+            let config = { config with snippets = newSnippets }
+            storeConfig config
+        | Error e -> e |> Error
+
+let removeSnippets (snippets: string seq) =
+    loadConfig ()
+    |> function
+        | Ok config ->
+            let newSnippets =
+                config.snippets
+                |> function
+                    | null -> Array.empty
+                    | snps ->
+                        let removals = set snippets
+                        snps |> Array.filter (_.snippet >> removals.Contains >> not)
 
             let config = { config with snippets = newSnippets }
             storeConfig config

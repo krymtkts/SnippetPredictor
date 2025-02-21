@@ -1,4 +1,4 @@
-namespace SnippetPredictor
+﻿namespace SnippetPredictor
 
 open System
 open System.Collections.Generic
@@ -91,6 +91,28 @@ type AddSnippetCommand() =
     override __.EndProcessing() =
         snippets
         |> Snippet.addSnippets
+        |> function
+            | Ok() -> ()
+            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
+
+[<Cmdlet(VerbsCommon.Remove, "Snippet")>]
+type RemoveSnippetCommand() =
+    inherit Cmdlet()
+
+    let snippets = List<string>()
+
+    [<Parameter(Position = 0,
+                Mandatory = true,
+                ValueFromPipeline = true,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The text of the snippet to remove")>]
+    member val Text = "" with get, set
+
+    override __.ProcessRecord() = __.Text |> snippets.Add
+
+    override __.EndProcessing() =
+        snippets
+        |> Snippet.removeSnippets
         |> function
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
