@@ -1,4 +1,4 @@
-﻿module Snippet
+module Snippet
 
 open System
 open System.IO
@@ -44,8 +44,8 @@ module Debug =
                 ))
 #endif
 
-type SnippetEntry = { snippet: string; tooltip: string }
-type Config = { snippets: SnippetEntry[] | null }
+type SnippetEntry = { Snippet: string; Tooltip: string }
+type Config = { Snippets: SnippetEntry[] | null }
 
 [<Literal>]
 let snippetFilesName = ".snippet-predictor.json"
@@ -68,8 +68,8 @@ let readSnippetFile (path: string) =
     }
 
 let makeEntry (snippet: string) (tooltip: string) =
-    { snippet = $"'{snippet}'"
-      tooltip = tooltip }
+    { Snippet = $"'{snippet}'"
+      Tooltip = tooltip }
 
 [<RequireQualifiedAccess>]
 [<NoEquality>]
@@ -121,7 +121,7 @@ let startRefreshTask (path: string) =
                 result
                 |> function
                     | ConfigState.Empty -> ()
-                    | ConfigState.Valid { snippets = snps } ->
+                    | ConfigState.Valid { Snippets = snps } ->
                         snps
                         |> function
                             | null -> Array.empty
@@ -192,9 +192,9 @@ let getFilter (input: string) =
     input.Replace(snippetSymbol, "").Trim()
 
 let getSnippets (filter: string) : SnippetEntry seq =
-    snippets |> Seq.filter _.snippet.Contains(filter)
+    snippets |> Seq.filter _.Snippet.Contains(filter)
 
-let snippetToTuple (s: SnippetEntry) = s.snippet, s.tooltip
+let snippetToTuple (s: SnippetEntry) = s.Snippet, s.Tooltip
 
 let getPredictiveSuggestions (input: string) : Generic.List<PredictiveSuggestion> =
     if String.IsNullOrWhiteSpace(input) then
@@ -215,15 +215,15 @@ let loadConfig () =
         |> parseSnippetFile
         |> _.Result
         |> function
-            | ConfigState.Empty -> Ok { snippets = null }
+            | ConfigState.Empty -> Ok { Snippets = null }
             | ConfigState.Valid snippets -> Ok snippets
-            | ConfigState.Invalid e -> $"{e.snippet}: {e.tooltip}" |> Error
+            | ConfigState.Invalid e -> $"{e.Snippet}: {e.Tooltip}" |> Error
 
 let makeErrorRecord (e: string) =
     new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
 
 let makeSnippetEntry (snippet: string) (tooltip: string) =
-    { snippet = snippet; tooltip = tooltip }
+    { Snippet = snippet; Tooltip = tooltip }
 
 let storeConfig (config: Config) =
     let json =
@@ -242,12 +242,12 @@ let addSnippets (snippets: SnippetEntry seq) =
     |> function
         | Ok config ->
             let newSnippets =
-                config.snippets
+                config.Snippets
                 |> function
                     | null -> Array.ofSeq snippets
                     | snps -> Array.append snps <| Array.ofSeq snippets
 
-            let config = { config with snippets = newSnippets }
+            let config = { config with Snippets = newSnippets }
             storeConfig config
         | Error e -> e |> Error
 
@@ -256,13 +256,13 @@ let removeSnippets (snippets: string seq) =
     |> function
         | Ok config ->
             let newSnippets =
-                config.snippets
+                config.Snippets
                 |> function
                     | null -> Array.empty
                     | snps ->
                         let removals = set snippets
-                        snps |> Array.filter (_.snippet >> removals.Contains >> not)
+                        snps |> Array.filter (_.Snippet >> removals.Contains >> not)
 
-            let config = { config with snippets = newSnippets }
+            let config = { config with Snippets = newSnippets }
             storeConfig config
         | Error e -> e |> Error
