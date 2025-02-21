@@ -3,6 +3,7 @@ module Snippet
 open System
 open System.IO
 open System.Collections
+open System.Management.Automation
 open System.Management.Automation.Subsystem.Prediction
 open System.Text.Json
 open System.Threading
@@ -183,3 +184,19 @@ let getPredictiveSuggestions (input: string) : Generic.List<PredictiveSuggestion
         |> (getFilter >> getSnippets)
         |> Seq.map (snippetToTuple >> PredictiveSuggestion)
     |> Linq.Enumerable.ToList
+
+let loadConfig () =
+    let snippetPath = getSnippetPath () |> snd
+
+    if snippetPath |> (File.Exists >> not) then
+        Error $"The {snippetFilesName} file does not exist."
+    else
+        snippetPath
+        |> parseSnippetFile
+        |> _.Result
+        |> function
+            | Ok snippets -> Ok snippets
+            | Error e -> $"{e.snippet}: {e.tooltip}" |> Error
+
+let makeErrorRecord (e: string) =
+    new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)

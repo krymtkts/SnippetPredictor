@@ -1,4 +1,4 @@
-﻿namespace SnippetPredictor
+namespace SnippetPredictor
 
 open System
 open System.Collections.Generic
@@ -54,3 +54,13 @@ type Init() =
     interface IModuleAssemblyCleanup with
         member __.OnRemove(psModuleInfo: PSModuleInfo) =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
+
+[<Cmdlet(VerbsCommon.Get, "Snippet")>]
+type GetSnippetCommand() =
+    inherit Cmdlet()
+
+    override __.EndProcessing() =
+        Snippet.loadConfig ()
+        |> function
+            | Ok snippets -> snippets |> __.WriteObject
+            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
