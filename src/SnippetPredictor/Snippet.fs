@@ -66,15 +66,20 @@ let readSnippetFile (path: string) =
         return! sr.ReadToEndAsync()
     }
 
+let makeEntry (snippet: string) (tooltip: string) =
+    { snippet = $"'{snippet}'"
+      tooltip = tooltip }
+
 let parseSnippets (json: string) =
     try
         json
         |> JsonSerializer.Deserialize<Snippets>
         |> function
-            | null -> Array.empty
-            | _ as snippets -> snippets.snippets
-    with _ ->
-        Array.empty
+            | null -> makeEntry $"{snippetFilesName} is null or invalid format." "" |> Error
+            | snippets -> Ok snippets
+    with e ->
+        makeEntry $"An error occurred while parsing {snippetFilesName}" e.Message
+        |> Error
 
 let semaphore = new SemaphoreSlim(1, 1)
 
@@ -91,7 +96,12 @@ let startRefreshTask (path: string) =
             try
                 let! json = readSnippetFile path
                 snippets.Clear()
-                json |> parseSnippets |> Array.iter snippets.Enqueue
+
+                json
+                |> parseSnippets
+                |> function
+                    | Ok { snippets = snps } -> snps |> Array.iter snippets.Enqueue
+                    | Error record -> record |> snippets.Enqueue
 #if DEBUG
                 Logger.LogFile [ "Refreshed snippets." ]
 #endif
