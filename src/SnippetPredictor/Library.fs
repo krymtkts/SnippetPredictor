@@ -63,7 +63,7 @@ type GetSnippetCommand() =
     override __.EndProcessing() =
         Snippet.loadConfig ()
         |> function
-            | Ok snippets -> snippets |> __.WriteObject
+            | Ok snippets -> snippets |> _.snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
 
 [<Cmdlet(VerbsCommon.Add, "Snippet")>]
