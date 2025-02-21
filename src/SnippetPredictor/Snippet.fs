@@ -79,13 +79,21 @@ type ConfigState =
     | Valid of Config
     | Invalid of SnippetEntry
 
+let jsonOptions =
+    JsonSerializerOptions(
+        AllowTrailingCommas = true,
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        WriteIndented = true
+    )
+
 let parseSnippets (json: string) =
     try
         json.Trim()
         |> function
             | "" -> ConfigState.Empty
             | json ->
-                JsonSerializer.Deserialize<Config>(json, JsonSerializerOptions(PropertyNameCaseInsensitive = true))
+                JsonSerializer.Deserialize<Config>(json, jsonOptions)
                 |> function
                     | null ->
                         makeEntry $"{snippetFilesName} is null or invalid format." ""
@@ -225,9 +233,7 @@ let makeSnippetEntry (snippet: string) (tooltip: string) =
     { Snippet = snippet; Tooltip = tooltip }
 
 let storeConfig (config: Config) =
-    let json =
-        JsonSerializer.Serialize(config, JsonSerializerOptions(WriteIndented = true))
-
+    let json = JsonSerializer.Serialize(config, jsonOptions)
     let snippetPath = getSnippetPath () |> snd
 
     try
