@@ -54,3 +54,65 @@ type Init() =
     interface IModuleAssemblyCleanup with
         member __.OnRemove(psModuleInfo: PSModuleInfo) =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
+
+[<Cmdlet(VerbsCommon.Get, "Snippet")>]
+[<OutputType(typeof<Snippet.Config>)>]
+type GetSnippetCommand() =
+    inherit Cmdlet()
+
+    override __.EndProcessing() =
+        Snippet.loadConfig ()
+        |> function
+            | Ok snippets -> snippets |> __.WriteObject
+            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
+
+[<Cmdlet(VerbsCommon.Add, "Snippet")>]
+type AddSnippetCommand() =
+    inherit Cmdlet()
+
+    let snippets = List<Snippet.SnippetEntry>()
+
+    [<Parameter(Position = 0,
+                Mandatory = true,
+                ValueFromPipeline = true,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The text of the snippet")>]
+    member val Text = "" with get, set
+
+    [<Parameter(Position = 1,
+                Mandatory = false,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The tooltip of the snippet")>]
+    member val Tooltip = "" with get, set
+
+    override __.ProcessRecord() =
+        Snippet.makeSnippetEntry __.Text __.Tooltip |> snippets.Add
+
+    override __.EndProcessing() =
+        snippets
+        |> Snippet.addSnippets
+        |> function
+            | Ok() -> ()
+            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
+
+[<Cmdlet(VerbsCommon.Remove, "Snippet")>]
+type RemoveSnippetCommand() =
+    inherit Cmdlet()
+
+    let snippets = List<string>()
+
+    [<Parameter(Position = 0,
+                Mandatory = true,
+                ValueFromPipeline = true,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The text of the snippet to remove")>]
+    member val Text = "" with get, set
+
+    override __.ProcessRecord() = __.Text |> snippets.Add
+
+    override __.EndProcessing() =
+        snippets
+        |> Snippet.removeSnippets
+        |> function
+            | Ok() -> ()
+            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError

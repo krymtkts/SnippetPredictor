@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Collections
+open System.Management.Automation
 open System.Management.Automation.Subsystem.Prediction
 open System.Text.Json
 open System.Threading
@@ -44,7 +45,7 @@ module Debug =
 #endif
 
 type SnippetEntry = { snippet: string; tooltip: string }
-type Snippets = { snippets: SnippetEntry[] }
+type Config = { snippets: SnippetEntry[] | null }
 
 [<Literal>]
 let snippetFilesName = ".snippet-predictor.json"
@@ -56,15 +57,50 @@ let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
 
 let mutable watcher: FileSystemWatcher option = None
 
+let readSnippetFile (path: string) =
+    task {
+        // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
+        use fs =
+            new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
+
+        use sr = new StreamReader(fs)
+        return! sr.ReadToEndAsync()
+    }
+
+let makeEntry (snippet: string) (tooltip: string) =
+    { snippet = $"'{snippet}'"
+      tooltip = tooltip }
+
+[<RequireQualifiedAccess>]
+[<NoEquality>]
+[<NoComparison>]
+type ConfigState =
+    | Empty
+    | Valid of Config
+    | Invalid of SnippetEntry
+
 let parseSnippets (json: string) =
     try
-        json
-        |> JsonSerializer.Deserialize<Snippets>
+        json.Trim()
         |> function
-            | null -> Array.empty
-            | _ as snippets -> snippets.snippets
-    with _ ->
-        Array.empty
+            | "" -> ConfigState.Empty
+            | _ ->
+                json
+                |> JsonSerializer.Deserialize<Config>
+                |> function
+                    | null ->
+                        makeEntry $"{snippetFilesName} is null or invalid format." ""
+                        |> ConfigState.Invalid
+                    | snippets -> ConfigState.Valid snippets
+    with e ->
+        makeEntry $"An error occurred while parsing {snippetFilesName}" e.Message
+        |> ConfigState.Invalid
+
+let parseSnippetFile (path: string) =
+    task {
+        let! json = readSnippetFile path
+        return parseSnippets json
+    }
 
 let semaphore = new SemaphoreSlim(1, 1)
 
@@ -79,20 +115,25 @@ let startRefreshTask (path: string) =
 
         try
             try
-                // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
-                use fs =
-                    new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
-
-                use sr = new StreamReader(fs)
-                let! json = sr.ReadToEndAsync()
+                let! result = parseSnippetFile path
                 snippets.Clear()
-                json |> parseSnippets |> Array.iter snippets.Enqueue
+
+                result
+                |> function
+                    | ConfigState.Empty -> ()
+                    | ConfigState.Valid { snippets = snps } ->
+                        snps
+                        |> function
+                            | null -> Array.empty
+                            | snippets -> snippets
+                        |> Array.iter snippets.Enqueue
+                    | ConfigState.Invalid record -> record |> snippets.Enqueue
 #if DEBUG
                 Logger.LogFile [ "Refreshed snippets." ]
 #endif
             with e ->
 #if DEBUG
-                Logger.LogFile [ $"Error refreshing snippets: {e.Message}" ]
+                Logger.LogFile [ $"An error occurred while refreshing snippets: {e.Message}" ]
 #else
                 ()
 #endif
@@ -131,11 +172,14 @@ let rec startFileWatchingEvent (directory: string) =
     Logger.LogFile [ "Started file watching event." ]
 #endif
 
-let load () =
+let getSnippetPath () =
     let snippetDirectory =
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
-    let snippetPath = Path.Combine(snippetDirectory, snippetFilesName)
+    snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
+
+let load () =
+    let snippetDirectory, snippetPath = getSnippetPath ()
 
     if File.Exists(snippetPath) then
         startRefreshTask snippetPath
@@ -160,3 +204,65 @@ let getPredictiveSuggestions (input: string) : Generic.List<PredictiveSuggestion
         |> (getFilter >> getSnippets)
         |> Seq.map (snippetToTuple >> PredictiveSuggestion)
     |> Linq.Enumerable.ToList
+
+let loadConfig () =
+    let snippetPath = getSnippetPath () |> snd
+
+    if snippetPath |> (File.Exists >> not) then
+        Error $"The {snippetFilesName} file does not exist."
+    else
+        snippetPath
+        |> parseSnippetFile
+        |> _.Result
+        |> function
+            | ConfigState.Empty -> Ok { snippets = null }
+            | ConfigState.Valid snippets -> Ok snippets
+            | ConfigState.Invalid e -> $"{e.snippet}: {e.tooltip}" |> Error
+
+let makeErrorRecord (e: string) =
+    new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
+
+let makeSnippetEntry (snippet: string) (tooltip: string) =
+    { snippet = snippet; tooltip = tooltip }
+
+let storeConfig (config: Config) =
+    let json =
+        JsonSerializer.Serialize(config, JsonSerializerOptions(WriteIndented = true))
+
+    let snippetPath = getSnippetPath () |> snd
+
+    try
+        File.WriteAllText(snippetPath, json)
+        Ok()
+    with e ->
+        e.Message |> Error
+
+let addSnippets (snippets: SnippetEntry seq) =
+    loadConfig ()
+    |> function
+        | Ok config ->
+            let newSnippets =
+                config.snippets
+                |> function
+                    | null -> Array.ofSeq snippets
+                    | snps -> Array.append snps <| Array.ofSeq snippets
+
+            let config = { config with snippets = newSnippets }
+            storeConfig config
+        | Error e -> e |> Error
+
+let removeSnippets (snippets: string seq) =
+    loadConfig ()
+    |> function
+        | Ok config ->
+            let newSnippets =
+                config.snippets
+                |> function
+                    | null -> Array.empty
+                    | snps ->
+                        let removals = set snippets
+                        snps |> Array.filter (_.snippet >> removals.Contains >> not)
+
+            let config = { config with snippets = newSnippets }
+            storeConfig config
+        | Error e -> e |> Error
