@@ -205,7 +205,9 @@ let makeSnippetEntry (snippet: string) (tooltip: string) =
     { snippet = snippet; tooltip = tooltip }
 
 let storeConfig (config: Config) =
-    let json = JsonSerializer.Serialize(config)
+    let json =
+        JsonSerializer.Serialize(config, JsonSerializerOptions(WriteIndented = true))
+
     let snippetPath = getSnippetPath () |> snd
 
     try
