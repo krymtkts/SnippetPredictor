@@ -45,7 +45,7 @@ module Debug =
 #endif
 
 type SnippetEntry = { snippet: string; tooltip: string }
-type Config = { snippets: SnippetEntry[] }
+type Config = { snippets: SnippetEntry[] | null }
 
 [<Literal>]
 let snippetFilesName = ".snippet-predictor.json"
@@ -71,16 +71,30 @@ let makeEntry (snippet: string) (tooltip: string) =
     { snippet = $"'{snippet}'"
       tooltip = tooltip }
 
+[<RequireQualifiedAccess>]
+[<NoEquality>]
+[<NoComparison>]
+type ConfigState =
+    | Empty
+    | Valid of Config
+    | Invalid of SnippetEntry
+
 let parseSnippets (json: string) =
     try
-        json
-        |> JsonSerializer.Deserialize<Config>
+        json.Trim()
         |> function
-            | null -> makeEntry $"{snippetFilesName} is null or invalid format." "" |> Error
-            | snippets -> Ok snippets
+            | "" -> ConfigState.Empty
+            | _ ->
+                json
+                |> JsonSerializer.Deserialize<Config>
+                |> function
+                    | null ->
+                        makeEntry $"{snippetFilesName} is null or invalid format." ""
+                        |> ConfigState.Invalid
+                    | snippets -> ConfigState.Valid snippets
     with e ->
         makeEntry $"An error occurred while parsing {snippetFilesName}" e.Message
-        |> Error
+        |> ConfigState.Invalid
 
 let parseSnippetFile (path: string) =
     task {
@@ -106,8 +120,14 @@ let startRefreshTask (path: string) =
 
                 result
                 |> function
-                    | Ok { snippets = snps } -> snps |> Array.iter snippets.Enqueue
-                    | Error record -> record |> snippets.Enqueue
+                    | ConfigState.Empty -> ()
+                    | ConfigState.Valid { snippets = snps } ->
+                        snps
+                        |> function
+                            | null -> Array.empty
+                            | snippets -> snippets
+                        |> Array.iter snippets.Enqueue
+                    | ConfigState.Invalid record -> record |> snippets.Enqueue
 #if DEBUG
                 Logger.LogFile [ "Refreshed snippets." ]
 #endif
@@ -195,8 +215,9 @@ let loadConfig () =
         |> parseSnippetFile
         |> _.Result
         |> function
-            | Ok snippets -> Ok snippets
-            | Error e -> $"{e.snippet}: {e.tooltip}" |> Error
+            | ConfigState.Empty -> Ok { snippets = null }
+            | ConfigState.Valid snippets -> Ok snippets
+            | ConfigState.Invalid e -> $"{e.snippet}: {e.tooltip}" |> Error
 
 let makeErrorRecord (e: string) =
     new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
@@ -220,7 +241,12 @@ let addSnippets (snippets: SnippetEntry seq) =
     loadConfig ()
     |> function
         | Ok config ->
-            let newSnippets = Array.append config.snippets <| Array.ofSeq snippets
+            let newSnippets =
+                config.snippets
+                |> function
+                    | null -> Array.ofSeq snippets
+                    | snps -> Array.append snps <| Array.ofSeq snippets
+
             let config = { config with snippets = newSnippets }
             storeConfig config
         | Error e -> e |> Error
