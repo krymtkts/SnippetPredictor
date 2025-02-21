@@ -45,7 +45,7 @@ module Debug =
 #endif
 
 type SnippetEntry = { snippet: string; tooltip: string }
-type Snippets = { snippets: SnippetEntry[] }
+type Config = { snippets: SnippetEntry[] }
 
 [<Literal>]
 let snippetFilesName = ".snippet-predictor.json"
@@ -74,7 +74,7 @@ let makeEntry (snippet: string) (tooltip: string) =
 let parseSnippets (json: string) =
     try
         json
-        |> JsonSerializer.Deserialize<Snippets>
+        |> JsonSerializer.Deserialize<Config>
         |> function
             | null -> makeEntry $"{snippetFilesName} is null or invalid format." "" |> Error
             | snippets -> Ok snippets
