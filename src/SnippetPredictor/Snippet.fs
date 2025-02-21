@@ -1,4 +1,4 @@
-module Snippet
+﻿module Snippet
 
 open System
 open System.IO
@@ -84,9 +84,8 @@ let parseSnippets (json: string) =
         json.Trim()
         |> function
             | "" -> ConfigState.Empty
-            | _ ->
-                json
-                |> JsonSerializer.Deserialize<Config>
+            | json ->
+                JsonSerializer.Deserialize<Config>(json, JsonSerializerOptions(PropertyNameCaseInsensitive = true))
                 |> function
                     | null ->
                         makeEntry $"{snippetFilesName} is null or invalid format." ""
