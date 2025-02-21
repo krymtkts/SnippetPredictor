@@ -212,19 +212,15 @@ let getPredictiveSuggestions (input: string) : Generic.List<PredictiveSuggestion
         |> Seq.map (snippetToTuple >> PredictiveSuggestion)
     |> Linq.Enumerable.ToList
 
+let toError (e: SnippetEntry) = $"{e.Snippet}: {e.Tooltip}" |> Error
+
 let loadConfig () =
     let snippetPath = getSnippetPath () |> snd
 
     if snippetPath |> (File.Exists >> not) then
-        Error $"The {snippetFilesName} file does not exist."
+        ConfigState.Empty
     else
-        snippetPath
-        |> parseSnippetFile
-        |> _.Result
-        |> function
-            | ConfigState.Empty -> Ok { Snippets = null }
-            | ConfigState.Valid snippets -> Ok snippets
-            | ConfigState.Invalid e -> $"{e.Snippet}: {e.Tooltip}" |> Error
+        snippetPath |> parseSnippetFile |> _.Result
 
 let makeErrorRecord (e: string) =
     new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
@@ -242,24 +238,37 @@ let storeConfig (config: Config) =
     with e ->
         e.Message |> Error
 
+let loadSnippets () =
+    loadConfig ()
+    |> function
+        | ConfigState.Empty -> Array.empty |> Ok
+        | ConfigState.Valid snippets ->
+            snippets
+            |> _.Snippets
+            |> function
+                | null -> Array.empty |> Ok
+                | snps -> snps |> Ok
+        | ConfigState.Invalid e -> e |> toError
+
 let addSnippets (snippets: SnippetEntry seq) =
     loadConfig ()
     |> function
-        | Ok config ->
+        | ConfigState.Empty -> { Snippets = Array.ofSeq snippets } |> storeConfig
+        | ConfigState.Valid config ->
             let newSnippets =
                 config.Snippets
                 |> function
                     | null -> Array.ofSeq snippets
                     | snps -> Array.append snps <| Array.ofSeq snippets
 
-            let config = { config with Snippets = newSnippets }
-            storeConfig config
-        | Error e -> e |> Error
+            { config with Snippets = newSnippets } |> storeConfig
+        | ConfigState.Invalid e -> e |> toError
 
 let removeSnippets (snippets: string seq) =
     loadConfig ()
     |> function
-        | Ok config ->
+        | ConfigState.Empty -> Ok()
+        | ConfigState.Valid config ->
             let newSnippets =
                 config.Snippets
                 |> function
@@ -268,6 +277,5 @@ let removeSnippets (snippets: string seq) =
                         let removals = set snippets
                         snps |> Array.filter (_.Snippet >> removals.Contains >> not)
 
-            let config = { config with Snippets = newSnippets }
-            storeConfig config
-        | Error e -> e |> Error
+            { config with Snippets = newSnippets } |> storeConfig
+        | ConfigState.Invalid e -> e |> toError
