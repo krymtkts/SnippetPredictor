@@ -200,3 +200,25 @@ let loadConfig () =
 
 let makeErrorRecord (e: string) =
     new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
+
+let makeSnippetEntry (snippet: string) (tooltip: string) =
+    { snippet = snippet; tooltip = tooltip }
+
+let storeConfig (config: Config) =
+    let json = JsonSerializer.Serialize(config)
+    let snippetPath = getSnippetPath () |> snd
+
+    try
+        File.WriteAllText(snippetPath, json)
+        Ok()
+    with e ->
+        e.Message |> Error
+
+let addSnippets (snippets: SnippetEntry seq) =
+    loadConfig ()
+    |> function
+        | Ok config ->
+            let newSnippets = Array.append config.snippets <| Array.ofSeq snippets
+            let config = { config with snippets = newSnippets }
+            storeConfig config
+        | Error e -> e |> Error

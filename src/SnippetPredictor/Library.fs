@@ -65,3 +65,32 @@ type GetSnippetCommand() =
         |> function
             | Ok snippets -> snippets |> __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
+
+[<Cmdlet(VerbsCommon.Add, "Snippet")>]
+type AddSnippetCommand() =
+    inherit Cmdlet()
+
+    let snippets = List<Snippet.SnippetEntry>()
+
+    [<Parameter(Position = 0,
+                Mandatory = true,
+                ValueFromPipeline = true,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The text of the snippet")>]
+    member val Text = "" with get, set
+
+    [<Parameter(Position = 1,
+                Mandatory = false,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The tooltip of the snippet")>]
+    member val Tooltip = "" with get, set
+
+    override __.ProcessRecord() =
+        Snippet.makeSnippetEntry __.Text __.Tooltip |> snippets.Add
+
+    override __.EndProcessing() =
+        snippets
+        |> Snippet.addSnippets
+        |> function
+            | Ok() -> ()
+            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
