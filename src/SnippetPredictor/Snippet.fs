@@ -1,4 +1,4 @@
-namespace SnippetPredictor
+﻿namespace SnippetPredictor
 
 #if DEBUG
 [<AutoOpen>]
@@ -56,6 +56,9 @@ module Snippet =
 
     [<Literal>]
     let snippetSymbol = ":snp"
+
+    [<Literal>]
+    let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
 
     let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
 
@@ -185,7 +188,10 @@ module Snippet =
 
     let getSnippetPath () =
         let snippetDirectory =
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            match Environment.GetEnvironmentVariable(environmentVariable) with
+            | null
+            | "" -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            | path -> path
 
         snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
 
