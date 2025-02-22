@@ -1,4 +1,4 @@
-namespace SnippetPredictor
+﻿namespace SnippetPredictor
 
 open System
 open System.Collections.Generic
@@ -56,7 +56,7 @@ type Init() =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
 
 [<Cmdlet(VerbsCommon.Get, "Snippet")>]
-[<OutputType(typeof<SnippetConfig>)>]
+[<OutputType(typeof<SnippetEntry[]>)>]
 type GetSnippetCommand() =
     inherit Cmdlet()
 
