@@ -4,7 +4,6 @@ type SnippetEntry = { Snippet: string; Tooltip: string }
 type SnippetConfig = { Snippets: SnippetEntry[] | null }
 
 module Snippet =
-
     open System
     open System.IO
     open System.Collections
@@ -48,7 +47,6 @@ module Snippet =
                             caller
                     ))
 #endif
-
 
     [<Literal>]
     let snippetFilesName = ".snippet-predictor.json"
