@@ -1,4 +1,4 @@
-﻿namespace SnippetPredictor
+namespace SnippetPredictor
 
 open System
 open System.Collections.Generic

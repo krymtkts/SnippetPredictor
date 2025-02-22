@@ -1,4 +1,4 @@
-﻿namespace SnippetPredictor
+namespace SnippetPredictor
 
 #if DEBUG
 [<AutoOpen>]
