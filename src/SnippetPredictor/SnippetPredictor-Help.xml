@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<helpItems xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" schema="maml" xmlns="http://msh">
+  <command:command>
+    <command:details>
+      <command:name>Add-Snippet</command:name>
+      <maml:description>
+        <maml:para>Add snippets with tooltip to the snippet configuration.</maml:para>
+      </maml:description>
+      <command:verb>Add</command:verb>
+      <command:noun>Snippet</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Add snippets with tooltip to the snippet configuration. The snippet configuration is located at `~/.snippet-predictor.json`.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Add-Snippet</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+          <maml:name>Snippet</maml:name>
+          <maml:description>
+            <maml:para>The text of the snippet</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+          <maml:name>Tooltip</maml:name>
+          <maml:description>
+            <maml:para>The tooltip of the snippet</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="true">System.String</command:parameterValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+        <maml:name>Snippet</maml:name>
+        <maml:description>
+          <maml:para>The text of the snippet</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+        <maml:name>Tooltip</maml:name>
+        <maml:description>
+          <maml:para>The tooltip of the snippet</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="true">System.String</command:parameterValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <dev:name>System.String</dev:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>The snippet string to be added.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <dev:name>System.Object</dev:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>No output.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para />
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Add-Snippet "echo hello"
+```</maml:para>
+          <maml:para>Add a snippet.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 2 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Add-Snippet 'echo hello' 'say hello'
+```</maml:para>
+          <maml:para>Add a snippet with tooltip.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 3 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+{echo hello} | Add-Snippet
+```</maml:para>
+          <maml:para>Add a snippet.
+You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 4 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+@{Snippet='echo hello'; Tooltip='say hello'},@{Snippet='echo goodbye'; Tooltip='say goobye'} | % {[pscustomobject]$_} | Add-Snippet
+```</maml:para>
+          <maml:para>Add a snippet through pipeline.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>SnippetPredictor.md</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
+      <command:name>Get-Snippet</command:name>
+      <maml:description>
+        <maml:para>Retrieves a saved snippets.</maml:para>
+      </maml:description>
+      <command:verb>Get</command:verb>
+      <command:noun>Snippet</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Retrieves a saved snippets. The save snippets stored in the snippet configuration. The snippet configuration is located at `~/.snippet-predictor.json`.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Get-Snippet</maml:name>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters />
+    <command:inputTypes />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <dev:name>SnippetPredictor.SnippetEntry</dev:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>A record containing a snippet and its tooltip.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para />
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Get-Snippet
+```</maml:para>
+          <maml:para>Retrieves a saved snippets.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>SnippetPredictor.md</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
+      <command:name>Remove-Snippet</command:name>
+      <maml:description>
+        <maml:para>Remove specified snippets from the snippet configuration.</maml:para>
+      </maml:description>
+      <command:verb>Remove</command:verb>
+      <command:noun>Snippet</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Remove specified snippets from the snippet configuration. The snippet configuration is located at `~/.snippet-predictor.json`.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Remove-Snippet</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+          <maml:name>Snippet</maml:name>
+          <maml:description>
+            <maml:para>The text of the snippet to remove</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+        <maml:name>Snippet</maml:name>
+        <maml:description>
+          <maml:para>The text of the snippet to remove</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <dev:name>System.String</dev:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>The snippet string to be removed.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <dev:name>System.Object</dev:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>No output.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para />
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Remove-Snippet "echo hello"
+```</maml:para>
+          <maml:para>Remove the snippet.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 2 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+{echo hello} | Remove-Snippet
+```</maml:para>
+          <maml:para>Remove the snippet.
+You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 3 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Get-Snippet | ? tooltip -like *test* | Remove-Snippet
+```</maml:para>
+          <maml:para>Remove snippets whose tooltip contains "test".</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>SnippetPredictor.md</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+</helpItems>
