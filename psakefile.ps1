@@ -26,9 +26,23 @@ Task Clean {
         "./src/*/*/${Stage}"
         './release'
         "${ModulePublishPath}/*"
-    ) | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Exclude .gitkeep
+    ) | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Exclude .gitignore, .gitkeep
 }
 
+function Get-ValidMarkdownCommentHelp {
+    if (Get-Command Measure-PlatyPSMarkdown -ErrorAction SilentlyContinue) {
+        $help = Measure-PlatyPSMarkdown .\docs\$ModuleName\*.md | Where-Object Filetype -Match CommandHelp
+        $validations = $help.FilePath | Test-MarkdownCommandHelp -DetailView
+        if (-not $validations.IsValid) {
+            $validations.Messages | Where-Object { $_ -notlike 'PASS:*' } | Write-Error
+            throw 'Invalid markdown help files.'
+        }
+        $help
+    }
+    else {
+        Write-Warning 'PlatyPS is not installed.'
+    }
+}
 
 Task Lint {
     dotnet fantomas ./src --check
@@ -39,6 +53,7 @@ Task Lint {
     if ($warn) {
         throw 'Invoke-ScriptAnalyzer for psakefile.ps1 failed.'
     }
+    Get-ValidMarkdownCommentHelp | Out-Null
 }
 
 Task Build -Depends Clean {
@@ -59,7 +74,13 @@ Task Import -Depends Build {
     Import-Module "./bin/$ModuleName" -Global
 }
 
-Task Release -PreCondition { $Stage -eq 'Release' } -Depends Import {
+Task ExternalHelp -Depends Import {
+    $help = Get-ValidMarkdownCommentHelp
+    $help.FilePath | Update-MarkdownCommandHelp -NoBackup
+    $help.FilePath | Import-MarkdownCommandHelp | Export-MamlCommandHelp -OutputFolder ./src/ -Force | Out-Null
+}
+
+Task Release -PreCondition { $Stage -eq 'Release' } -Depends ExternalHelp {
     "Release $($ModuleName)! version=$ModuleVersion dryrun=$DryRun"
 
     $m = Get-Module $ModuleName
