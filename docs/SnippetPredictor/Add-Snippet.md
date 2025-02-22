@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: SnippetPredictor.dll-Help.xml
-HelpUri: ''
+HelpUri: ""
 Locale: en-US
 Module Name: SnippetPredictor
 ms.date: 02-22-2025
@@ -13,11 +13,11 @@ title: Add-Snippet
 
 ## SYNOPSIS
 
-{{ Fill in the Synopsis }}
+Add snippets with tooltip to the snippet configuration.
 
 ## SYNTAX
 
-### __AllParameterSets
+### \_\_AllParameterSets
 
 ```
 Add-Snippet [-Snippet] <string> [[-Tooltip] <string>] [<CommonParameters>]
@@ -27,13 +27,43 @@ Add-Snippet [-Snippet] <string> [[-Tooltip] <string>] [<CommonParameters>]
 
 ## DESCRIPTION
 
-{{ Fill in the Description }}
+Add snippets with tooltip to the snippet configuration.
+The snippet configuration is located at `~/.snippet-predictor.json`.
 
 ## EXAMPLES
 
 ### Example 1
 
-{{ Add example description here }}
+```powershell
+Add-Snippet "echo hello"
+```
+
+Add a snippet.
+
+### Example 2
+
+```powershell
+Add-Snippet 'echo hello' 'say hello'
+```
+
+Add a snippet with tooltip.
+
+### Example 3
+
+```powershell
+{echo hello} | Add-Snippet
+```
+
+Add a snippet.
+You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.
+
+### Example 4
+
+```powershell
+@{Snippet='echo hello'; Tooltip='say hello'},@{Snippet='echo goodbye'; Tooltip='say goobye'} | % {[pscustomobject]$_} | Add-Snippet
+```
+
+Add a snippet through pipeline.
 
 ## PARAMETERS
 
@@ -43,20 +73,20 @@ The text of the snippet
 
 ```yaml
 Type: System.String
-DefaultValue: ''
+DefaultValue: ""
 SupportsWildcards: false
 ParameterValue: []
 Aliases: []
 ParameterSets:
-- Name: (All)
-  Position: 0
-  IsRequired: true
-  ValueFromPipeline: true
-  ValueFromPipelineByPropertyName: true
-  ValueFromRemainingArguments: false
+  - Name: (All)
+    Position: 0
+    IsRequired: true
+    ValueFromPipeline: true
+    ValueFromPipelineByPropertyName: true
+    ValueFromRemainingArguments: false
 DontShow: false
 AcceptedValues: []
-HelpMessage: ''
+HelpMessage: ""
 ```
 
 ### -Tooltip
@@ -65,20 +95,20 @@ The tooltip of the snippet
 
 ```yaml
 Type: System.String
-DefaultValue: ''
+DefaultValue: ""
 SupportsWildcards: false
 ParameterValue: []
 Aliases: []
 ParameterSets:
-- Name: (All)
-  Position: 1
-  IsRequired: false
-  ValueFromPipeline: false
-  ValueFromPipelineByPropertyName: true
-  ValueFromRemainingArguments: false
+  - Name: (All)
+    Position: 1
+    IsRequired: false
+    ValueFromPipeline: false
+    ValueFromPipelineByPropertyName: true
+    ValueFromRemainingArguments: false
 DontShow: false
 AcceptedValues: []
-HelpMessage: ''
+HelpMessage: ""
 ```
 
 ### CommonParameters
@@ -92,19 +122,14 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### System.String
 
-{{ Fill in the Description }}
+The snippet string to be added.
 
 ## OUTPUTS
 
 ### System.Object
 
-{{ Fill in the Description }}
+No output.
 
 ## NOTES
 
-{{ Fill in the Notes }}
-
 ## RELATED LINKS
-
-{{ Fill in the related links here }}
-
