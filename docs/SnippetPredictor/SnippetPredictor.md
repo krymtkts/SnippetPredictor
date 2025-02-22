@@ -15,17 +15,18 @@ title: SnippetPredictor Module
 ## Description
 
 A predictor that suggests a snippet based on the input.
+The snippet configuration is located at `~/.snippet-predictor.json`.
 
 ## SnippetPredictor
 
 ### [Add-Snippet](Add-Snippet.md)
 
-{{ Fill in the Synopsis }}
+Add snippets with tooltip to the snippet configuration.
 
 ### [Get-Snippet](Get-Snippet.md)
 
-{{ Fill in the Synopsis }}
+Retrieves a saved snippets.
 
 ### [Remove-Snippet](Remove-Snippet.md)
 
-{{ Fill in the Synopsis }}
+Remove specified snippets from the snippet configuration.
