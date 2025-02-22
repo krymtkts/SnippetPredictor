@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: SnippetPredictor.dll-Help.xml
-HelpUri: ''
+HelpUri: ""
 Locale: en-US
 Module Name: SnippetPredictor
 ms.date: 02-22-2025
@@ -13,11 +13,11 @@ title: Remove-Snippet
 
 ## SYNOPSIS
 
-{{ Fill in the Synopsis }}
+Remove specified snippets from the snippet configuration.
 
 ## SYNTAX
 
-### __AllParameterSets
+### \_\_AllParameterSets
 
 ```
 Remove-Snippet [-Snippet] <string> [<CommonParameters>]
@@ -27,13 +27,35 @@ Remove-Snippet [-Snippet] <string> [<CommonParameters>]
 
 ## DESCRIPTION
 
-{{ Fill in the Description }}
+Remove specified snippets from the snippet configuration.
+The snippet configuration is located at `~/.snippet-predictor.json`.
 
 ## EXAMPLES
 
 ### Example 1
 
-{{ Add example description here }}
+```powershell
+Remove-Snippet "echo hello"
+```
+
+Remove the snippet.
+
+### Example 2
+
+```powershell
+{echo hello} | Remove-Snippet
+```
+
+Remove the snippet.
+You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.
+
+### Example 3
+
+```powershell
+Get-Snippet | ? tooltip -like *test* | Remove-Snippet
+```
+
+Remove snippets whose tooltip contains "test".
 
 ## PARAMETERS
 
@@ -43,20 +65,20 @@ The text of the snippet to remove
 
 ```yaml
 Type: System.String
-DefaultValue: ''
+DefaultValue: ""
 SupportsWildcards: false
 ParameterValue: []
 Aliases: []
 ParameterSets:
-- Name: (All)
-  Position: 0
-  IsRequired: true
-  ValueFromPipeline: true
-  ValueFromPipelineByPropertyName: true
-  ValueFromRemainingArguments: false
+  - Name: (All)
+    Position: 0
+    IsRequired: true
+    ValueFromPipeline: true
+    ValueFromPipelineByPropertyName: true
+    ValueFromRemainingArguments: false
 DontShow: false
 AcceptedValues: []
-HelpMessage: ''
+HelpMessage: ""
 ```
 
 ### CommonParameters
@@ -70,19 +92,14 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### System.String
 
-{{ Fill in the Description }}
+The snippet string to be removed.
 
 ## OUTPUTS
 
 ### System.Object
 
-{{ Fill in the Description }}
+No output.
 
 ## NOTES
 
-{{ Fill in the Notes }}
-
 ## RELATED LINKS
-
-{{ Fill in the related links here }}
-
