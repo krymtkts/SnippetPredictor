@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: SnippetPredictor-Help.xml
-HelpUri: ""
+HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Add-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
 ms.date: 02-22-2025
@@ -133,3 +133,5 @@ No output.
 ## NOTES
 
 ## RELATED LINKS
+
+- [SnippetPredictor.md](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md)

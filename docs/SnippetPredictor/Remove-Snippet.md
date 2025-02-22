@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: SnippetPredictor-Help.xml
-HelpUri: ""
+HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Remove-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
 ms.date: 02-22-2025
@@ -104,4 +104,4 @@ No output.
 
 ## RELATED LINKS
 
-{{ Fill in the related links here }}
+- [SnippetPredictor.md](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md)

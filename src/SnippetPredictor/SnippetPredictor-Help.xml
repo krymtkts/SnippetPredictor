@@ -119,7 +119,12 @@ You can pass code blocks because code blocks are implicitly converted to strings
         <dev:remarks />
       </command:example>
     </command:examples>
-    <command:relatedLinks />
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>SnippetPredictor.md</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
   </command:command>
   <command:command>
     <command:details>
@@ -168,7 +173,12 @@ Get-Snippet
         <dev:remarks />
       </command:example>
     </command:examples>
-    <command:relatedLinks />
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>SnippetPredictor.md</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
   </command:command>
   <command:command>
     <command:details>
@@ -264,6 +274,11 @@ Get-Snippet | ? tooltip -like *test* | Remove-Snippet
         <dev:remarks />
       </command:example>
     </command:examples>
-    <command:relatedLinks />
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>SnippetPredictor.md</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
   </command:command>
 </helpItems>

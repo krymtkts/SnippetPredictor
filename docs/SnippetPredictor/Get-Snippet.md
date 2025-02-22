@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: SnippetPredictor-Help.xml
-HelpUri: ""
+HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Get-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
 ms.date: 02-22-2025
@@ -62,4 +62,4 @@ A record containing a snippet and its tooltip.
 
 ## RELATED LINKS
 
-{{ Fill in the related links here }}
+- [SnippetPredictor.md](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md)

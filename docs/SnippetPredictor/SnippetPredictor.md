@@ -1,7 +1,7 @@
 ---
 document type: module
 Help Version: 0.1.0
-HelpInfoUri:
+HelpInfoUri: "https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md"
 Locale: en-US
 Module Guid: 46275f69-83fc-4a16-89b5-fd0e750c6358
 Module Name: SnippetPredictor
