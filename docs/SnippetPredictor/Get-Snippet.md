@@ -1,6 +1,6 @@
 ﻿---
 document type: cmdlet
-external help file: SnippetPredictor.dll-Help.xml
+external help file: SnippetPredictor-Help.xml
 HelpUri: ""
 Locale: en-US
 Module Name: SnippetPredictor
