@@ -1,7 +1,7 @@
 ﻿---
 document type: cmdlet
 external help file: SnippetPredictor.dll-Help.xml
-HelpUri: ''
+HelpUri: ""
 Locale: en-US
 Module Name: SnippetPredictor
 ms.date: 02-22-2025
@@ -13,11 +13,11 @@ title: Get-Snippet
 
 ## SYNOPSIS
 
-{{ Fill in the Synopsis }}
+Retrieves a saved snippets.
 
 ## SYNTAX
 
-### __AllParameterSets
+### \_\_AllParameterSets
 
 ```
 Get-Snippet [<CommonParameters>]
@@ -27,13 +27,19 @@ Get-Snippet [<CommonParameters>]
 
 ## DESCRIPTION
 
-{{ Fill in the Description }}
+Retrieves a saved snippets.
+The save snippets stored in the snippet configuration.
+The snippet configuration is located at `~/.snippet-predictor.json`.
 
 ## EXAMPLES
 
 ### Example 1
 
-{{ Add example description here }}
+```powershell
+Get-Snippet
+```
+
+Retrieves a saved snippets.
 
 ## PARAMETERS
 
@@ -48,15 +54,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-### SnippetPredictor.SnippetConfig
+### SnippetPredictor.SnippetEntry
 
-{{ Fill in the Description }}
+A record containing a snippet and its tooltip.
 
 ## NOTES
-
-{{ Fill in the Notes }}
 
 ## RELATED LINKS
 
 {{ Fill in the related links here }}
-
