@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "06:00"
+      timezone: "Asia/Tokyo"
+    groups:
+      workflow:
+        patterns:
+          - "*"
+    assignees:
+      - "krymtkts"
+    reviewers:
+      - "krymtkts"
+  # Maintain dependencies for NuGet
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "06:00"
+      timezone: "Asia/Tokyo"
+    groups:
+      powershell-sdk:
+        patterns:
+          - "Microsoft.PowerShell.SDK"
+        update-types:
+          - "patch"
+    ignore:
+      - dependency-name: "Microsoft.PowerShell.SDK"
+        update-types:
+          - "major"
+          - "minor"
+    assignees:
+      - "krymtkts"
+    reviewers:
+      - "krymtkts"
