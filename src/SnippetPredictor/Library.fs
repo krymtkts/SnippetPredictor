@@ -7,7 +7,7 @@ open System.Management.Automation.Subsystem
 open System.Management.Automation.Subsystem.Prediction
 open System.Threading
 
-type SamplePredictor(guid: string) =
+type SnippetPredictor(guid: string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
@@ -48,7 +48,7 @@ type Init() =
 
     interface IModuleAssemblyInitializer with
         member __.OnImport() =
-            let predictor = SamplePredictor(identifier)
+            let predictor = SnippetPredictor(identifier)
             SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, predictor)
 
     interface IModuleAssemblyCleanup with
