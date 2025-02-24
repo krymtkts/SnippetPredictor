@@ -13,7 +13,7 @@ Properties {
 }
 
 Task default -Depends TestAll
-Task TestAll -Depends Init, Build, UnitTest, E2ETest, Lint
+Task TestAll -Depends Init, Build, UnitTest, Coverage, E2ETest, Lint
 
 Task Init {
     'Init is running!'
@@ -77,7 +77,7 @@ Task UnitTest {
 }
 
 Task Coverage -Depends UnitTest {
-    $target = "./src/${ModuleName}.Test/bin/*/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
+    $target = "./src/${ModuleName}.Test/bin/Debug/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
     dotnet coverlet $target --target 'dotnet' --targetargs 'test --no-build' --format cobertura --output ./coverage.cobertura.xml --include "[${ModuleName}*]*" --exclude-by-attribute 'CompilerGeneratedAttribute'
 
     Remove-Item ./coverage/*
