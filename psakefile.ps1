@@ -13,6 +13,7 @@ Properties {
 }
 
 Task default -Depends TestAll
+Task TestAll -Depends Init, Build, UnitTest, E2ETest, Lint
 
 Task Init {
     'Init is running!'
@@ -56,14 +57,6 @@ Task Lint {
     Get-ValidMarkdownCommentHelp | Out-Null
 }
 
-Task Coverage {
-    $target = "./src/${ModuleName}.Test/bin/*/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
-    dotnet coverlet $target --target 'dotnet' --targetargs 'test --no-build' --format cobertura --output ./coverage.cobertura.xml --include "[${ModuleName}*]*" --exclude-by-attribute 'CompilerGeneratedAttribute'
-
-    Remove-Item ./coverage/*
-    dotnet reportgenerator
-}
-
 Task Build -Depends Clean {
     'Build command let!'
     Import-LocalizedData -BindingVariable module -BaseDirectory $ModuleSrcPath -FileName "${ModuleName}.psd1"
@@ -74,6 +67,21 @@ Task Build -Depends Clean {
     "Completed to build $ModuleName ver$ModuleVersion"
 }
 
+Task UnitTest {
+    dotnet test --nologo --logger:"console;verbosity=detailed" --blame-hang-timeout 5s --blame-hang-dump-type full
+    if (-not $?) {
+        throw 'dotnet test failed.'
+    }
+}
+
+Task Coverage -Depends UnitTest {
+    $target = "./src/${ModuleName}.Test/bin/*/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
+    dotnet coverlet $target --target 'dotnet' --targetargs 'test --no-build' --format cobertura --output ./coverage.cobertura.xml --include "[${ModuleName}*]*" --exclude-by-attribute 'CompilerGeneratedAttribute'
+
+    Remove-Item ./coverage/*
+    dotnet reportgenerator
+}
+
 Task Import -Depends Build {
     "Import $ModuleName ver$ModuleVersion"
     if ( -not ($ModuleName -and $ModuleVersion)) {
@@ -82,13 +90,20 @@ Task Import -Depends Build {
     Import-Module "./bin/$ModuleName" -Global
 }
 
+Task E2ETest -Depends Import {
+    $result = Invoke-Pester -PassThru
+    if ($result.Failed) {
+        throw 'Invoke-Pester failed.'
+    }
+}
+
 Task ExternalHelp -Depends Import {
     $help = Get-ValidMarkdownCommentHelp
     $help.FilePath | Update-MarkdownCommandHelp -NoBackup
     $help.FilePath | Import-MarkdownCommandHelp | Export-MamlCommandHelp -OutputFolder ./src/ -Force | Out-Null
 }
 
-Task Release -PreCondition { $Stage -eq 'Release' } -Depends ExternalHelp {
+Task Release -PreCondition { $Stage -eq 'Release' } -Depends TestAll, ExternalHelp {
     "Release $($ModuleName)! version=$ModuleVersion dryrun=$DryRun"
 
     $m = Get-Module $ModuleName
