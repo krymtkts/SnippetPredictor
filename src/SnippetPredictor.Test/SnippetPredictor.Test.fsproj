@@ -22,7 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Sample.fs" />
+    <ProjectReference Include="..\SnippetPredictor\SnippetPredictor.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Snippet.fs" />
   </ItemGroup>
 
 </Project>
