@@ -8,11 +8,12 @@ Properties {
     $ModuleName = Get-ChildItem ./src/*/*.psd1 | Select-Object -ExpandProperty BaseName
     $ModuleVersion = (Resolve-Path "./src/${ModuleName}/*.fsproj" | Select-Xml '//Version/text()').Node.Value
     $ModuleSrcPath = Resolve-Path "./src/${ModuleName}/"
-    $ModulePublishPath = Resolve-Path "./bin/${ModuleName}/"
+    $ModulePublishPath = Resolve-Path "./publish/${ModuleName}/"
     "Module: ${ModuleName} ver${ModuleVersion} root=${ModuleSrcPath} publish=${ModulePublishPath}"
 }
 
 Task default -Depends TestAll
+Task TestAll -Depends Init, Build, UnitTest, Coverage, E2ETest, Lint
 
 Task Init {
     'Init is running!'
@@ -31,7 +32,7 @@ Task Clean {
 
 function Get-ValidMarkdownCommentHelp {
     if (Get-Command Measure-PlatyPSMarkdown -ErrorAction SilentlyContinue) {
-        $help = Measure-PlatyPSMarkdown .\docs\$ModuleName\*.md | Where-Object Filetype -Match CommandHelp
+        $help = Measure-PlatyPSMarkdown ./docs\$ModuleName\*.md | Where-Object Filetype -Match CommandHelp
         $validations = $help.FilePath | Test-MarkdownCommandHelp -DetailView
         if (-not $validations.IsValid) {
             $validations.Messages | Where-Object { $_ -notlike 'PASS:*' } | Write-Error
@@ -49,9 +50,11 @@ Task Lint {
     if (-not $?) {
         throw 'dotnet fantomas failed.'
     }
-    $warn = Invoke-ScriptAnalyzer -Path .\psakefile.ps1 -Settings .\PSScriptAnalyzerSettings.psd1
-    if ($warn) {
-        throw 'Invoke-ScriptAnalyzer for psakefile.ps1 failed.'
+    @('./psakefile.ps1', './tests/SnippetPredictor.Tests.ps1') | ForEach-Object {
+        $warn = Invoke-ScriptAnalyzer -Path $_ -Settings .\PSScriptAnalyzerSettings.psd1
+        if ($warn) {
+            throw "Invoke-ScriptAnalyzer for ${_} failed."
+        }
     }
     Get-ValidMarkdownCommentHelp | Out-Null
 }
@@ -66,12 +69,34 @@ Task Build -Depends Clean {
     "Completed to build $ModuleName ver$ModuleVersion"
 }
 
+Task UnitTest {
+    dotnet test --nologo --logger:"console;verbosity=detailed" --blame-hang-timeout 5s --blame-hang-dump-type full
+    if (-not $?) {
+        throw 'dotnet test failed.'
+    }
+}
+
+Task Coverage -Depends UnitTest {
+    $target = "./src/${ModuleName}.Test/bin/Debug/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
+    dotnet coverlet $target --target 'dotnet' --targetargs 'test --no-build' --format cobertura --output ./coverage.cobertura.xml --include "[${ModuleName}*]*" --exclude-by-attribute 'CompilerGeneratedAttribute'
+
+    Remove-Item ./coverage/* -Force -ErrorAction SilentlyContinue
+    dotnet reportgenerator
+}
+
 Task Import -Depends Build {
     "Import $ModuleName ver$ModuleVersion"
     if ( -not ($ModuleName -and $ModuleVersion)) {
         throw "ModuleName or ModuleVersion not defined. $ModuleName, $ModuleVersion"
     }
-    Import-Module "./bin/$ModuleName" -Global
+    Import-Module $ModulePublishPath -Global
+}
+
+Task E2ETest -Depends Import {
+    $result = Invoke-Pester -PassThru
+    if ($result.Failed) {
+        throw 'Invoke-Pester failed.'
+    }
 }
 
 Task ExternalHelp -Depends Import {
@@ -80,7 +105,7 @@ Task ExternalHelp -Depends Import {
     $help.FilePath | Import-MarkdownCommandHelp | Export-MamlCommandHelp -OutputFolder ./src/ -Force | Out-Null
 }
 
-Task Release -PreCondition { $Stage -eq 'Release' } -Depends ExternalHelp {
+Task Release -PreCondition { $Stage -eq 'Release' } -Depends TestAll, ExternalHelp {
     "Release $($ModuleName)! version=$ModuleVersion dryrun=$DryRun"
 
     $m = Get-Module $ModuleName
