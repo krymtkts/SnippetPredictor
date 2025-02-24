@@ -50,9 +50,11 @@ Task Lint {
     if (-not $?) {
         throw 'dotnet fantomas failed.'
     }
-    $warn = Invoke-ScriptAnalyzer -Path .\psakefile.ps1 -Settings .\PSScriptAnalyzerSettings.psd1
-    if ($warn) {
-        throw 'Invoke-ScriptAnalyzer for psakefile.ps1 failed.'
+    @('./psakefile.ps1', './tests/SnippetPredictor.Tests.ps1') | ForEach-Object {
+        $warn = Invoke-ScriptAnalyzer -Path $_ -Settings .\PSScriptAnalyzerSettings.psd1
+        if ($warn) {
+            throw "Invoke-ScriptAnalyzer for ${_} failed."
+        }
     }
     Get-ValidMarkdownCommentHelp | Out-Null
 }
