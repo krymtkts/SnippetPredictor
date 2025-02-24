@@ -8,7 +8,7 @@ Properties {
     $ModuleName = Get-ChildItem ./src/*/*.psd1 | Select-Object -ExpandProperty BaseName
     $ModuleVersion = (Resolve-Path "./src/${ModuleName}/*.fsproj" | Select-Xml '//Version/text()').Node.Value
     $ModuleSrcPath = Resolve-Path "./src/${ModuleName}/"
-    $ModulePublishPath = Resolve-Path "./bin/${ModuleName}/"
+    $ModulePublishPath = Resolve-Path "./publish/${ModuleName}/"
     "Module: ${ModuleName} ver${ModuleVersion} root=${ModuleSrcPath} publish=${ModulePublishPath}"
 }
 
@@ -80,7 +80,7 @@ Task Coverage -Depends UnitTest {
     $target = "./src/${ModuleName}.Test/bin/Debug/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
     dotnet coverlet $target --target 'dotnet' --targetargs 'test --no-build' --format cobertura --output ./coverage.cobertura.xml --include "[${ModuleName}*]*" --exclude-by-attribute 'CompilerGeneratedAttribute'
 
-    Remove-Item ./coverage/*
+    Remove-Item ./coverage/* -Force -ErrorAction SilentlyContinue
     dotnet reportgenerator
 }
 
@@ -89,7 +89,7 @@ Task Import -Depends Build {
     if ( -not ($ModuleName -and $ModuleVersion)) {
         throw "ModuleName or ModuleVersion not defined. $ModuleName, $ModuleVersion"
     }
-    Import-Module "./bin/$ModuleName" -Global
+    Import-Module $ModulePublishPath -Global
 }
 
 Task E2ETest -Depends Import {
