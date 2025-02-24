@@ -31,7 +31,7 @@ Task Clean {
 
 function Get-ValidMarkdownCommentHelp {
     if (Get-Command Measure-PlatyPSMarkdown -ErrorAction SilentlyContinue) {
-        $help = Measure-PlatyPSMarkdown .\docs\$ModuleName\*.md | Where-Object Filetype -Match CommandHelp
+        $help = Measure-PlatyPSMarkdown ./docs\$ModuleName\*.md | Where-Object Filetype -Match CommandHelp
         $validations = $help.FilePath | Test-MarkdownCommandHelp -DetailView
         if (-not $validations.IsValid) {
             $validations.Messages | Where-Object { $_ -notlike 'PASS:*' } | Write-Error
@@ -54,6 +54,14 @@ Task Lint {
         throw 'Invoke-ScriptAnalyzer for psakefile.ps1 failed.'
     }
     Get-ValidMarkdownCommentHelp | Out-Null
+}
+
+Task Coverage {
+    $target = "./src/${ModuleName}.Test/bin/*/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
+    dotnet coverlet $target --target 'dotnet' --targetargs 'test --no-build' --format cobertura --output ./coverage.cobertura.xml --include "[${ModuleName}*]*" --exclude-by-attribute 'CompilerGeneratedAttribute'
+
+    Remove-Item ./coverage/*
+    dotnet reportgenerator
 }
 
 Task Build -Depends Clean {

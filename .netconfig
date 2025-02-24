@@ -1,0 +1,4 @@
+[ReportGenerator]
+	reports = "coverage.cobertura.xml"
+	targetdir = "coverage"
+	verbosity = "Verbose"
