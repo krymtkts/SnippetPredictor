@@ -50,6 +50,7 @@ module Snippet =
     open System.Management.Automation.Subsystem.Prediction
     open System.Text.Json
     open System.Threading
+    open System.Text.Encodings.Web
 
     [<Literal>]
     let snippetFilesName = ".snippet-predictor.json"
@@ -89,6 +90,7 @@ module Snippet =
     let jsonOptions =
         JsonSerializerOptions(
             AllowTrailingCommas = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             PropertyNameCaseInsensitive = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
             WriteIndented = true
