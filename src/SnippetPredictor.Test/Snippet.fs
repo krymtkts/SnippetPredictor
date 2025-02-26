@@ -71,7 +71,7 @@ let tests_parseSnippets =
           }
 
           test "when JSON has snippets" {
-              """{"snippets":[{"snippet": "echo example", "tooltip": "example tooltip"}]}"""
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
               |> Snippet.parseSnippets
               |> function
                   | Snippet.ConfigState.Valid entry -> entry
@@ -79,12 +79,12 @@ let tests_parseSnippets =
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
-                      [| { SnippetEntry.Snippet = "echo example"
+                      [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip" } |] }
           }
 
           test "when JSON has snippets with trailing comma" {
-              """{"snippets":[{"snippet": "echo example", "tooltip": "example tooltip"},]}"""
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"},]}"""
               |> Snippet.parseSnippets
               |> function
                   | Snippet.ConfigState.Valid entry -> entry
@@ -92,7 +92,7 @@ let tests_parseSnippets =
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
-                      [| { SnippetEntry.Snippet = "echo example"
+                      [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip" } |] }
           }
 
