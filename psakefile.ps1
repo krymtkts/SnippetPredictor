@@ -71,7 +71,7 @@ Task Build -Depends Clean {
 }
 
 Task UnitTest {
-    dotnet test --nologo --logger:"console;verbosity=detailed" --blame-hang-timeout 5s --blame-hang-dump-type full
+    dotnet test --nologo --verbosity diagnostic --blame-hang-timeout 5s --blame-hang-dump-type full
     if (-not $?) {
         throw 'dotnet test failed.'
     }
