@@ -97,3 +97,41 @@ let tests_parseSnippets =
           }
 
           ]
+
+module Environment =
+    open System
+
+    let PathSeparator = IO.Path.DirectorySeparatorChar
+
+    [<Tests>]
+    let tests_getSnippetPathWith =
+        testList
+            "getSnippetPathWith"
+            [
+
+              test "when env var is set" {
+                  Snippet.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
+                  |> Expect.equal
+                      "should return the path based on env var."
+                      (".", $".{PathSeparator}.snippet-predictor.json")
+              }
+
+              test "when env var is null" {
+                  let userProfile = "/Users/username"
+
+                  Snippet.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
+                  |> Expect.equal
+                      "should return the default path"
+                      (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
+              }
+
+              test "when env var is empty" {
+                  let userProfile = "/Users/username"
+
+                  Snippet.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
+                  |> Expect.equal
+                      "should return the default path"
+                      (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
+              }
+
+              ]

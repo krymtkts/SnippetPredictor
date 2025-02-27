@@ -188,14 +188,18 @@ module Snippet =
         Logger.LogFile [ "Started file watching event." ]
 #endif
 
-    let getSnippetPath () =
+    let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
-            match Environment.GetEnvironmentVariable(environmentVariable) with
+            match getEnvironmentVariable environmentVariable with
             | null
-            | "" -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            | "" -> getUserProfilePath ()
             | path -> path
 
         snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
+
+    let getSnippetPath () =
+        getSnippetPathWith Environment.GetEnvironmentVariable
+        <| fun () -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
     let load () =
         let snippetDirectory, snippetPath = getSnippetPath ()
