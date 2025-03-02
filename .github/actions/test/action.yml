@@ -21,7 +21,9 @@ runs:
         Install-PSResource Microsoft.PowerShell.PlatyPS -Prerelease -Quiet -Reinstall -Scope CurrentUser
     - name: Execute All Tests
       shell: pwsh
-      run: Invoke-Psake -taskList TestAll
+      run: |
+        Invoke-Psake -taskList TestAll
+        if (-not $psake.build_success) { exit 1 }
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4
       with:
