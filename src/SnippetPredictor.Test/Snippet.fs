@@ -103,7 +103,7 @@ let tests_parseSnippets =
 
           ]
 
-module Environment =
+module getSnippet =
     open System
 
     let PathSeparator = IO.Path.DirectorySeparatorChar
@@ -140,3 +140,21 @@ module Environment =
               }
 
               ]
+
+[<Tests>]
+let tests_getFilter =
+    testList
+        "getFilter"
+        [
+
+          test "when snippet symbol is set" {
+              Snippet.getFilter ":snp      example    "
+              |> Expect.equal "should return the value removed snippet symbol and leading/trailing spaces." "example"
+          }
+
+          test "when snippet symbol is not set" {
+              Snippet.getFilter "    example    "
+              |> Expect.equal "should return the original input removing leading/trailing spaces." "example"
+          }
+
+          ]
