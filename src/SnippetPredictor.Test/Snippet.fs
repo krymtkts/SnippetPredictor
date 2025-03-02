@@ -84,7 +84,12 @@ let tests_parseSnippets =
           }
 
           test "when JSON has snippets with trailing comma" {
-              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"},]}"""
+              """{
+    // comment
+    "snippets":[
+        {"snippet": "echo 'example'", "tooltip": "example tooltip"},
+    ]
+}"""
               |> Snippet.parseSnippets
               |> function
                   | Snippet.ConfigState.Valid entry -> entry
