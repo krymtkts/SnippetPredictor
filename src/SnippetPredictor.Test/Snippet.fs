@@ -141,20 +141,40 @@ module getSnippet =
 
               ]
 
-[<Tests>]
-let tests_getFilter =
-    testList
-        "getFilter"
-        [
+module getPredictiveSuggestions =
+    open System
+    open System.Management.Automation.Subsystem.Prediction
 
-          test "when snippet symbol is set" {
-              Snippet.getFilter ":snp      example    "
-              |> Expect.equal "should return the value removed snippet symbol and leading/trailing spaces." "example"
-          }
+    [<Tests>]
+    let tests_getPredictiveSuggestions =
+        Snippet.snippets.Clear()
 
-          test "when snippet symbol is not set" {
-              Snippet.getFilter "    example    "
-              |> Expect.equal "should return the original input removing leading/trailing spaces." "example"
-          }
+        let expected =
+            { SnippetEntry.Snippet = "example code"
+              SnippetEntry.Tooltip = "example tooltip" }
 
-          ]
+        [ expected ] |> List.iter Snippet.snippets.Enqueue
+
+        testList
+            "getPredictiveSuggestions"
+            [
+
+              test "when snippet symbol is set" {
+                  Snippet.getPredictiveSuggestions ":snp      example    "
+                  |> Expect.all
+                      "should return the snippets filtered by the input removing snippet symbol."
+                      (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+              }
+
+              test "when snippet symbol is not set" {
+                  Snippet.getPredictiveSuggestions "    example    "
+                  |> Expect.all "should return the snippets filtered by the input." (fun actual ->
+                      actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+              }
+
+              test "when " {
+                  Snippet.getPredictiveSuggestions "    exo    "
+                  |> Expect.isEmpty "should return empty."
+              }
+
+              ]
