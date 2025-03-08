@@ -142,8 +142,6 @@ module getSnippet =
               ]
 
 module getPredictiveSuggestions =
-    open System
-    open System.Management.Automation.Subsystem.Prediction
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
