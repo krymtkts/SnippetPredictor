@@ -19,20 +19,22 @@ module Snippet =
     val getSnippetPathWith:
         getEnvironmentVariable: (string -> string | null) -> getUserProfilePath: (unit -> string) -> string * string
 
-    val load: unit -> unit
+    val getSnippetPath: unit -> string * string
+
+    val load: getSnippetPath: (unit -> string * string) -> unit
 
     val getPredictiveSuggestions:
         input: string ->
             System.Collections.Generic.List<System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion>
 
-    val loadConfig: unit -> ConfigState
+    val loadConfig: getSnippetPath: (unit -> string * string) -> ConfigState
 
     val makeErrorRecord: e: string -> System.Management.Automation.ErrorRecord
 
     val makeSnippetEntry: snippet: string -> tooltip: string -> SnippetEntry
 
-    val loadSnippets: unit -> Result<SnippetEntry array, string>
+    val loadSnippets: getSnippetPath: (unit -> string * string) -> Result<SnippetEntry array, string>
 
-    val addSnippets: snippets: SnippetEntry seq -> Result<unit, string>
+    val addSnippets: getSnippetPath: (unit -> string * string) -> snippets: SnippetEntry seq -> Result<unit, string>
 
-    val removeSnippets: snippets: string seq -> Result<unit, string>
+    val removeSnippets: getSnippetPath: (unit -> string * string) -> snippets: string seq -> Result<unit, string>
