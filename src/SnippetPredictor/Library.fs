@@ -16,7 +16,7 @@ type SnippetPredictor(guid: string) =
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
 
-    do Snippet.load ()
+    do Snippet.load Snippet.getSnippetPath
 
     interface ICommandPredictor with
         member __.Id = id
@@ -61,7 +61,7 @@ type GetSnippetCommand() =
     inherit Cmdlet()
 
     override __.EndProcessing() =
-        Snippet.loadSnippets ()
+        Snippet.loadSnippets Snippet.getSnippetPath
         |> function
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
@@ -90,7 +90,7 @@ type AddSnippetCommand() =
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.addSnippets
+        |> Snippet.addSnippets Snippet.getSnippetPath
         |> function
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
@@ -112,7 +112,7 @@ type RemoveSnippetCommand() =
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.removeSnippets
+        |> Snippet.removeSnippets Snippet.getSnippetPath
         |> function
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError

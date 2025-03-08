@@ -188,16 +188,20 @@ module Snippet =
         Logger.LogFile [ "Started file watching event." ]
 #endif
 
-    let getSnippetPath () =
+    let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
-            match Environment.GetEnvironmentVariable(environmentVariable) with
+            match getEnvironmentVariable environmentVariable with
             | null
-            | "" -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            | "" -> getUserProfilePath ()
             | path -> path
 
         snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
 
-    let load () =
+    let getSnippetPath () =
+        getSnippetPathWith Environment.GetEnvironmentVariable
+        <| fun () -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+
+    let load getSnippetPath =
         let snippetDirectory, snippetPath = getSnippetPath ()
 
         if File.Exists(snippetPath) then
@@ -224,9 +228,14 @@ module Snippet =
             |> Seq.map (snippetToTuple >> PredictiveSuggestion)
         |> Linq.Enumerable.ToList
 
-    let toError (e: SnippetEntry) = $"{e.Snippet}: {e.Tooltip}" |> Error
+    let toError (e: SnippetEntry) =
+        if String.IsNullOrEmpty e.Tooltip then
+            e.Snippet
+        else
+            $"{e.Snippet}: {e.Tooltip}"
+        |> Error
 
-    let loadConfig () =
+    let loadConfig (getSnippetPath: unit -> string * string) =
         let snippetPath = getSnippetPath () |> snd
 
         if snippetPath |> (File.Exists >> not) then
@@ -240,7 +249,7 @@ module Snippet =
     let makeSnippetEntry (snippet: string) (tooltip: string) =
         { Snippet = snippet; Tooltip = tooltip }
 
-    let storeConfig (config: SnippetConfig) =
+    let storeConfig getSnippetPath (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)
         let snippetPath = getSnippetPath () |> snd
 
@@ -250,8 +259,8 @@ module Snippet =
         with e ->
             e.Message |> Error
 
-    let loadSnippets () =
-        loadConfig ()
+    let loadSnippets getSnippetPath =
+        loadConfig getSnippetPath
         |> function
             | ConfigState.Empty -> Array.empty |> Ok
             | ConfigState.Valid snippets ->
@@ -262,10 +271,10 @@ module Snippet =
                     | snps -> snps |> Ok
             | ConfigState.Invalid e -> e |> toError
 
-    let addSnippets (snippets: SnippetEntry seq) =
-        loadConfig ()
+    let addSnippets getSnippetPath (snippets: SnippetEntry seq) =
+        loadConfig getSnippetPath
         |> function
-            | ConfigState.Empty -> { Snippets = Array.ofSeq snippets } |> storeConfig
+            | ConfigState.Empty -> { Snippets = Array.ofSeq snippets } |> storeConfig getSnippetPath
             | ConfigState.Valid config ->
                 let newSnippets =
                     config.Snippets
@@ -273,11 +282,11 @@ module Snippet =
                         | null -> Array.ofSeq snippets
                         | snps -> Array.append snps <| Array.ofSeq snippets
 
-                { config with Snippets = newSnippets } |> storeConfig
+                { config with Snippets = newSnippets } |> storeConfig getSnippetPath
             | ConfigState.Invalid e -> e |> toError
 
-    let removeSnippets (snippets: string seq) =
-        loadConfig ()
+    let removeSnippets getSnippetPath (snippets: string seq) =
+        loadConfig getSnippetPath
         |> function
             | ConfigState.Empty -> Ok()
             | ConfigState.Valid config ->
@@ -289,5 +298,5 @@ module Snippet =
                             let removals = set snippets
                             snps |> Array.filter (_.Snippet >> removals.Contains >> not)
 
-                { config with Snippets = newSnippets } |> storeConfig
+                { config with Snippets = newSnippets } |> storeConfig getSnippetPath
             | ConfigState.Invalid e -> e |> toError

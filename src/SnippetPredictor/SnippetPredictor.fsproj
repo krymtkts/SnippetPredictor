@@ -24,6 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Snippet.fsi" />
     <Compile Include="Snippet.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>

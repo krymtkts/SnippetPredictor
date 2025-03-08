@@ -84,7 +84,12 @@ let tests_parseSnippets =
           }
 
           test "when JSON has snippets with trailing comma" {
-              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"},]}"""
+              """{
+    // comment
+    "snippets":[
+        {"snippet": "echo 'example'", "tooltip": "example tooltip"},
+    ]
+}"""
               |> Snippet.parseSnippets
               |> function
                   | Snippet.ConfigState.Valid entry -> entry
@@ -94,6 +99,138 @@ let tests_parseSnippets =
                   { SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip" } |] }
+          }
+
+          ]
+
+module getSnippet =
+    open System
+
+    let PathSeparator = IO.Path.DirectorySeparatorChar
+
+    [<Tests>]
+    let tests_getSnippetPathWith =
+        testList
+            "getSnippetPathWith"
+            [
+
+              test "when env var is set" {
+                  Snippet.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
+                  |> Expect.equal
+                      "should return the path based on env var."
+                      (".", $".{PathSeparator}.snippet-predictor.json")
+              }
+
+              test "when env var is null" {
+                  let userProfile = "/Users/username"
+
+                  Snippet.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
+                  |> Expect.equal
+                      "should return the default path"
+                      (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
+              }
+
+              test "when env var is empty" {
+                  let userProfile = "/Users/username"
+
+                  Snippet.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
+                  |> Expect.equal
+                      "should return the default path"
+                      (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
+              }
+
+              ]
+
+module getPredictiveSuggestions =
+
+    [<Tests>]
+    let tests_getPredictiveSuggestions =
+        Snippet.snippets.Clear()
+
+        let expected =
+            { SnippetEntry.Snippet = "example code"
+              SnippetEntry.Tooltip = "example tooltip" }
+
+        [ expected ] |> List.iter Snippet.snippets.Enqueue
+
+        testList
+            "getPredictiveSuggestions"
+            [
+
+              test "when snippet symbol is set" {
+                  Snippet.getPredictiveSuggestions ":snp      example    "
+                  |> Expect.all
+                      "should return the snippets filtered by the input removing snippet symbol."
+                      (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+              }
+
+              test "when snippet symbol is not set" {
+                  Snippet.getPredictiveSuggestions "    example    "
+                  |> Expect.all "should return the snippets filtered by the input." (fun actual ->
+                      actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+              }
+
+              test "when no snippets match" {
+                  Snippet.getPredictiveSuggestions "    exo    "
+                  |> Expect.isEmpty "should return empty."
+              }
+
+              test "when input is whitespace" {
+                  Snippet.getPredictiveSuggestions "    " |> Expect.isEmpty "should return empty."
+              }
+
+              ]
+
+[<Tests>]
+let tests_loadSnippets =
+    testList
+        "loadSnippets"
+        [
+
+          test "when snippet file is not found" {
+              Snippet.loadSnippets (fun () -> "./", "./not-found.json")
+              |> function
+                  | Ok s -> s
+                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> Expect.isEmpty "should return Empty"
+          }
+
+          test "when snippet file is invalid" {
+              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-invalid.json")
+              |> function
+                  | Ok _ -> failtest "Expected Error but got Ok."
+                  | Error e -> e
+              |> Expect.equal
+                  "should return Error entry"
+                  "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.Snippets[0] | LineNumber: 1 | BytePositionInLine: 15."
+          }
+
+          test "when snippet file is valid and null" {
+              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-null.json")
+              |> function
+                  | Ok _ -> failtest "Expected Error but got Ok."
+                  | Error e -> e
+              |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
+          }
+
+          test "when snippet file is valid and snippets is null" {
+              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-snippet-null.json")
+              |> function
+                  | Ok s -> s
+                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> Expect.isEmpty "should return Empty"
+          }
+
+          test "when snippet file is valid" {
+              let expected =
+                  [| { SnippetEntry.Snippet = "echo 'example'"
+                       SnippetEntry.Tooltip = "example tooltip" } |]
+
+              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
+              |> function
+                  | Ok s -> s
+                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> Expect.equal "should return snippets" expected
           }
 
           ]
