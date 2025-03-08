@@ -228,7 +228,12 @@ module Snippet =
             |> Seq.map (snippetToTuple >> PredictiveSuggestion)
         |> Linq.Enumerable.ToList
 
-    let toError (e: SnippetEntry) = $"{e.Snippet}: {e.Tooltip}" |> Error
+    let toError (e: SnippetEntry) =
+        if String.IsNullOrEmpty e.Tooltip then
+            e.Snippet
+        else
+            $"{e.Snippet}: {e.Tooltip}"
+        |> Error
 
     let loadConfig (getSnippetPath: unit -> string * string) =
         let snippetPath = getSnippetPath () |> snd
