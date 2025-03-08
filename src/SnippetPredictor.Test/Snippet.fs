@@ -176,3 +176,37 @@ module getPredictiveSuggestions =
               }
 
               ]
+
+[<Tests>]
+let tests_loadSnippets =
+    testList
+        "loadSnippets"
+        [
+
+          test "when snippet file is not found" {
+              Snippet.loadSnippets (fun () -> "./", "./not-found.json")
+              |> function
+                  | Ok s -> s
+                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> Expect.isEmpty "should return Empty"
+          }
+
+          test "when snippet file is invalid" {
+              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-invalid.json")
+              |> function
+                  | Ok _ -> failtest "Expected Error but got Ok."
+                  | Error e -> e
+              |> Expect.equal
+                  "should return Error entry"
+                  "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.Snippets[0] | LineNumber: 1 | BytePositionInLine: 15."
+          }
+
+          test "when snippet file is valid and snippets is null" {
+              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-null.json")
+              |> function
+                  | Ok _ -> failtest "Expected Error but got Ok."
+                  | Error e -> e
+              |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
+          }
+
+          ]
