@@ -299,6 +299,7 @@ module addAndRemoveSnippets =
               test "when snippet file is valid" {
                   use tmp = new TempDirectory("SnippetPredictor.Test.")
                   let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
+                  File.WriteAllText(path, """{"Snippets": []}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
                        SnippetEntry.Tooltip = "3 tooltip" } |]
@@ -307,6 +308,22 @@ module addAndRemoveSnippets =
                       | Ok s -> s
                       | Error e -> failtest $"Expected Error but got Error. {e}"
                   |> Expect.equal "should return snippets" ()
+
+                  let expected =
+                      """{
+  "Snippets": [
+    {
+      "Snippet": "echo '3'",
+      "Tooltip": "3 tooltip"
+    }
+  ]
+}"""
+
+                  let expected = expected.Replace("\n", Environment.NewLine)
+
+                  File.ReadAllText(path)
+                  |> Expect.equal "should add the snippet to snippet file" expected
+
               }
 
               ]
