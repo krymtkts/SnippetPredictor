@@ -11,12 +11,14 @@ type SnippetPredictor(guid: string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
-    let name = "Snippet"
+    let name = Snippet.name
 
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
 
-    do Snippet.load Snippet.getSnippetPath
+    let cache = Snippet.Cache()
+
+    do cache.load Snippet.getSnippetPath
 
     interface ICommandPredictor with
         member __.Id = id
@@ -28,7 +30,7 @@ type SnippetPredictor(guid: string) =
             (client: PredictionClient, context: PredictionContext, cancellationToken: CancellationToken)
             : SuggestionPackage =
             context.InputAst.Extent.Text
-            |> Snippet.getPredictiveSuggestions
+            |> cache.getPredictiveSuggestions
             |> SuggestionPackage
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
@@ -55,7 +57,7 @@ type Init() =
         member __.OnRemove(psModuleInfo: PSModuleInfo) =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
 
-[<Cmdlet(VerbsCommon.Get, "Snippet")>]
+[<Cmdlet(VerbsCommon.Get, Snippet.name)>]
 [<OutputType(typeof<SnippetEntry[]>)>]
 type GetSnippetCommand() =
     inherit Cmdlet()
@@ -66,7 +68,7 @@ type GetSnippetCommand() =
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Add, "Snippet")>]
+[<Cmdlet(VerbsCommon.Add, Snippet.name)>]
 type AddSnippetCommand() =
     inherit Cmdlet()
 
@@ -95,7 +97,7 @@ type AddSnippetCommand() =
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Remove, "Snippet")>]
+[<Cmdlet(VerbsCommon.Remove, Snippet.name)>]
 type RemoveSnippetCommand() =
     inherit Cmdlet()
 

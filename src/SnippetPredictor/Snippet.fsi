@@ -5,8 +5,8 @@ type SnippetEntry = { Snippet: string; Tooltip: string }
 type SnippetConfig = { Snippets: SnippetEntry array | null }
 
 module Snippet =
-    // TODO: encapsulate the snippets.
-    val snippets: System.Collections.Concurrent.ConcurrentQueue<SnippetEntry>
+    [<Literal>]
+    val name: string = "Snippet"
 
     [<RequireQualifiedAccess; NoEquality; NoComparison>]
     type ConfigState =
@@ -16,16 +16,20 @@ module Snippet =
 
     val parseSnippets: json: string -> ConfigState
 
+    type Cache =
+        new: unit -> Cache
+
+        member getPredictiveSuggestions:
+            input: string ->
+                System.Collections.Generic.List<System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion>
+
+        member load: getSnippetPath: (unit -> string * string) -> unit
+
     val getSnippetPathWith:
         getEnvironmentVariable: (string -> string | null) -> getUserProfilePath: (unit -> string) -> string * string
 
     val getSnippetPath: unit -> string * string
 
-    val load: getSnippetPath: (unit -> string * string) -> unit
-
-    val getPredictiveSuggestions:
-        input: string ->
-            System.Collections.Generic.List<System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion>
 
     val loadConfig: getSnippetPath: (unit -> string * string) -> ConfigState
 
