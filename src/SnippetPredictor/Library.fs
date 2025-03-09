@@ -16,7 +16,9 @@ type SnippetPredictor(guid: string) =
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
 
-    do Snippet.load Snippet.getSnippetPath
+    let cache = Snippet.Cache()
+
+    do cache.load Snippet.getSnippetPath
 
     interface ICommandPredictor with
         member __.Id = id
@@ -28,7 +30,7 @@ type SnippetPredictor(guid: string) =
             (client: PredictionClient, context: PredictionContext, cancellationToken: CancellationToken)
             : SuggestionPackage =
             context.InputAst.Extent.Text
-            |> Snippet.getPredictiveSuggestions
+            |> cache.getPredictiveSuggestions
             |> SuggestionPackage
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
