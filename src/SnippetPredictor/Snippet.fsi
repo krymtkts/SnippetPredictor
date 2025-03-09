@@ -5,6 +5,9 @@ type SnippetEntry = { Snippet: string; Tooltip: string }
 type SnippetConfig = { Snippets: SnippetEntry array | null }
 
 module Snippet =
+    [<Literal>]
+    val name: string = "Snippet"
+
     [<RequireQualifiedAccess; NoEquality; NoComparison>]
     type ConfigState =
         | Empty

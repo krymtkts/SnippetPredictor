@@ -11,7 +11,7 @@ type SnippetPredictor(guid: string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
-    let name = "Snippet"
+    let name = Snippet.name
 
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
@@ -57,7 +57,7 @@ type Init() =
         member __.OnRemove(psModuleInfo: PSModuleInfo) =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
 
-[<Cmdlet(VerbsCommon.Get, "Snippet")>]
+[<Cmdlet(VerbsCommon.Get, Snippet.name)>]
 [<OutputType(typeof<SnippetEntry[]>)>]
 type GetSnippetCommand() =
     inherit Cmdlet()
@@ -68,7 +68,7 @@ type GetSnippetCommand() =
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Add, "Snippet")>]
+[<Cmdlet(VerbsCommon.Add, Snippet.name)>]
 type AddSnippetCommand() =
     inherit Cmdlet()
 
@@ -97,7 +97,7 @@ type AddSnippetCommand() =
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Remove, "Snippet")>]
+[<Cmdlet(VerbsCommon.Remove, Snippet.name)>]
 type RemoveSnippetCommand() =
     inherit Cmdlet()
 

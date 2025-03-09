@@ -53,6 +53,9 @@ module Snippet =
     open System.Text.Encodings.Web
 
     [<Literal>]
+    let name = "Snippet"
+
+    [<Literal>]
     let snippetFilesName = ".snippet-predictor.json"
 
     [<Literal>]
