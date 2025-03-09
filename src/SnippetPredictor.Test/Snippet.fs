@@ -145,38 +145,37 @@ module getPredictiveSuggestions =
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
-        Snippet.snippets.Clear()
+        let cache = Snippet.Cache()
+        cache.load (fun () -> "./", "./.snippet-predictor-valid.json")
 
         let expected =
-            { SnippetEntry.Snippet = "example code"
+            { SnippetEntry.Snippet = "echo 'example'"
               SnippetEntry.Tooltip = "example tooltip" }
-
-        [ expected ] |> List.iter Snippet.snippets.Enqueue
 
         testList
             "getPredictiveSuggestions"
             [
 
               test "when snippet symbol is set" {
-                  Snippet.getPredictiveSuggestions ":snp      example    "
+                  cache.getPredictiveSuggestions ":snp      example    "
                   |> Expect.all
                       "should return the snippets filtered by the input removing snippet symbol."
                       (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
 
               test "when snippet symbol is not set" {
-                  Snippet.getPredictiveSuggestions "    example    "
+                  cache.getPredictiveSuggestions "    example    "
                   |> Expect.all "should return the snippets filtered by the input." (fun actual ->
                       actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
 
               test "when no snippets match" {
-                  Snippet.getPredictiveSuggestions "    exo    "
+                  cache.getPredictiveSuggestions "    exo    "
                   |> Expect.isEmpty "should return empty."
               }
 
               test "when input is whitespace" {
-                  Snippet.getPredictiveSuggestions "    " |> Expect.isEmpty "should return empty."
+                  cache.getPredictiveSuggestions "    " |> Expect.isEmpty "should return empty."
               }
 
               ]
