@@ -238,6 +238,8 @@ module addAndRemoveSnippets =
     open System
     open System.IO
 
+    let normalizeNewlines (s: string) = s.Replace("\r\n", "\n")
+
     type TempDirectory(directory: string) =
         member val Path: string = Directory.CreateTempSubdirectory(directory).FullName
 
@@ -275,9 +277,11 @@ module addAndRemoveSnippets =
     }
   ]
 }"""
+                      |> normalizeNewlines
 
-                  let expected = expected.Replace("\n", Environment.NewLine)
-                  File.ReadAllText(path) |> Expect.equal "should create the snippet file" expected
+                  File.ReadAllText(path)
+                  |> normalizeNewlines
+                  |> Expect.equal "should create the snippet file" expected
               }
 
               test "when snippet file is invalid" {
@@ -318,10 +322,10 @@ module addAndRemoveSnippets =
     }
   ]
 }"""
-
-                  let expected = expected.Replace("\n", Environment.NewLine)
+                      |> normalizeNewlines
 
                   File.ReadAllText(path)
+                  |> normalizeNewlines
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
@@ -348,10 +352,10 @@ module addAndRemoveSnippets =
     }
   ]
 }"""
-
-                  let expected = expected.Replace("\n", Environment.NewLine)
+                      |> normalizeNewlines
 
                   File.ReadAllText(path)
+                  |> normalizeNewlines
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
@@ -410,10 +414,10 @@ module addAndRemoveSnippets =
                       """{
   "Snippets": []
 }"""
-
-                  let expected = expected.Replace("\n", Environment.NewLine)
+                      |> normalizeNewlines
 
                   File.ReadAllText(path)
+                  |> normalizeNewlines
                   |> Expect.equal "should remove the snippet from snippet file" expected
               }
 
