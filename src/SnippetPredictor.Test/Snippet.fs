@@ -326,4 +326,95 @@ module addAndRemoveSnippets =
 
               }
 
+              test "when snippet file is valid and null" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
+                  File.WriteAllText(path, """{"Snippets": null}""")
+
+                  [| { SnippetEntry.Snippet = "echo '3'"
+                       SnippetEntry.Tooltip = "3 tooltip" } |]
+                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> function
+                      | Ok s -> s
+                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Expect.equal "should return snippets" ()
+
+                  let expected =
+                      """{
+  "Snippets": [
+    {
+      "Snippet": "echo '3'",
+      "Tooltip": "3 tooltip"
+    }
+  ]
+}"""
+
+                  let expected = expected.Replace("\n", Environment.NewLine)
+
+                  File.ReadAllText(path)
+                  |> Expect.equal "should add the snippet to snippet file" expected
+
+              }
+
+              ]
+
+    [<Tests>]
+    let tests_removeSnippets =
+        testList
+            "removeSnippets"
+            [
+
+              test "when snippet file is not found" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, "not-found.json")
+
+                  [ "echo '1'" ]
+                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
+                  |> function
+                      | Ok s -> s
+                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Expect.equal "should return Ok" ()
+
+                  Directory.GetFiles(tmp.Path)
+                  |> Expect.isEmpty "should not create the snippet file"
+              }
+
+              test "when snippet file is invalid" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor-invalid.json")
+                  File.WriteAllText(path, """{"Snippets":[}""")
+
+                  [ "echo '2'" ]
+                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
+                  |> function
+                      | Ok _ -> failtest "Expected Error but got Ok."
+                      | Error e -> e
+                  |> Expect.equal
+                      "should return Error entry"
+                      "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
+              }
+
+              test "when snippet file is valid" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
+                  File.AppendAllText(path, """{"Snippet": "echo '3'", "Tooltip": "3 tooltip"}""")
+
+                  [ "echo '1'"; "echo '3'"; "echo '3'" ]
+                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
+                  |> function
+                      | Ok s -> s
+                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Expect.equal "should return snippets" ()
+
+                  let expected =
+                      """{
+  "Snippets": []
+}"""
+
+                  let expected = expected.Replace("\n", Environment.NewLine)
+
+                  File.ReadAllText(path)
+                  |> Expect.equal "should remove the snippet from snippet file" expected
+              }
+
               ]
