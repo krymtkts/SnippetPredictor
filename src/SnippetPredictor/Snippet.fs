@@ -62,6 +62,9 @@ module Snippet =
     let snippetSymbol = ":snp"
 
     [<Literal>]
+    let tooltipSymbol = ":tip"
+
+    [<Literal>]
     let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
 
     let mutable watcher: FileSystemWatcher option = None
@@ -193,15 +196,18 @@ module Snippet =
             Logger.LogFile [ "Started file watching event." ]
 #endif
 
-        let getSnippets (filter: string) : SnippetEntry seq =
-            snippets |> Seq.filter _.Snippet.Contains(filter)
-
         let snippetToTuple (s: SnippetEntry) = s.Snippet, s.Tooltip
 
-        let getFilter (input: string) =
-            // NOTE: Remove the snippet symbol from the input.
-            // NOTE: Snippet symbol is used to exclude other predictors from suggestions.
-            input.Replace(snippetSymbol, "").Trim()
+        let extractInput (symbol: string) (input: string) =
+            if input.StartsWith(symbol) then
+                // NOTE: Remove the snippet or tooltip symbol from the input.
+                // NOTE: These symbols are used to exclude other predictors from suggestions.
+                Some(input.Substring(symbol.Length).Trim())
+            else
+                None
+
+        let (|Snippet|_|) = extractInput snippetSymbol
+        let (|Tooltip|_|) = extractInput tooltipSymbol
 
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
@@ -215,9 +221,13 @@ module Snippet =
             if String.IsNullOrWhiteSpace(input) then
                 Seq.empty
             else
-                input
-                |> (getFilter >> getSnippets)
-                |> Seq.map (snippetToTuple >> PredictiveSuggestion)
+                let pred =
+                    match input with
+                    | Tooltip tooltip -> _.Tooltip.Contains(tooltip)
+                    | Snippet snippet
+                    | snippet -> _.Snippet.Contains(snippet)
+
+                snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
             |> Linq.Enumerable.ToList
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
