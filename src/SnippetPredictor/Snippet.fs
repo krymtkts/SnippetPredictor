@@ -130,7 +130,7 @@ module Snippet =
 
     type Cache() =
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
-
+        let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
 
         let startRefreshTask (path: string) =
@@ -155,7 +155,14 @@ module Snippet =
                                 |> function
                                     | null -> Array.empty
                                     | snippets -> snippets
-                                |> Array.iter snippets.Enqueue
+                                |> Array.iter (fun s ->
+                                    snippets.Enqueue s
+
+                                    match s.Group with
+                                    | null -> ()
+                                    | g ->
+                                        if g |> groups.ContainsKey |> not then
+                                            groups.TryAdd(g, ()) |> ignore)
                             | ConfigState.Invalid record -> record |> snippets.Enqueue
 #if DEBUG
                         Logger.LogFile [ "Refreshed snippets." ]
@@ -215,6 +222,23 @@ module Snippet =
         let (|Snippet|_|) = extractInput snippetSymbol
         let (|Tooltip|_|) = extractInput tooltipSymbol
 
+        let (|Group|_|) (input: string) =
+            let input = input.Trim()
+
+            if input.StartsWith(":") |> not then
+                None
+            else
+                let group, input =
+                    input.Substring(1).Split(' ')
+                    |> fun arr -> arr |> Array.head, arr |> Array.skip 1 |> String.concat " "
+
+                if group = "" then
+                    None
+                else if group |> groups.ContainsKey then
+                    (group, input) |> Some
+                else
+                    None
+
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
 
@@ -230,7 +254,8 @@ module Snippet =
                 let pred =
                     match input with
                     | Tooltip tooltip -> _.Tooltip.Contains(tooltip)
-                    | Snippet snippet
+                    | Snippet snippet -> _.Snippet.Contains(snippet)
+                    | Group(group, snippet) -> fun (s: SnippetEntry) -> s.Group = group && s.Snippet.Contains(snippet)
                     | snippet -> _.Snippet.Contains(snippet)
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
