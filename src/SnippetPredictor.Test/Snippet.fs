@@ -157,14 +157,14 @@ module getPredictiveSuggestions =
             [
 
               test "when snippet symbol is set" {
-                  cache.getPredictiveSuggestions ":snp      example    "
+                  cache.getPredictiveSuggestions ":snp      echo    "
                   |> Expect.all
                       "should return the snippets filtered by the input removing snippet symbol."
                       (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
 
               test "when snippet symbol is not set" {
-                  cache.getPredictiveSuggestions "    example    "
+                  cache.getPredictiveSuggestions "    echo    "
                   |> Expect.all "should return the snippets filtered by the input." (fun actual ->
                       actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
@@ -178,7 +178,17 @@ module getPredictiveSuggestions =
                   cache.getPredictiveSuggestions "    " |> Expect.isEmpty "should return empty."
               }
 
-              ]
+              test "when tooltip symbol is set" {
+                  cache.getPredictiveSuggestions ":tip      tooltip    "
+                  |> Expect.all
+                      "should return the snippets filtered by the input removing tooltip symbol."
+                      (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+              }
+
+              test "when tooltip symbol is not set and not matched" {
+                  cache.getPredictiveSuggestions "    tooltip    "
+                  |> Expect.isEmpty "should return empty."
+              } ]
 
 [<Tests>]
 let tests_loadSnippets =
