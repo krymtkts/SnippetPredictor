@@ -42,9 +42,30 @@ module Debug =
                 ))
 #endif
 
+open System.Text.RegularExpressions
+
+type GroupJsonConverter() =
+    inherit JsonConverter<string>()
+
+    [<Literal>]
+    static let pattern = "^[A-Za-z0-9]+$"
+
+    static let regex = Regex(pattern)
+
+    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
+        reader.GetString()
+        |> function
+            | null as value -> value // NOTE: unreachable when JsonIgnoreCondition.WhenWritingNull is used.
+            | value when regex.IsMatch(value) -> value
+            | value -> JsonException(sprintf "Invalid characters in group: %s" value) |> raise
+
+    override _.Write(writer: Utf8JsonWriter, value: string, options: JsonSerializerOptions) =
+        value |> writer.WriteStringValue
+
 type SnippetEntry =
     { Snippet: string
       Tooltip: string
+      [<JsonConverter(typeof<GroupJsonConverter>)>]
       [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
       Group: string | null }
 
