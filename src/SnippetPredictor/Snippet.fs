@@ -1,10 +1,13 @@
 ﻿namespace SnippetPredictor
 
+open System
+open System.IO
+open System.Text.Json
+open System.Text.Json.Serialization
+
 #if DEBUG
 [<AutoOpen>]
 module Debug =
-    open System
-    open System.IO
     open System.Runtime.CompilerServices
     open System.Runtime.InteropServices
 
@@ -39,16 +42,18 @@ module Debug =
                 ))
 #endif
 
-type SnippetEntry = { Snippet: string; Tooltip: string }
+type SnippetEntry =
+    { Snippet: string
+      Tooltip: string
+      [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
+      Group: string | null }
+
 type SnippetConfig = { Snippets: SnippetEntry[] | null }
 
 module Snippet =
-    open System
-    open System.IO
     open System.Collections
     open System.Management.Automation
     open System.Management.Automation.Subsystem.Prediction
-    open System.Text.Json
     open System.Threading
     open System.Text.Encodings.Web
 
@@ -81,7 +86,8 @@ module Snippet =
 
     let makeEntry (snippet: string) (tooltip: string) =
         { Snippet = $"'{snippet}'"
-          Tooltip = tooltip }
+          Tooltip = tooltip
+          Group = null }
 
     [<RequireQualifiedAccess>]
     [<NoEquality>]
@@ -261,8 +267,10 @@ module Snippet =
     let makeErrorRecord (e: string) =
         new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
 
-    let makeSnippetEntry (snippet: string) (tooltip: string) =
-        { Snippet = snippet; Tooltip = tooltip }
+    let makeSnippetEntry (snippet: string) (tooltip: string) (group: string | null) =
+        { Snippet = snippet
+          Tooltip = tooltip
+          Group = group }
 
     let storeConfig getSnippetPath (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)

@@ -87,8 +87,14 @@ type AddSnippetCommand() =
                 HelpMessage = "The tooltip of the snippet")>]
     member val Tooltip = "" with get, set
 
+    [<Parameter(Position = 2,
+                Mandatory = false,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The group of the snippet")>]
+    member val Group: string | null = null with get, set
+
     override __.ProcessRecord() =
-        Snippet.makeSnippetEntry __.Snippet __.Tooltip |> snippets.Add
+        Snippet.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
 
     override __.EndProcessing() =
         snippets

@@ -27,7 +27,8 @@ let tests_parseSnippets =
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'.snippet-predictor.json is null or invalid format.'"
-                    SnippetEntry.Tooltip = "" }
+                    SnippetEntry.Tooltip = ""
+                    SnippetEntry.Group = null }
           }
 
           test "when JSON is empty" {
@@ -49,7 +50,9 @@ let tests_parseSnippets =
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
                     SnippetEntry.Tooltip =
-                      "Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 0 | BytePositionInLine: 1." }
+                      "Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 0 | BytePositionInLine: 1."
+                    SnippetEntry.Group = null }
+
           }
 
           test "when JSON has null snippets" {
@@ -80,7 +83,8 @@ let tests_parseSnippets =
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip" } |] }
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
           }
 
           test "when JSON has snippets with trailing comma" {
@@ -98,7 +102,8 @@ let tests_parseSnippets =
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip" } |] }
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
           }
 
           ]
@@ -150,7 +155,8 @@ module getPredictiveSuggestions =
 
         let expected =
             { SnippetEntry.Snippet = "echo 'example'"
-              SnippetEntry.Tooltip = "example tooltip" }
+              SnippetEntry.Tooltip = "example tooltip"
+              SnippetEntry.Group = "group" }
 
         testList
             "getPredictiveSuggestions"
@@ -233,7 +239,8 @@ let tests_loadSnippets =
           test "when snippet file is valid" {
               let expected =
                   [| { SnippetEntry.Snippet = "echo 'example'"
-                       SnippetEntry.Tooltip = "example tooltip" } |]
+                       SnippetEntry.Tooltip = "example tooltip"
+                       SnippetEntry.Group = null } |]
 
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
               |> function
@@ -271,7 +278,8 @@ module addAndRemoveSnippets =
                   let path = Path.Combine(tmp.Path, "not-found.json")
 
                   [ { SnippetEntry.Snippet = "echo '1'"
-                      SnippetEntry.Tooltip = "1 tooltip" } ]
+                      SnippetEntry.Tooltip = "1 tooltip"
+                      SnippetEntry.Group = null } ]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok s -> s
@@ -300,7 +308,8 @@ module addAndRemoveSnippets =
                   File.WriteAllText(path, """{"Snippets":[}""")
 
                   [ { SnippetEntry.Snippet = "echo '2'"
-                      SnippetEntry.Tooltip = "2 tooltip" } ]
+                      SnippetEntry.Tooltip = "2 tooltip"
+                      SnippetEntry.Group = null } ]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok _ -> failtest "Expected Error but got Ok."
@@ -316,7 +325,8 @@ module addAndRemoveSnippets =
                   File.WriteAllText(path, """{"Snippets": []}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
-                       SnippetEntry.Tooltip = "3 tooltip" } |]
+                       SnippetEntry.Tooltip = "3 tooltip"
+                       SnippetEntry.Group = null } |]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok s -> s
@@ -346,7 +356,8 @@ module addAndRemoveSnippets =
                   File.WriteAllText(path, """{"Snippets": null}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
-                       SnippetEntry.Tooltip = "3 tooltip" } |]
+                       SnippetEntry.Tooltip = "3 tooltip"
+                       SnippetEntry.Group = null } |]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok s -> s

@@ -1,6 +1,9 @@
 namespace SnippetPredictor
 
-type SnippetEntry = { Snippet: string; Tooltip: string }
+type SnippetEntry =
+    { Snippet: string
+      Tooltip: string
+      Group: string | null }
 
 type SnippetConfig = { Snippets: SnippetEntry array | null }
 
@@ -30,12 +33,11 @@ module Snippet =
 
     val getSnippetPath: unit -> string * string
 
-
     val loadConfig: getSnippetPath: (unit -> string * string) -> ConfigState
 
     val makeErrorRecord: e: string -> System.Management.Automation.ErrorRecord
 
-    val makeSnippetEntry: snippet: string -> tooltip: string -> SnippetEntry
+    val makeSnippetEntry: snippet: string -> tooltip: string -> group: string | null -> SnippetEntry
 
     val loadSnippets: getSnippetPath: (unit -> string * string) -> Result<SnippetEntry array, string>
 
