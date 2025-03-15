@@ -409,7 +409,7 @@ module addAndRemoveSnippets =
 
               }
 
-              test "when snippet file is valid and null" {
+              test "when snippet file is valid and omitted group" {
                   use tmp = new TempDirectory("SnippetPredictor.Test.")
                   let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
                   File.WriteAllText(path, """{"Snippets": null}""")
@@ -429,6 +429,38 @@ module addAndRemoveSnippets =
     {
       "Snippet": "echo '3'",
       "Tooltip": "3 tooltip"
+    }
+  ]
+}"""
+                      |> normalizeNewlines
+
+                  File.ReadAllText(path)
+                  |> normalizeNewlines
+                  |> Expect.equal "should add the snippet to snippet file" expected
+
+              }
+
+              test "when snippet file is valid and has group" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
+                  File.WriteAllText(path, """{"Snippets": null}""")
+
+                  [| { SnippetEntry.Snippet = "echo '4'"
+                       SnippetEntry.Tooltip = "4 tooltip"
+                       SnippetEntry.Group = "group4" } |]
+                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> function
+                      | Ok s -> s
+                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Expect.equal "should return snippets" ()
+
+                  let expected =
+                      """{
+  "Snippets": [
+    {
+      "Snippet": "echo '4'",
+      "Tooltip": "4 tooltip",
+      "Group": "group4"
     }
   ]
 }"""
