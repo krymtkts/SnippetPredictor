@@ -207,6 +207,11 @@ module getPredictiveSuggestions =
                   |> Expect.isEmpty "should return empty."
               }
 
+              test "when group symbol is set and invalid" {
+                  cache.getPredictiveSuggestions ":grp     "
+                  |> Expect.isEmpty "should return empty."
+              }
+
               ]
 
 [<Tests>]
