@@ -73,7 +73,7 @@ let tests_parseSnippets =
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = [||] }
           }
 
-          test "when JSON has snippets" {
+          test "when JSON has snippets without group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
               |> Snippet.parseSnippets
               |> function
@@ -85,6 +85,20 @@ let tests_parseSnippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip"
                            SnippetEntry.Group = null } |] }
+          }
+
+          test "when JSON has snippets" {
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
+              |> Snippet.parseSnippets
+              |> function
+                  | Snippet.ConfigState.Valid entry -> entry
+                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> Expect.equal
+                  "should return ConfigState.Valid"
+                  { SnippetConfig.Snippets =
+                      [| { SnippetEntry.Snippet = "echo 'example'"
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = "group" } |] }
           }
 
           test "when JSON has snippets with trailing comma" {
@@ -104,6 +118,33 @@ let tests_parseSnippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip"
                            SnippetEntry.Group = null } |] }
+          }
+
+          test "when JSON has snippet that has null group" {
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
+              |> Snippet.parseSnippets
+              |> function
+                  | Snippet.ConfigState.Valid entry -> entry
+                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> Expect.equal
+                  "should return ConfigState.Valid"
+                  { SnippetConfig.Snippets =
+                      [| { SnippetEntry.Snippet = "echo 'example'"
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
+          }
+
+          test "when JSON has snippet that has group with disallowed characters" {
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
+              |> Snippet.parseSnippets
+              |> function
+                  | Snippet.ConfigState.Invalid entry -> entry
+                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> Expect.equal
+                  "should return ConfigState.Invalid"
+                  { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
+                    SnippetEntry.Tooltip = "Invalid characters in group: group!"
+                    SnippetEntry.Group = null }
           }
 
           ]
