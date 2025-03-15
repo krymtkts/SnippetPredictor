@@ -1,10 +1,13 @@
 ﻿namespace SnippetPredictor
 
+open System
+open System.IO
+open System.Text.Json
+open System.Text.Json.Serialization
+
 #if DEBUG
 [<AutoOpen>]
 module Debug =
-    open System
-    open System.IO
     open System.Runtime.CompilerServices
     open System.Runtime.InteropServices
 
@@ -39,16 +42,39 @@ module Debug =
                 ))
 #endif
 
-type SnippetEntry = { Snippet: string; Tooltip: string }
+open System.Text.RegularExpressions
+
+type GroupJsonConverter() =
+    inherit JsonConverter<string>()
+
+    [<Literal>]
+    static let pattern = "^[A-Za-z0-9]+$"
+
+    static let regex = Regex(pattern)
+
+    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
+        reader.GetString()
+        |> function
+            | null as value -> value // NOTE: unreachable when JsonIgnoreCondition.WhenWritingNull is used.
+            | value when regex.IsMatch(value) -> value
+            | value -> JsonException(sprintf "Invalid characters in group: %s" value) |> raise
+
+    override _.Write(writer: Utf8JsonWriter, value: string, options: JsonSerializerOptions) =
+        value |> writer.WriteStringValue
+
+type SnippetEntry =
+    { Snippet: string
+      Tooltip: string
+      [<JsonConverter(typeof<GroupJsonConverter>)>]
+      [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
+      Group: string | null }
+
 type SnippetConfig = { Snippets: SnippetEntry[] | null }
 
 module Snippet =
-    open System
-    open System.IO
     open System.Collections
     open System.Management.Automation
     open System.Management.Automation.Subsystem.Prediction
-    open System.Text.Json
     open System.Threading
     open System.Text.Encodings.Web
 
@@ -81,7 +107,8 @@ module Snippet =
 
     let makeEntry (snippet: string) (tooltip: string) =
         { Snippet = $"'{snippet}'"
-          Tooltip = tooltip }
+          Tooltip = tooltip
+          Group = null }
 
     [<RequireQualifiedAccess>]
     [<NoEquality>]
@@ -124,7 +151,7 @@ module Snippet =
 
     type Cache() =
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
-
+        let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
 
         let startRefreshTask (path: string) =
@@ -140,6 +167,7 @@ module Snippet =
                     try
                         let! result = parseSnippetFile path
                         snippets.Clear()
+                        groups.Clear()
 
                         result
                         |> function
@@ -149,7 +177,14 @@ module Snippet =
                                 |> function
                                     | null -> Array.empty
                                     | snippets -> snippets
-                                |> Array.iter snippets.Enqueue
+                                |> Array.iter (fun s ->
+                                    snippets.Enqueue s
+
+                                    match s.Group with
+                                    | null -> ()
+                                    | g ->
+                                        if g |> groups.ContainsKey |> not then
+                                            groups.TryAdd(g, ()) |> ignore)
                             | ConfigState.Invalid record -> record |> snippets.Enqueue
 #if DEBUG
                         Logger.LogFile [ "Refreshed snippets." ]
@@ -209,6 +244,23 @@ module Snippet =
         let (|Snippet|_|) = extractInput snippetSymbol
         let (|Tooltip|_|) = extractInput tooltipSymbol
 
+        let (|Group|_|) (input: string) =
+            let input = input.Trim()
+
+            if input.StartsWith(":") |> not then
+                None
+            else
+                let group, input =
+                    input.Substring(1).Split(' ')
+                    |> fun arr -> arr |> Array.head, arr |> Array.skip 1 |> String.concat " "
+
+                if group = "" then
+                    None
+                else if group |> groups.ContainsKey then
+                    (group, input) |> Some
+                else
+                    None
+
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
 
@@ -224,7 +276,8 @@ module Snippet =
                 let pred =
                     match input with
                     | Tooltip tooltip -> _.Tooltip.Contains(tooltip)
-                    | Snippet snippet
+                    | Snippet snippet -> _.Snippet.Contains(snippet)
+                    | Group(group, snippet) -> fun (s: SnippetEntry) -> s.Group = group && s.Snippet.Contains(snippet)
                     | snippet -> _.Snippet.Contains(snippet)
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
@@ -261,8 +314,10 @@ module Snippet =
     let makeErrorRecord (e: string) =
         new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
 
-    let makeSnippetEntry (snippet: string) (tooltip: string) =
-        { Snippet = snippet; Tooltip = tooltip }
+    let makeSnippetEntry (snippet: string) (tooltip: string) (group: string | null) =
+        { Snippet = snippet
+          Tooltip = tooltip
+          Group = group }
 
     let storeConfig getSnippetPath (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)

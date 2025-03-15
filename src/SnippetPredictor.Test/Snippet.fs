@@ -27,7 +27,8 @@ let tests_parseSnippets =
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'.snippet-predictor.json is null or invalid format.'"
-                    SnippetEntry.Tooltip = "" }
+                    SnippetEntry.Tooltip = ""
+                    SnippetEntry.Group = null }
           }
 
           test "when JSON is empty" {
@@ -49,7 +50,9 @@ let tests_parseSnippets =
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
                     SnippetEntry.Tooltip =
-                      "Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 0 | BytePositionInLine: 1." }
+                      "Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 0 | BytePositionInLine: 1."
+                    SnippetEntry.Group = null }
+
           }
 
           test "when JSON has null snippets" {
@@ -70,7 +73,7 @@ let tests_parseSnippets =
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = [||] }
           }
 
-          test "when JSON has snippets" {
+          test "when JSON has snippets without group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
               |> Snippet.parseSnippets
               |> function
@@ -80,7 +83,22 @@ let tests_parseSnippets =
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip" } |] }
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
+          }
+
+          test "when JSON has snippets" {
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
+              |> Snippet.parseSnippets
+              |> function
+                  | Snippet.ConfigState.Valid entry -> entry
+                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> Expect.equal
+                  "should return ConfigState.Valid"
+                  { SnippetConfig.Snippets =
+                      [| { SnippetEntry.Snippet = "echo 'example'"
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = "group" } |] }
           }
 
           test "when JSON has snippets with trailing comma" {
@@ -98,7 +116,35 @@ let tests_parseSnippets =
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip" } |] }
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
+          }
+
+          test "when JSON has snippet that has null group" {
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
+              |> Snippet.parseSnippets
+              |> function
+                  | Snippet.ConfigState.Valid entry -> entry
+                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> Expect.equal
+                  "should return ConfigState.Valid"
+                  { SnippetConfig.Snippets =
+                      [| { SnippetEntry.Snippet = "echo 'example'"
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
+          }
+
+          test "when JSON has snippet that has group with disallowed characters" {
+              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
+              |> Snippet.parseSnippets
+              |> function
+                  | Snippet.ConfigState.Invalid entry -> entry
+                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> Expect.equal
+                  "should return ConfigState.Invalid"
+                  { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
+                    SnippetEntry.Tooltip = "Invalid characters in group: group!"
+                    SnippetEntry.Group = null }
           }
 
           ]
@@ -150,26 +196,27 @@ module getPredictiveSuggestions =
 
         let expected =
             { SnippetEntry.Snippet = "echo 'example'"
-              SnippetEntry.Tooltip = "example tooltip" }
+              SnippetEntry.Tooltip = "example tooltip"
+              SnippetEntry.Group = "group" }
 
         testList
             "getPredictiveSuggestions"
             [
 
-              test "when snippet symbol is set" {
+              test "when snippet symbol is set and matched" {
                   cache.getPredictiveSuggestions ":snp      echo    "
                   |> Expect.all
                       "should return the snippets filtered by the input removing snippet symbol."
                       (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
 
-              test "when snippet symbol is not set" {
+              test "when snippet symbol is not set and not matched" {
                   cache.getPredictiveSuggestions "    echo    "
                   |> Expect.all "should return the snippets filtered by the input." (fun actual ->
                       actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
 
-              test "when no snippets match" {
+              test "when no snippets matched" {
                   cache.getPredictiveSuggestions "    exo    "
                   |> Expect.isEmpty "should return empty."
               }
@@ -178,7 +225,7 @@ module getPredictiveSuggestions =
                   cache.getPredictiveSuggestions "    " |> Expect.isEmpty "should return empty."
               }
 
-              test "when tooltip symbol is set" {
+              test "when tooltip symbol is set and matched" {
                   cache.getPredictiveSuggestions ":tip      tooltip    "
                   |> Expect.all
                       "should return the snippets filtered by the input removing tooltip symbol."
@@ -188,7 +235,25 @@ module getPredictiveSuggestions =
               test "when tooltip symbol is not set and not matched" {
                   cache.getPredictiveSuggestions "    tooltip    "
                   |> Expect.isEmpty "should return empty."
-              } ]
+              }
+
+              test "when group symbol is set and matched" {
+                  cache.getPredictiveSuggestions ":group     "
+                  |> Expect.all "should return the snippets filtered by the input removing group symbol." (fun actual ->
+                      actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+              }
+
+              test "when no group symbol is set and not matched" {
+                  cache.getPredictiveSuggestions "    group    "
+                  |> Expect.isEmpty "should return empty."
+              }
+
+              test "when group symbol is set and invalid" {
+                  cache.getPredictiveSuggestions ":grp     "
+                  |> Expect.isEmpty "should return empty."
+              }
+
+              ]
 
 [<Tests>]
 let tests_loadSnippets =
@@ -233,7 +298,8 @@ let tests_loadSnippets =
           test "when snippet file is valid" {
               let expected =
                   [| { SnippetEntry.Snippet = "echo 'example'"
-                       SnippetEntry.Tooltip = "example tooltip" } |]
+                       SnippetEntry.Tooltip = "example tooltip"
+                       SnippetEntry.Group = "group" } |]
 
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
               |> function
@@ -271,7 +337,8 @@ module addAndRemoveSnippets =
                   let path = Path.Combine(tmp.Path, "not-found.json")
 
                   [ { SnippetEntry.Snippet = "echo '1'"
-                      SnippetEntry.Tooltip = "1 tooltip" } ]
+                      SnippetEntry.Tooltip = "1 tooltip"
+                      SnippetEntry.Group = null } ]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok s -> s
@@ -300,7 +367,8 @@ module addAndRemoveSnippets =
                   File.WriteAllText(path, """{"Snippets":[}""")
 
                   [ { SnippetEntry.Snippet = "echo '2'"
-                      SnippetEntry.Tooltip = "2 tooltip" } ]
+                      SnippetEntry.Tooltip = "2 tooltip"
+                      SnippetEntry.Group = null } ]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok _ -> failtest "Expected Error but got Ok."
@@ -316,7 +384,8 @@ module addAndRemoveSnippets =
                   File.WriteAllText(path, """{"Snippets": []}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
-                       SnippetEntry.Tooltip = "3 tooltip" } |]
+                       SnippetEntry.Tooltip = "3 tooltip"
+                       SnippetEntry.Group = null } |]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok s -> s
@@ -340,13 +409,14 @@ module addAndRemoveSnippets =
 
               }
 
-              test "when snippet file is valid and null" {
+              test "when snippet file is valid and omitted group" {
                   use tmp = new TempDirectory("SnippetPredictor.Test.")
                   let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
                   File.WriteAllText(path, """{"Snippets": null}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
-                       SnippetEntry.Tooltip = "3 tooltip" } |]
+                       SnippetEntry.Tooltip = "3 tooltip"
+                       SnippetEntry.Group = null } |]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
                   |> function
                       | Ok s -> s
@@ -359,6 +429,38 @@ module addAndRemoveSnippets =
     {
       "Snippet": "echo '3'",
       "Tooltip": "3 tooltip"
+    }
+  ]
+}"""
+                      |> normalizeNewlines
+
+                  File.ReadAllText(path)
+                  |> normalizeNewlines
+                  |> Expect.equal "should add the snippet to snippet file" expected
+
+              }
+
+              test "when snippet file is valid and has group" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
+                  File.WriteAllText(path, """{"Snippets": null}""")
+
+                  [| { SnippetEntry.Snippet = "echo '4'"
+                       SnippetEntry.Tooltip = "4 tooltip"
+                       SnippetEntry.Group = "group4" } |]
+                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> function
+                      | Ok s -> s
+                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Expect.equal "should return snippets" ()
+
+                  let expected =
+                      """{
+  "Snippets": [
+    {
+      "Snippet": "echo '4'",
+      "Tooltip": "4 tooltip",
+      "Group": "group4"
     }
   ]
 }"""
