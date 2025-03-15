@@ -146,6 +146,7 @@ module Snippet =
                     try
                         let! result = parseSnippetFile path
                         snippets.Clear()
+                        groups.Clear()
 
                         result
                         |> function
