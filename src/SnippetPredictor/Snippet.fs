@@ -85,12 +85,6 @@ module Snippet =
     let snippetFilesName = ".snippet-predictor.json"
 
     [<Literal>]
-    let snippetSymbol = ":snp"
-
-    [<Literal>]
-    let tooltipSymbol = ":tip"
-
-    [<Literal>]
     let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
 
     let mutable watcher: FileSystemWatcher option = None
@@ -233,33 +227,16 @@ module Snippet =
 
         let snippetToTuple (s: SnippetEntry) = s.Snippet, s.Tooltip
 
-        let extractInput (symbol: string) (input: string) =
-            if input.StartsWith(symbol) then
-                // NOTE: Remove the snippet or tooltip symbol from the input.
-                // NOTE: These symbols are used to exclude other predictors from suggestions.
-                Some(input.Substring(symbol.Length).Trim())
-            else
-                None
+        let inputPattern = Regex("\s+")
 
-        let (|Snippet|_|) = extractInput snippetSymbol
-        let (|Tooltip|_|) = extractInput tooltipSymbol
-
-        let (|Group|_|) (input: string) =
-            let input = input.Trim()
-
-            if input.StartsWith(":") |> not then
-                None
-            else
-                let group, input =
-                    input.Substring(1).Split(' ')
-                    |> fun arr -> arr |> Array.head, arr |> Array.skip 1 |> String.concat " "
-
-                if group = "" then
-                    None
-                else if group |> groups.ContainsKey then
-                    (group, input) |> Some
-                else
-                    None
+        let (|Prefix|_|) (value: string) =
+            // NOTE: Remove the snippet or tooltip symbol from the input.
+            // NOTE: These symbols are used to exclude other predictors from suggestions.
+            match value.StartsWith(":") with
+            | true ->
+                let m = inputPattern.Match(value)
+                (value.Substring(1, m.Index), value.Substring(m.Index)) |> Some
+            | _ -> None
 
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
@@ -275,9 +252,11 @@ module Snippet =
             else
                 let pred =
                     match input with
-                    | Tooltip tooltip -> _.Tooltip.Contains(tooltip)
-                    | Snippet snippet -> _.Snippet.Contains(snippet)
-                    | Group(group, snippet) -> fun (s: SnippetEntry) -> s.Group = group && s.Snippet.Contains(snippet)
+                    | Prefix(groupId, input) ->
+                        match groupId with
+                        | "snp" -> _.Snippet.Contains(input)
+                        | "tip" -> _.Tooltip.Contains(input)
+                        | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input)
                     | snippet -> _.Snippet.Contains(snippet)
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
