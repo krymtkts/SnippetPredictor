@@ -204,14 +204,18 @@ module getPredictiveSuggestions =
             [
 
               test "when snippet symbol is set and matched" {
-                  cache.getPredictiveSuggestions ":snp      echo    "
+                  let actual = cache.getPredictiveSuggestions ":snp      echo    "
+
+                  actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing snippet symbol."
                       (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
 
               test "when snippet symbol is not set and not matched" {
-                  cache.getPredictiveSuggestions "    echo    "
+                  let actual = cache.getPredictiveSuggestions "    echo    "
+
+                  actual
                   |> Expect.all "should return the snippets filtered by the input." (fun actual ->
                       actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
@@ -226,7 +230,9 @@ module getPredictiveSuggestions =
               }
 
               test "when tooltip symbol is set and matched" {
-                  cache.getPredictiveSuggestions ":tip      tooltip    "
+                  let actual = cache.getPredictiveSuggestions ":tip    example  tooltip    "
+
+                  actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing tooltip symbol."
                       (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
@@ -238,7 +244,9 @@ module getPredictiveSuggestions =
               }
 
               test "when group symbol is set and matched" {
-                  cache.getPredictiveSuggestions ":group     "
+                  let actual = cache.getPredictiveSuggestions ":group     "
+
+                  actual
                   |> Expect.all "should return the snippets filtered by the input removing group symbol." (fun actual ->
                       actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
               }
