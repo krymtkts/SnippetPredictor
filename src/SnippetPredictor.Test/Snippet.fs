@@ -199,6 +199,10 @@ module getPredictiveSuggestions =
               SnippetEntry.Tooltip = "example  tooltip"
               SnippetEntry.Group = "group" }
 
+        let asserter (actual: System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion) =
+            actual.SuggestionText = expected.Snippet
+            && actual.ToolTip = $"[{expected.Group}]{expected.Tooltip}"
+
         testList
             "getPredictiveSuggestions"
             [
@@ -208,9 +212,7 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all
-                      "should return the snippets filtered by the input removing snippet symbol."
-                      (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+                  |> Expect.all "should return the snippets filtered by the input removing snippet symbol." asserter
               }
 
               test "when snippet symbol is not set and matched" {
@@ -218,8 +220,7 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all "should return the snippets filtered by the input." (fun actual ->
-                      actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+                  |> Expect.all "should return the snippets filtered by the input." asserter
               }
 
               test "when no snippets matched with :" {
@@ -240,9 +241,7 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all
-                      "should return the snippets filtered by the input removing tooltip symbol."
-                      (fun actual -> actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+                  |> Expect.all "should return the snippets filtered by the input removing tooltip symbol." asserter
               }
 
               test "when tooltip symbol is not set and not matched" {
@@ -255,8 +254,7 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all "should return the snippets filtered by the input removing group symbol." (fun actual ->
-                      actual.SuggestionText = expected.Snippet && actual.ToolTip = expected.Tooltip)
+                  |> Expect.all "should return the snippets filtered by the input removing group symbol." asserter
               }
 
               test "when no group symbol is set and not matched" {

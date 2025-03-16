@@ -225,7 +225,11 @@ module Snippet =
             Logger.LogFile [ "Started file watching event." ]
 #endif
 
-        let snippetToTuple (s: SnippetEntry) = s.Snippet, s.Tooltip
+        let snippetToTuple (s: SnippetEntry) =
+            s.Group
+            |> function
+                | null -> s.Snippet, s.Tooltip
+                | g -> s.Snippet, $"[{g}]{s.Tooltip}"
 
         let inputPattern = Regex(":([a-zA-Z0-9]+)\\s*(.*)")
 
