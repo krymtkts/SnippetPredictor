@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Add-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 02-22-2025
+ms.date: 03-16-2025
 PlatyPS schema version: 2024-05-01
 title: Add-Snippet
 ---
@@ -20,7 +20,7 @@ Add snippets with tooltip to the snippet configuration.
 ### \_\_AllParameterSets
 
 ```
-Add-Snippet [-Snippet] <string> [[-Tooltip] <string>] [<CommonParameters>]
+Add-Snippet [-Snippet] <string> [[-Tooltip] <string>] [[-Group] <string>] [<CommonParameters>]
 ```
 
 ## ALIASES
@@ -66,6 +66,28 @@ You can pass code blocks because code blocks are implicitly converted to strings
 Add a snippet through pipeline.
 
 ## PARAMETERS
+
+### -Group
+
+The group of the snippet
+
+```yaml
+Type: System.String
+DefaultValue: ""
+SupportsWildcards: false
+ParameterValue: []
+Aliases: []
+ParameterSets:
+  - Name: (All)
+    Position: 2
+    IsRequired: false
+    ValueFromPipeline: false
+    ValueFromPipelineByPropertyName: true
+    ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ""
+```
 
 ### -Snippet
 
