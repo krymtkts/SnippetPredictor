@@ -227,16 +227,18 @@ module Snippet =
 
         let snippetToTuple (s: SnippetEntry) = s.Snippet, s.Tooltip
 
-        let inputPattern = Regex("\s+")
+        let inputPattern = Regex(":([a-zA-Z0-9]+)\\s*(.*)")
 
         let (|Prefix|_|) (value: string) =
             // NOTE: Remove the snippet or tooltip symbol from the input.
             // NOTE: These symbols are used to exclude other predictors from suggestions.
-            match value.StartsWith(":") with
-            | true ->
-                let m = inputPattern.Match(value)
-                (value.Substring(1, m.Index), value.Substring(m.Index)) |> Some
-            | _ -> None
+            let m = inputPattern.Match(value)
+
+            m.Groups.Count
+            |> function
+                | 2 -> (m.Groups[1].Value, "") |> Some
+                | 3 -> (m.Groups[1].Value, m.Groups[2].Value.TrimEnd()) |> Some
+                | _ -> None
 
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
@@ -253,11 +255,15 @@ module Snippet =
                 let pred =
                     match input with
                     | Prefix(groupId, input) ->
+#if DEBUG
+                        Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
+#endif
+
                         match groupId with
                         | "snp" -> _.Snippet.Contains(input)
                         | "tip" -> _.Tooltip.Contains(input)
                         | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input)
-                    | snippet -> _.Snippet.Contains(snippet)
+                    | snippet -> _.Snippet.Contains(snippet.Trim())
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
             |> Linq.Enumerable.ToList
