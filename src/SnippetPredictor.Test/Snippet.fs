@@ -196,7 +196,7 @@ module getPredictiveSuggestions =
 
         let expected =
             { SnippetEntry.Snippet = "echo 'example'"
-              SnippetEntry.Tooltip = "example tooltip"
+              SnippetEntry.Tooltip = "example  tooltip"
               SnippetEntry.Group = "group" }
 
         testList
@@ -233,7 +233,7 @@ module getPredictiveSuggestions =
               }
 
               test "when tooltip symbol is not set and not matched" {
-                  cache.getPredictiveSuggestions "    tooltip    "
+                  cache.getPredictiveSuggestions "    example  tooltip    "
                   |> Expect.isEmpty "should return empty."
               }
 
@@ -298,7 +298,7 @@ let tests_loadSnippets =
           test "when snippet file is valid" {
               let expected =
                   [| { SnippetEntry.Snippet = "echo 'example'"
-                       SnippetEntry.Tooltip = "example tooltip"
+                       SnippetEntry.Tooltip = "example  tooltip"
                        SnippetEntry.Group = "group" } |]
 
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
