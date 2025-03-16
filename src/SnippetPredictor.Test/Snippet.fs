@@ -194,14 +194,22 @@ module getPredictiveSuggestions =
         let cache = Snippet.Cache()
         cache.load (fun () -> "./", "./.snippet-predictor-valid.json")
 
-        let expected =
+        let expected1 =
             { SnippetEntry.Snippet = "echo 'example'"
               SnippetEntry.Tooltip = "example  tooltip"
               SnippetEntry.Group = "group" }
 
-        let asserter (actual: System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion) =
+        let expected2 =
+            { SnippetEntry.Snippet = "touch sample.txt"
+              SnippetEntry.Tooltip = "new file"
+              SnippetEntry.Group = null }
+
+        let asserter expected (actual: System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion) =
             actual.SuggestionText = expected.Snippet
-            && actual.ToolTip = $"[{expected.Group}]{expected.Tooltip}"
+            && actual.ToolTip = if expected.Group = null then
+                                    expected.Tooltip
+                                else
+                                    $"[{expected.Group}]{expected.Tooltip}"
 
         testList
             "getPredictiveSuggestions"
@@ -212,15 +220,17 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all "should return the snippets filtered by the input removing snippet symbol." asserter
+                  |> Expect.all
+                      "should return the snippets filtered by the input removing snippet symbol."
+                      (asserter expected1)
               }
 
               test "when snippet symbol is not set and matched" {
-                  let actual = cache.getPredictiveSuggestions "    echo    "
+                  let actual = cache.getPredictiveSuggestions "    tou    "
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all "should return the snippets filtered by the input." asserter
+                  |> Expect.all "should return the snippets filtered by the input." (asserter expected2)
               }
 
               test "when no snippets matched with :" {
@@ -241,7 +251,9 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all "should return the snippets filtered by the input removing tooltip symbol." asserter
+                  |> Expect.all
+                      "should return the snippets filtered by the input removing tooltip symbol."
+                      (asserter expected1)
               }
 
               test "when tooltip symbol is not set and not matched" {
@@ -254,7 +266,9 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all "should return the snippets filtered by the input removing group symbol." asserter
+                  |> Expect.all
+                      "should return the snippets filtered by the input removing group symbol."
+                      (asserter expected1)
               }
 
               test "when no group symbol is set and not matched" {
@@ -311,9 +325,16 @@ let tests_loadSnippets =
 
           test "when snippet file is valid" {
               let expected =
-                  [| { SnippetEntry.Snippet = "echo 'example'"
+                  [|
+
+                     { SnippetEntry.Snippet = "echo 'example'"
                        SnippetEntry.Tooltip = "example  tooltip"
-                       SnippetEntry.Group = "group" } |]
+                       SnippetEntry.Group = "group" }
+                     { SnippetEntry.Snippet = "touch sample.txt"
+                       SnippetEntry.Tooltip = "new file"
+                       SnippetEntry.Group = null }
+
+                     |]
 
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
               |> function
