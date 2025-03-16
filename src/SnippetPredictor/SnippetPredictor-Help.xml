@@ -15,6 +15,13 @@
     <command:syntax>
       <command:syntaxItem>
         <maml:name>Add-Snippet</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+          <maml:name>Group</maml:name>
+          <maml:description>
+            <maml:para>The group of the snippet</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="true">System.String</command:parameterValue>
+        </command:parameter>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
           <maml:name>Snippet</maml:name>
           <maml:description>
@@ -32,6 +39,13 @@
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+        <maml:name>Group</maml:name>
+        <maml:description>
+          <maml:para>The group of the snippet</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="true">System.String</command:parameterValue>
+      </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
         <maml:name>Snippet</maml:name>
         <maml:description>
