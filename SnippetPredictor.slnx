@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SnippetPredictor.Test/SnippetPredictor.Test.fsproj" />
+    <Project Path="src/SnippetPredictor/SnippetPredictor.fsproj" />
+  </Folder>
+</Solution>
