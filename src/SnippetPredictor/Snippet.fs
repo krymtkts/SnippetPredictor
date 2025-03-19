@@ -263,10 +263,15 @@ module Snippet =
                         Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
 
+                        // NOTE: symbol search only support case-insensitive search.
+                        // NOTE: If case-sensitive search is required, search without symbol.
                         match groupId with
-                        | "snp" -> _.Snippet.Contains(input)
-                        | "tip" -> _.Tooltip.Contains(input)
-                        | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input)
+                        | "snp" -> _.Snippet.Contains(input, StringComparison.OrdinalIgnoreCase)
+                        | "tip" -> _.Tooltip.Contains(input, StringComparison.OrdinalIgnoreCase)
+                        | groupId ->
+                            fun (s: SnippetEntry) ->
+                                s.Group = groupId
+                                && s.Snippet.Contains(input, StringComparison.OrdinalIgnoreCase)
                     | snippet -> _.Snippet.Contains(snippet.Trim())
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
