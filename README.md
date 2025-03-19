@@ -25,7 +25,7 @@ Install-PSResource -Name SnippetPredictor
 Install-Module -Name SnippetPredictor
 ```
 
-Before using SnippetPredictor, verify that your PowerShell `PredictionSource` is set to `HistoryAndPlugin`:
+Before using SnippetPredictor, verify that your PowerShell `PredictionSource` is set to `HistoryAndPlugin`[^1]:
 
 ```powershell
 # PredictionSource = HistoryAndPlugin required.
@@ -35,6 +35,8 @@ Get-PSReadLineOption | Select-Object PredictionSource
 # ----------------
 # HistoryAndPlugin
 ```
+
+[^1]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#managing-predictive-intellisense)
 
 Next, import the SnippetPredictor module and confirm that the predictor has been loaded:
 
@@ -49,11 +51,13 @@ Get-PSSubsystem -Kind CommandPredictor
 # CommandPredictor  ICommandPredictor          True {Snippet, Windows Package Manager - WinGet}
 ```
 
-Finally, set the prediction view style to `ListView`:
+Finally, set the prediction view style to `ListView`[^2]:
 
 ```powershell
 Set-PSReadLineOption -PredictionViewStyle ListView
 ```
+
+[^2]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#using-other-predictor-plug-ins)
 
 ## Cmdlet help
 
