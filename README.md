@@ -25,7 +25,7 @@ Install-PSResource -Name SnippetPredictor
 Install-Module -Name SnippetPredictor
 ```
 
-Before using SnippetPredictor, verify that your PowerShell `PredictionSource` is set to `HistoryAndPlugin`:
+Before using SnippetPredictor, verify that your PowerShell `PredictionSource` is set to `HistoryAndPlugin`[^1]:
 
 ```powershell
 # PredictionSource = HistoryAndPlugin required.
@@ -35,6 +35,8 @@ Get-PSReadLineOption | Select-Object PredictionSource
 # ----------------
 # HistoryAndPlugin
 ```
+
+[^1]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#managing-predictive-intellisense)
 
 Next, import the SnippetPredictor module and confirm that the predictor has been loaded:
 
@@ -49,11 +51,13 @@ Get-PSSubsystem -Kind CommandPredictor
 # CommandPredictor  ICommandPredictor          True {Snippet, Windows Package Manager - WinGet}
 ```
 
-Finally, set the prediction view style to `ListView`:
+Finally, set the prediction view style to `ListView`[^2]:
 
 ```powershell
 Set-PSReadLineOption -PredictionViewStyle ListView
 ```
+
+[^2]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#using-other-predictor-plug-ins)
 
 ## Cmdlet help
 
@@ -94,6 +98,9 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
 - Use `:{group} {input}` to search for `{input}` in the `Snippet` field for snippets in a specified `Group`.
   - Allowed characters for the `Group` field: `^[a-zA-Z0-9]+$`.
     (That is, the group name must consist of alphanumeric characters only.)
+
+Keywords entered after `:{symbol}` are searched in a case-insensitive manner.
+Without a keyword, the search becomes case-sensitive.
 
 You can list your registered snippets with the `Get-Snippet` command.
 
