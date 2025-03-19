@@ -216,7 +216,7 @@ module getPredictiveSuggestions =
             [
 
               test "when snippet symbol is set and matched" {
-                  let actual = cache.getPredictiveSuggestions ":snp      echo    "
+                  let actual = cache.getPredictiveSuggestions ":snp      Echo    "
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
@@ -247,7 +247,7 @@ module getPredictiveSuggestions =
               }
 
               test "when tooltip symbol is set and matched" {
-                  let actual = cache.getPredictiveSuggestions ":tip    example  tooltip    "
+                  let actual = cache.getPredictiveSuggestions ":tip    Example  tooltip    "
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
@@ -263,6 +263,16 @@ module getPredictiveSuggestions =
 
               test "when group symbol is set and matched" {
                   let actual = cache.getPredictiveSuggestions ":group     "
+                  actual |> Expect.isNonEmpty "snippets"
+
+                  actual
+                  |> Expect.all
+                      "should return the snippets filtered by the input removing group symbol."
+                      (asserter expected1)
+              }
+
+              test "when group symbol is set and matched case insensitive" {
+                  let actual = cache.getPredictiveSuggestions ":group  Echo   "
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
