@@ -3,6 +3,7 @@
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/v/SnippetPredictor)](https://www.powershellgallery.com/packages/SnippetPredictor)
 [![PowerShell Gallery](https://img.shields.io/powershellgallery/dt/SnippetPredictor)](https://www.powershellgallery.com/packages/SnippetPredictor)
 ![Test main status](https://github.com/krymtkts/SnippetPredictor/actions/workflows/main.yml/badge.svg)
+[![codecov](https://codecov.io/gh/krymtkts/SnippetPredictor/graph/badge.svg?token=7HA9NC8PHT)](https://codecov.io/gh/krymtkts/SnippetPredictor)
 
 SnippetPredictor is a command-line predictor written in F# that suggests code snippet based on the input.
 This module requires PowerShell 7.2 and PSReadLine 2.2.2.
