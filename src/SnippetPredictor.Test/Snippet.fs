@@ -395,14 +395,12 @@ module addAndRemoveSnippets =
               }
 
               test "when snippet file is invalid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-invalid.json")
-                  File.WriteAllText(path, """{"Snippets":[}""")
+                  use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
 
                   [ { SnippetEntry.Snippet = "echo '2'"
                       SnippetEntry.Tooltip = "2 tooltip"
                       SnippetEntry.Group = null } ]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> Snippet.addSnippets tmp.GetSnippetPath
                   |> function
                       | Ok _ -> failtest "Expected Error but got Ok."
                       | Error e -> e
@@ -412,14 +410,12 @@ module addAndRemoveSnippets =
               }
 
               test "when snippet file is valid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.WriteAllText(path, """{"Snippets": []}""")
+                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": []}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> Snippet.addSnippets tmp.GetSnippetPath
                   |> function
                       | Ok s -> s
                       | Error e -> failtest $"Expected Error but got Error. {e}"
@@ -436,21 +432,18 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
 
               test "when snippet file is valid and omitted group" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.WriteAllText(path, """{"Snippets": null}""")
+                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> Snippet.addSnippets tmp.GetSnippetPath
                   |> function
                       | Ok s -> s
                       | Error e -> failtest $"Expected Error but got Error. {e}"
@@ -467,21 +460,18 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
 
               test "when snippet file is valid and has group" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.WriteAllText(path, """{"Snippets": null}""")
+                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
 
                   [| { SnippetEntry.Snippet = "echo '4'"
                        SnippetEntry.Tooltip = "4 tooltip"
                        SnippetEntry.Group = "group4" } |]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> Snippet.addSnippets tmp.GetSnippetPath
                   |> function
                       | Ok s -> s
                       | Error e -> failtest $"Expected Error but got Error. {e}"
@@ -499,8 +489,7 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
@@ -529,12 +518,10 @@ module addAndRemoveSnippets =
               }
 
               test "when snippet file is invalid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-invalid.json")
-                  File.WriteAllText(path, """{"Snippets":[}""")
+                  use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
 
                   [ "echo '2'" ]
-                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
+                  |> Snippet.removeSnippets tmp.GetSnippetPath
                   |> function
                       | Ok _ -> failtest "Expected Error but got Ok."
                       | Error e -> e
@@ -544,12 +531,14 @@ module addAndRemoveSnippets =
               }
 
               test "when snippet file is valid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.AppendAllText(path, """{"Snippet": "echo '3'", "Tooltip": "3 tooltip"}""")
+                  use tmp =
+                      new TempFile(
+                          ".snippet-predictor-valid.json",
+                          """{"Snippet": "echo '3'", "Tooltip": "3 tooltip"}"""
+                      )
 
                   [ "echo '1'"; "echo '3'"; "echo '3'" ]
-                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
+                  |> Snippet.removeSnippets tmp.GetSnippetPath
                   |> function
                       | Ok s -> s
                       | Error e -> failtest $"Expected Error but got Error. {e}"
@@ -561,8 +550,7 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should remove the snippet from snippet file" expected
               }
 
