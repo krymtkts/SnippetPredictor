@@ -23,6 +23,8 @@
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
+    <!-- NOTE: for IModuleAssemblyCleanup.OnRemove to work correctly. -->
+    <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,7 +32,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Utility.fs" />
     <Compile Include="Snippet.fs" />
+    <Compile Include="Library.fs" />
   </ItemGroup>
 
 </Project>

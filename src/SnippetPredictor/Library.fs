@@ -7,7 +7,7 @@ open System.Management.Automation.Subsystem
 open System.Management.Automation.Subsystem.Prediction
 open System.Threading
 
-type SnippetPredictor(guid: string) =
+type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
@@ -18,7 +18,7 @@ type SnippetPredictor(guid: string) =
 
     let cache = Snippet.Cache()
 
-    do cache.load Snippet.getSnippetPath
+    do cache.load getSnippetPath
 
     interface ICommandPredictor with
         member __.Id = id
@@ -31,7 +31,11 @@ type SnippetPredictor(guid: string) =
             : SuggestionPackage =
             context.InputAst.Extent.Text
             |> cache.getPredictiveSuggestions
-            |> SuggestionPackage
+            |> function
+                // NOTE: suggestionEntries requires non-empty by Requires.NotNullOrEmpty.
+                // https://github.com/PowerShell/PowerShell/blob/eef334de1b0f648512859bd032356f9c8df7cb91/src/System.Management.Automation/engine/Subsystem/PredictionSubsystem/ICommandPredictor.cs#L278
+                | suggestions when suggestions.Count = 0 -> SuggestionPackage()
+                | suggestions -> SuggestionPackage(suggestions)
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
 
@@ -50,7 +54,7 @@ type Init() =
 
     interface IModuleAssemblyInitializer with
         member __.OnImport() =
-            let predictor = SnippetPredictor(identifier)
+            let predictor = SnippetPredictor(identifier, Snippet.getSnippetPath)
             SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, predictor)
 
     interface IModuleAssemblyCleanup with
@@ -62,8 +66,11 @@ type Init() =
 type GetSnippetCommand() =
     inherit Cmdlet()
 
+    abstract member GetSnippetPath: unit -> string * string
+    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+
     override __.EndProcessing() =
-        Snippet.loadSnippets Snippet.getSnippetPath
+        Snippet.loadSnippets __.GetSnippetPath
         |> function
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
@@ -94,12 +101,15 @@ type AddSnippetCommand() =
     [<ValidatePattern("^[A-Za-z0-9]+$")>]
     member val Group: string | null = null with get, set
 
+    abstract member GetSnippetPath: unit -> string * string
+    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+
     override __.ProcessRecord() =
         Snippet.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.addSnippets Snippet.getSnippetPath
+        |> Snippet.addSnippets __.GetSnippetPath
         |> function
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
@@ -117,11 +127,14 @@ type RemoveSnippetCommand() =
                 HelpMessage = "The text of the snippet to remove")>]
     member val Snippet = "" with get, set
 
+    abstract member GetSnippetPath: unit -> string * string
+    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+
     override __.ProcessRecord() = __.Snippet |> snippets.Add
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.removeSnippets Snippet.getSnippetPath
+        |> Snippet.removeSnippets __.GetSnippetPath
         |> function
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
