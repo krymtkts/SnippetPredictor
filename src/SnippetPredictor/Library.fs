@@ -94,12 +94,15 @@ type AddSnippetCommand() =
     [<ValidatePattern("^[A-Za-z0-9]+$")>]
     member val Group: string | null = null with get, set
 
+    abstract member GetSnippetPath: unit -> string * string
+    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+
     override __.ProcessRecord() =
         Snippet.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.addSnippets Snippet.getSnippetPath
+        |> Snippet.addSnippets __.GetSnippetPath
         |> function
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError

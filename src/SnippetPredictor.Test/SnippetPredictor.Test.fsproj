@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -32,6 +32,7 @@
   <ItemGroup>
     <Compile Include="Utility.fs" />
     <Compile Include="Snippet.fs" />
+    <Compile Include="Library.fs" />
   </ItemGroup>
 
 </Project>
