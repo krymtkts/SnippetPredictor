@@ -14,3 +14,17 @@ type TempDirectory(directory: string) =
                 Directory.Delete(__.Path, true)
             else
                 failwith $"Directory '{__.Path}' does not exist. maybe the test failed to create it."
+
+type TempFile(fileName: string, content: string) =
+    let directory = new TempDirectory("SnippetPredictor.Test.")
+    let path = Path.Combine(directory.Path, fileName)
+
+    do File.WriteAllText(path, content)
+
+    interface IDisposable with
+        member __.Dispose() = (directory :> IDisposable).Dispose()
+
+    member __.GetSnippetPath() = directory.Path, path
+
+    member __.GetSnippetContent() =
+        File.ReadAllText(path) |> normalizeNewlines
