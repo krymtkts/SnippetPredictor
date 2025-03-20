@@ -220,3 +220,82 @@ module GetSnippet =
                       && e.CategoryInfo.Category = expected.CategoryInfo.Category
                       && e.TargetObject = expected.TargetObject)
               } ]
+
+module RemoveSnippet =
+    type RemoveSnippetCommandForTest(path: string) =
+        inherit RemoveSnippetCommand()
+
+        override __.GetSnippetPath() = getSnippetPath path
+
+        // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
+        member __.Test() =
+            __.BeginProcessing()
+            __.ProcessRecord()
+            __.EndProcessing()
+
+    [<Tests>]
+    let tests_RemoveSnippet =
+        testList
+            "RemoveSnippet"
+            [
+
+              test "when snippet file is valid" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
+
+                  File.AppendAllText(
+                      path,
+                      """{"Snippets": [{"Snippet": "Remove-Snippet", "Tooltip": "remove snippet", "Group": "test"}]}"""
+                  )
+
+                  let runtime = Mock.CommandRuntime()
+                  let cmdlet = RemoveSnippetCommandForTest(path)
+                  cmdlet.CommandRuntime <- runtime
+                  cmdlet.Snippet <- "Remove-Snippet"
+                  cmdlet.Test() |> ignore
+
+                  let expected =
+                      """{
+  "Snippets": []
+}"""
+                      |> normalizeNewlines
+
+                  File.ReadAllText(path)
+                  |> normalizeNewlines
+                  |> Expect.equal "should remove the snippet from snippet file" expected
+              }
+
+              test "when snippet file is invalid" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
+                  File.AppendAllText(path, """{"Snippets": [}""")
+
+                  let runtime = Mock.CommandRuntime()
+                  let cmdlet = RemoveSnippetCommandForTest(path)
+                  cmdlet.CommandRuntime <- runtime
+                  cmdlet.Test() |> ignore
+
+                  let expected = """{"Snippets": [}""" |> normalizeNewlines
+
+                  File.ReadAllText(path)
+                  |> normalizeNewlines
+                  |> Expect.equal "shouldn't remove the snippet from snippet file" expected
+
+                  runtime.Errors |> Expect.isNonEmpty "should have error"
+
+                  let expected =
+                      ErrorRecord(
+                          Exception(
+                              "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                          ),
+                          "",
+                          ErrorCategory.InvalidData,
+                          null
+                      )
+
+                  runtime.Errors
+                  |> Expect.all "should have error" (fun e ->
+                      e.Exception.Message = expected.Exception.Message
+                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
+                      && e.TargetObject = expected.TargetObject)
+              } ]

@@ -123,11 +123,14 @@ type RemoveSnippetCommand() =
                 HelpMessage = "The text of the snippet to remove")>]
     member val Snippet = "" with get, set
 
+    abstract member GetSnippetPath: unit -> string * string
+    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+
     override __.ProcessRecord() = __.Snippet |> snippets.Add
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.removeSnippets Snippet.getSnippetPath
+        |> Snippet.removeSnippets __.GetSnippetPath
         |> function
             | Ok() -> ()
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
