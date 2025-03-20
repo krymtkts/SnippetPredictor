@@ -1,4 +1,4 @@
-﻿namespace SnippetPredictor
+namespace SnippetPredictor
 
 open System
 open System.Collections.Generic
@@ -7,7 +7,7 @@ open System.Management.Automation.Subsystem
 open System.Management.Automation.Subsystem.Prediction
 open System.Threading
 
-type SnippetPredictor(guid: string) =
+type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
@@ -18,7 +18,7 @@ type SnippetPredictor(guid: string) =
 
     let cache = Snippet.Cache()
 
-    do cache.load Snippet.getSnippetPath
+    do cache.load getSnippetPath
 
     interface ICommandPredictor with
         member __.Id = id
@@ -50,7 +50,7 @@ type Init() =
 
     interface IModuleAssemblyInitializer with
         member __.OnImport() =
-            let predictor = SnippetPredictor(identifier)
+            let predictor = SnippetPredictor(identifier, Snippet.getSnippetPath)
             SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, predictor)
 
     interface IModuleAssemblyCleanup with

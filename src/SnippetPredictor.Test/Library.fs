@@ -352,9 +352,10 @@ module SnippetPredictorInitialization =
 
 module SnippetPredictor =
     open System.Management.Automation.Subsystem.Prediction
+    open System.Threading
 
-    type SnippetPredictorForTest() =
-        inherit SnippetPredictor("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1")
+    type SnippetPredictorForTest(path) =
+        inherit SnippetPredictor("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1", fun () -> getSnippetPath path)
 
     [<Tests>]
     let tests_SnippetPredictor =
@@ -362,8 +363,35 @@ module SnippetPredictor =
             "SnippetPredictor"
             [
 
+              test "GetSuggestion" {
+                  let predictor =
+                      SnippetPredictorForTest("./.snippet-predictor-valid.json") :> ICommandPredictor
+
+                  // NOTE: This is a workaround for the test; the test crashes without a proper wait.
+                  Async.Sleep(1000) |> Async.RunSynchronously
+
+                  let client = PredictionClient("test", PredictionClientKind.Terminal)
+
+                  let result =
+                      predictor.GetSuggestion(client, PredictionContext.Create(":group"), CancellationToken.None)
+
+                  result.SuggestionEntries
+                  |> Expect.isNonEmpty "should provide suggestions for matching input"
+
+                  result.SuggestionEntries
+                  |> Expect.all "should provide suggestions for matching input" (fun entry ->
+                      entry.SuggestionText = "echo 'example'"
+                      && entry.ToolTip = "[group]example  tooltip")
+
+                  predictor.GetSuggestion(client, PredictionContext.Create(":test"), CancellationToken.None)
+                  |> _.SuggestionEntries
+                  |> Expect.isNull "should not provide suggestions when no match is found"
+
+              }
+
               test "for coverage" {
-                  let predictor = SnippetPredictorForTest() :> ICommandPredictor
+                  let predictor =
+                      SnippetPredictorForTest("./.snippet-predictor-valid.json") :> ICommandPredictor
 
                   predictor.FunctionsToDefine
                   |> Expect.isEmpty "should not have functions to define"
