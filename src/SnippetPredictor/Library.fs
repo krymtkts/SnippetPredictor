@@ -1,4 +1,4 @@
-namespace SnippetPredictor
+﻿namespace SnippetPredictor
 
 open System
 open System.Collections.Generic
@@ -31,7 +31,11 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
             : SuggestionPackage =
             context.InputAst.Extent.Text
             |> cache.getPredictiveSuggestions
-            |> SuggestionPackage
+            |> function
+                // NOTE: suggestionEntries requires non-empty by Requires.NotNullOrEmpty.
+                // https://github.com/PowerShell/PowerShell/blob/eef334de1b0f648512859bd032356f9c8df7cb91/src/System.Management.Automation/engine/Subsystem/PredictionSubsystem/ICommandPredictor.cs#L278
+                | suggestions when suggestions.Count = 0 -> SuggestionPackage()
+                | suggestions -> SuggestionPackage(suggestions)
 
         member __.CanAcceptFeedback(client: PredictionClient, feedback: PredictorFeedbackKind) : bool = false
 
