@@ -300,7 +300,7 @@ module RemoveSnippet =
                       && e.TargetObject = expected.TargetObject)
               } ]
 
-module CommandLinePredictor =
+module SnippetPredictorInitialization =
     open System.Management.Automation.Subsystem
 
     let createMockModule () =
@@ -346,6 +346,37 @@ module CommandLinePredictor =
 
                   let predictor = getSnippetPredictorSubsystem ()
                   predictor |> Expect.isNone "should remove Snippet predictor"
+              }
+
+              ]
+
+module SnippetPredictor =
+    open System.Management.Automation.Subsystem.Prediction
+
+    type SnippetPredictorForTest() =
+        inherit SnippetPredictor("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1")
+
+    [<Tests>]
+    let tests_SnippetPredictor =
+        testList
+            "SnippetPredictor"
+            [
+
+              test "for coverage" {
+                  let predictor = SnippetPredictorForTest() :> ICommandPredictor
+
+                  predictor.FunctionsToDefine
+                  |> Expect.isEmpty "should not have functions to define"
+
+                  let client = PredictionClient("test", PredictionClientKind.Terminal)
+
+                  predictor.CanAcceptFeedback(client, PredictorFeedbackKind.SuggestionDisplayed)
+                  |> Expect.isFalse "should not accept feedback"
+
+                  predictor.OnSuggestionDisplayed(client, 0u, 0)
+                  predictor.OnSuggestionAccepted(client, 0u, "test")
+                  predictor.OnCommandLineAccepted(client, [||])
+                  predictor.OnCommandLineExecuted(client, "tes", true)
               }
 
               ]
