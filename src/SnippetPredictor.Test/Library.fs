@@ -12,14 +12,14 @@ open System.Management.Automation
 
 module Mock =
     type CommandRuntime() =
-        let mutable output: string list = List.empty
+        let mutable output: obj list = List.empty
         let mutable errors: ErrorRecord list = List.empty
         let mutable warnings: string list = List.empty
 
         let write (obj: obj | null) =
             match obj with
             | null -> failwith "null"
-            | obj -> output <- (nullArgCheck "obj" (obj.ToString())) :: output
+            | obj -> output <- (nullArgCheck "obj" obj) :: output
 
         member __.Output = output
         member __.Errors = errors
@@ -50,16 +50,16 @@ module Mock =
             member __.TransactionAvailable() = true
             member __.ThrowTerminatingError(errorRecord: ErrorRecord) = errors <- errorRecord :: errors
 
+let getSnippetPath (path: string) =
+    let directory = Path.GetDirectoryName(path)
+
+    (nullArgCheck "directory" directory, path)
+
 module AddSnippet =
     type AddSnippetCommandForTest(path: string) =
         inherit AddSnippetCommand()
 
-        let getSnippetPath () =
-            let directory = Path.GetDirectoryName(path)
-
-            (nullArgCheck "directory" directory, path)
-
-        override __.GetSnippetPath() = getSnippetPath ()
+        override __.GetSnippetPath() = getSnippetPath path
 
         // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
         member __.Test() =
@@ -142,3 +142,81 @@ module AddSnippet =
               }
 
               ]
+
+module GetSnippet =
+    type GetSnippetCommandForTest(path: string) =
+        inherit GetSnippetCommand()
+
+        override __.GetSnippetPath() = getSnippetPath path
+
+        // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
+        member __.Test() =
+            __.BeginProcessing()
+            __.ProcessRecord()
+            __.EndProcessing()
+
+    [<Tests>]
+    let tests_GetSnippet =
+        testList
+            "GetSnippet"
+            [
+
+              test "when snippet file is valid" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
+
+                  File.AppendAllText(
+                      path,
+                      """{"Snippets": [{"Snippet": "Get-Snippet", "Tooltip": "get snippet", "Group": "test"}]}"""
+                  )
+
+                  let runtime = Mock.CommandRuntime()
+                  let cmdlet = GetSnippetCommandForTest(path)
+                  cmdlet.CommandRuntime <- runtime
+                  cmdlet.Test() |> ignore
+
+                  let expected: SnippetEntry =
+                      { Snippet = "Get-Snippet"
+                        Tooltip = "get snippet"
+                        Group = "test" }
+
+                  runtime.Output
+                  |> Expect.all "should have snippet" (fun output ->
+                      let actual = output :?> SnippetEntry
+                      actual = expected)
+              }
+
+              test "when snippet file is invalid" {
+                  use tmp = new TempDirectory("SnippetPredictor.Test.")
+                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
+                  File.AppendAllText(path, """{"Snippets": [}""")
+
+                  let runtime = Mock.CommandRuntime()
+                  let cmdlet = GetSnippetCommandForTest(path)
+                  cmdlet.CommandRuntime <- runtime
+                  cmdlet.Test() |> ignore
+
+                  let expected = """{"Snippets": [}""" |> normalizeNewlines
+
+                  File.ReadAllText(path)
+                  |> normalizeNewlines
+                  |> Expect.equal "shouldn't add the snippet to snippet file" expected
+
+                  runtime.Errors |> Expect.isNonEmpty "should have error"
+
+                  let expected =
+                      ErrorRecord(
+                          Exception(
+                              "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                          ),
+                          "",
+                          ErrorCategory.InvalidData,
+                          null
+                      )
+
+                  runtime.Errors
+                  |> Expect.all "should have error" (fun e ->
+                      e.Exception.Message = expected.Exception.Message
+                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
+                      && e.TargetObject = expected.TargetObject)
+              } ]

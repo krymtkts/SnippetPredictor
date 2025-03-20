@@ -62,8 +62,11 @@ type Init() =
 type GetSnippetCommand() =
     inherit Cmdlet()
 
+    abstract member GetSnippetPath: unit -> string * string
+    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+
     override __.EndProcessing() =
-        Snippet.loadSnippets Snippet.getSnippetPath
+        Snippet.loadSnippets __.GetSnippetPath
         |> function
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
