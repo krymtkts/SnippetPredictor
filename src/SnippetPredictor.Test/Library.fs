@@ -299,3 +299,53 @@ module RemoveSnippet =
                       && e.CategoryInfo.Category = expected.CategoryInfo.Category
                       && e.TargetObject = expected.TargetObject)
               } ]
+
+module CommandLinePredictor =
+    open System.Management.Automation.Subsystem
+
+    let createMockModule () =
+        use ps =
+            PowerShell.Create().AddScript("New-Module -Name MockModule -ScriptBlock { function TestFunc {} }")
+
+        let results = ps.Invoke<PSModuleInfo>()
+
+        if results.Count = 0 then
+            failwith "No module created"
+        else
+            results[0]
+
+    let getSnippetPredictorSubsystem () =
+        SubsystemManager.GetAllSubsystemInfo()
+        |> Seq.filter (fun x -> x.Kind = SubsystemKind.CommandPredictor)
+        |> Seq.collect _.Implementations
+        |> Seq.filter (fun x -> x.Name = Snippet.name)
+        |> Seq.tryHead
+
+    [<Tests>]
+    let tests_Init =
+        testList
+            "Init"
+            [
+
+              test "run" {
+                  let subsystem = Init()
+                  (subsystem :> IModuleAssemblyInitializer).OnImport()
+
+                  let predictor = getSnippetPredictorSubsystem ()
+
+                  predictor |> Expect.isSome "should have Snippet predictor"
+                  let predictor = predictor.Value
+
+                  predictor.Description
+                  |> Expect.equal "Description" "A predictor that suggests a snippet based on the input."
+
+                  predictor.Id |> Expect.equal "Id"
+                  <| Guid.Parse("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1")
+
+                  (subsystem :> IModuleAssemblyCleanup).OnRemove(createMockModule ())
+
+                  let predictor = getSnippetPredictorSubsystem ()
+                  predictor |> Expect.isNone "should remove Snippet predictor"
+              }
+
+              ]
