@@ -383,4 +383,20 @@ module SnippetPredictor =
                   predictor.OnCommandLineExecuted(client, "tes", true)
               }
 
+              test "snippet file is not found" {
+                  let predictor =
+                      SnippetPredictorForTest("./.snippet-predictor-not-found.json") :> ICommandPredictor
+
+                  predictor.FunctionsToDefine
+                  |> Expect.isEmpty "should not have functions to define"
+
+                  let client = PredictionClient("", PredictionClientKind.Terminal)
+
+                  let result =
+                      predictor.GetSuggestion(client, PredictionContext.Create(":group"), CancellationToken.None)
+
+                  result.SuggestionEntries |> Expect.isNull "should provide no suggestions"
+
+              }
+
               ]
