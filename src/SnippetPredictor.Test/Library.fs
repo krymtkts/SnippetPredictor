@@ -55,9 +55,11 @@ module AddSnippet =
         inherit AddSnippetCommand()
 
         override __.GetSnippetPath() = getSnippetPath ()
+        member val Runtime = Mock.CommandRuntime()
 
         // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
         member __.Test() =
+            __.CommandRuntime <- __.Runtime
             __.BeginProcessing()
             __.ProcessRecord()
             __.EndProcessing()
@@ -98,9 +100,7 @@ module AddSnippet =
               test "when snippet file is invalid" {
                   use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let runtime = Mock.CommandRuntime()
                   let cmdlet = AddSnippetCommandForTest(tmp.GetSnippetPath)
-                  cmdlet.CommandRuntime <- runtime
                   cmdlet.Snippet <- "Add-Snippet 'echo test'"
                   cmdlet.Tooltip <- "add snippet"
                   cmdlet.Group <- "test"
@@ -111,7 +111,7 @@ module AddSnippet =
                   tmp.GetSnippetContent()
                   |> Expect.equal "shouldn't add the snippet to snippet file" expected
 
-                  runtime.Errors |> Expect.isNonEmpty "should have error"
+                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
                   let expected =
                       ErrorRecord(
@@ -123,7 +123,7 @@ module AddSnippet =
                           null
                       )
 
-                  runtime.Errors
+                  cmdlet.Runtime.Errors
                   |> Expect.all "should have error" (fun e ->
                       e.Exception.Message = expected.Exception.Message
                       && e.CategoryInfo.Category = expected.CategoryInfo.Category
@@ -137,9 +137,11 @@ module GetSnippet =
         inherit GetSnippetCommand()
 
         override __.GetSnippetPath() = getSnippetPath ()
+        member val Runtime = Mock.CommandRuntime()
 
         // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
         member __.Test() =
+            __.CommandRuntime <- __.Runtime
             __.BeginProcessing()
             __.ProcessRecord()
             __.EndProcessing()
@@ -157,9 +159,7 @@ module GetSnippet =
                           """{"Snippets": [{"Snippet": "Get-Snippet", "Tooltip": "get snippet", "Group": "test"}]}"""
                       )
 
-                  let runtime = Mock.CommandRuntime()
                   let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath)
-                  cmdlet.CommandRuntime <- runtime
                   cmdlet.Test() |> ignore
 
                   let expected: SnippetEntry =
@@ -167,7 +167,7 @@ module GetSnippet =
                         Tooltip = "get snippet"
                         Group = "test" }
 
-                  runtime.Output
+                  cmdlet.Runtime.Output
                   |> Expect.all "should have snippet" (fun output ->
                       let actual = output :?> SnippetEntry
                       actual = expected)
@@ -176,9 +176,7 @@ module GetSnippet =
               test "when snippet file is invalid" {
                   use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let runtime = Mock.CommandRuntime()
                   let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath)
-                  cmdlet.CommandRuntime <- runtime
                   cmdlet.Test() |> ignore
 
                   let expected = """{"Snippets": [}""" |> normalizeNewlines
@@ -186,7 +184,7 @@ module GetSnippet =
                   tmp.GetSnippetContent()
                   |> Expect.equal "shouldn't add the snippet to snippet file" expected
 
-                  runtime.Errors |> Expect.isNonEmpty "should have error"
+                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
                   let expected =
                       ErrorRecord(
@@ -198,7 +196,7 @@ module GetSnippet =
                           null
                       )
 
-                  runtime.Errors
+                  cmdlet.Runtime.Errors
                   |> Expect.all "should have error" (fun e ->
                       e.Exception.Message = expected.Exception.Message
                       && e.CategoryInfo.Category = expected.CategoryInfo.Category
@@ -210,9 +208,11 @@ module RemoveSnippet =
         inherit RemoveSnippetCommand()
 
         override __.GetSnippetPath() = getSnippetPath ()
+        member val Runtime = Mock.CommandRuntime()
 
         // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
         member __.Test() =
+            __.CommandRuntime <- __.Runtime
             __.BeginProcessing()
             __.ProcessRecord()
             __.EndProcessing()
@@ -230,9 +230,7 @@ module RemoveSnippet =
                           """{"Snippets": [{"Snippet": "Remove-Snippet", "Tooltip": "remove snippet", "Group": "test"}]}"""
                       )
 
-                  let runtime = Mock.CommandRuntime()
                   let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath)
-                  cmdlet.CommandRuntime <- runtime
                   cmdlet.Snippet <- "Remove-Snippet"
                   cmdlet.Test() |> ignore
 
@@ -250,9 +248,7 @@ module RemoveSnippet =
               test "when snippet file is invalid" {
                   use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let runtime = Mock.CommandRuntime()
                   let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath)
-                  cmdlet.CommandRuntime <- runtime
                   cmdlet.Test() |> ignore
 
                   let expected = """{"Snippets": [}""" |> normalizeNewlines
@@ -260,7 +256,7 @@ module RemoveSnippet =
                   tmp.GetSnippetContent()
                   |> Expect.equal "shouldn't remove the snippet from snippet file" expected
 
-                  runtime.Errors |> Expect.isNonEmpty "should have error"
+                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
                   let expected =
                       ErrorRecord(
@@ -272,7 +268,7 @@ module RemoveSnippet =
                           null
                       )
 
-                  runtime.Errors
+                  cmdlet.Runtime.Errors
                   |> Expect.all "should have error" (fun e ->
                       e.Exception.Message = expected.Exception.Message
                       && e.CategoryInfo.Category = expected.CategoryInfo.Category
