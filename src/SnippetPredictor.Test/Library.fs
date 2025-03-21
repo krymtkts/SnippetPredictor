@@ -50,19 +50,21 @@ module Mock =
             member __.TransactionAvailable() = true
             member __.ThrowTerminatingError(errorRecord: ErrorRecord) = errors <- errorRecord :: errors
 
-let getSnippetPath (path: string) =
-    let directory = Path.GetDirectoryName(path)
-
-    (nullArgCheck "directory" directory, path)
+let assertErrorRecord (expected: ErrorRecord) (e: ErrorRecord) =
+    e.Exception.Message = expected.Exception.Message
+    && e.CategoryInfo.Category = expected.CategoryInfo.Category
+    && e.TargetObject = expected.TargetObject
 
 module AddSnippet =
-    type AddSnippetCommandForTest(path: string) =
+    type AddSnippetCommandForTest(getSnippetPath) =
         inherit AddSnippetCommand()
 
-        override __.GetSnippetPath() = getSnippetPath path
+        override __.GetSnippetPath() = getSnippetPath ()
+        member val Runtime = Mock.CommandRuntime()
 
         // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
         member __.Test() =
+            __.CommandRuntime <- __.Runtime
             __.BeginProcessing()
             __.ProcessRecord()
             __.EndProcessing()
@@ -75,11 +77,9 @@ module AddSnippet =
             [
 
               test "when snippet file is valid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
-                  File.AppendAllText(path, """{"Snippets": []}""")
+                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
 
-                  let cmdlet = AddSnippetCommandForTest(path)
+                  let cmdlet = AddSnippetCommandForTest(tmp.GetSnippetPath)
                   cmdlet.Snippet <- "Add-Snippet 'echo test'"
                   cmdlet.Tooltip <- "add snippet"
                   cmdlet.Group <- "test"
@@ -97,20 +97,15 @@ module AddSnippet =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
 
               test "when snippet file is invalid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
-                  File.AppendAllText(path, """{"Snippets": [}""")
+                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let runtime = Mock.CommandRuntime()
-                  let cmdlet = AddSnippetCommandForTest(path)
-                  cmdlet.CommandRuntime <- runtime
+                  let cmdlet = AddSnippetCommandForTest(tmp.GetSnippetPath)
                   cmdlet.Snippet <- "Add-Snippet 'echo test'"
                   cmdlet.Tooltip <- "add snippet"
                   cmdlet.Group <- "test"
@@ -118,11 +113,10 @@ module AddSnippet =
 
                   let expected = """{"Snippets": [}""" |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "shouldn't add the snippet to snippet file" expected
 
-                  runtime.Errors |> Expect.isNonEmpty "should have error"
+                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
                   let expected =
                       ErrorRecord(
@@ -134,23 +128,22 @@ module AddSnippet =
                           null
                       )
 
-                  runtime.Errors
-                  |> Expect.all "should have error" (fun e ->
-                      e.Exception.Message = expected.Exception.Message
-                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
-                      && e.TargetObject = expected.TargetObject)
+                  cmdlet.Runtime.Errors
+                  |> Expect.all "should have error" (assertErrorRecord expected)
               }
 
               ]
 
 module GetSnippet =
-    type GetSnippetCommandForTest(path: string) =
+    type GetSnippetCommandForTest(getSnippetPath) =
         inherit GetSnippetCommand()
 
-        override __.GetSnippetPath() = getSnippetPath path
+        override __.GetSnippetPath() = getSnippetPath ()
+        member val Runtime = Mock.CommandRuntime()
 
         // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
         member __.Test() =
+            __.CommandRuntime <- __.Runtime
             __.BeginProcessing()
             __.ProcessRecord()
             __.EndProcessing()
@@ -162,17 +155,13 @@ module GetSnippet =
             [
 
               test "when snippet file is valid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
+                  use tmp =
+                      new TempFile(
+                          ".snippet-predictor.json",
+                          """{"Snippets": [{"Snippet": "Get-Snippet", "Tooltip": "get snippet", "Group": "test"}]}"""
+                      )
 
-                  File.AppendAllText(
-                      path,
-                      """{"Snippets": [{"Snippet": "Get-Snippet", "Tooltip": "get snippet", "Group": "test"}]}"""
-                  )
-
-                  let runtime = Mock.CommandRuntime()
-                  let cmdlet = GetSnippetCommandForTest(path)
-                  cmdlet.CommandRuntime <- runtime
+                  let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath)
                   cmdlet.Test() |> ignore
 
                   let expected: SnippetEntry =
@@ -180,29 +169,24 @@ module GetSnippet =
                         Tooltip = "get snippet"
                         Group = "test" }
 
-                  runtime.Output
+                  cmdlet.Runtime.Output
                   |> Expect.all "should have snippet" (fun output ->
                       let actual = output :?> SnippetEntry
                       actual = expected)
               }
 
               test "when snippet file is invalid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
-                  File.AppendAllText(path, """{"Snippets": [}""")
+                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let runtime = Mock.CommandRuntime()
-                  let cmdlet = GetSnippetCommandForTest(path)
-                  cmdlet.CommandRuntime <- runtime
+                  let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath)
                   cmdlet.Test() |> ignore
 
                   let expected = """{"Snippets": [}""" |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "shouldn't add the snippet to snippet file" expected
 
-                  runtime.Errors |> Expect.isNonEmpty "should have error"
+                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
                   let expected =
                       ErrorRecord(
@@ -214,21 +198,20 @@ module GetSnippet =
                           null
                       )
 
-                  runtime.Errors
-                  |> Expect.all "should have error" (fun e ->
-                      e.Exception.Message = expected.Exception.Message
-                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
-                      && e.TargetObject = expected.TargetObject)
+                  cmdlet.Runtime.Errors
+                  |> Expect.all "should have error" (assertErrorRecord expected)
               } ]
 
 module RemoveSnippet =
-    type RemoveSnippetCommandForTest(path: string) =
+    type RemoveSnippetCommandForTest(getSnippetPath) =
         inherit RemoveSnippetCommand()
 
-        override __.GetSnippetPath() = getSnippetPath path
+        override __.GetSnippetPath() = getSnippetPath ()
+        member val Runtime = Mock.CommandRuntime()
 
         // NOTE: PSCmdlet cannot invoke directly. So, use this method for testing.
         member __.Test() =
+            __.CommandRuntime <- __.Runtime
             __.BeginProcessing()
             __.ProcessRecord()
             __.EndProcessing()
@@ -240,17 +223,13 @@ module RemoveSnippet =
             [
 
               test "when snippet file is valid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
+                  use tmp =
+                      new TempFile(
+                          ".snippet-predictor.json",
+                          """{"Snippets": [{"Snippet": "Remove-Snippet", "Tooltip": "remove snippet", "Group": "test"}]}"""
+                      )
 
-                  File.AppendAllText(
-                      path,
-                      """{"Snippets": [{"Snippet": "Remove-Snippet", "Tooltip": "remove snippet", "Group": "test"}]}"""
-                  )
-
-                  let runtime = Mock.CommandRuntime()
-                  let cmdlet = RemoveSnippetCommandForTest(path)
-                  cmdlet.CommandRuntime <- runtime
+                  let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath)
                   cmdlet.Snippet <- "Remove-Snippet"
                   cmdlet.Test() |> ignore
 
@@ -260,28 +239,23 @@ module RemoveSnippet =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
+                  tmp.GetSnippetContent()
                   |> normalizeNewlines
                   |> Expect.equal "should remove the snippet from snippet file" expected
               }
 
               test "when snippet file is invalid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor.json")
-                  File.AppendAllText(path, """{"Snippets": [}""")
+                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let runtime = Mock.CommandRuntime()
-                  let cmdlet = RemoveSnippetCommandForTest(path)
-                  cmdlet.CommandRuntime <- runtime
+                  let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath)
                   cmdlet.Test() |> ignore
 
                   let expected = """{"Snippets": [}""" |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "shouldn't remove the snippet from snippet file" expected
 
-                  runtime.Errors |> Expect.isNonEmpty "should have error"
+                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
                   let expected =
                       ErrorRecord(
@@ -293,11 +267,8 @@ module RemoveSnippet =
                           null
                       )
 
-                  runtime.Errors
-                  |> Expect.all "should have error" (fun e ->
-                      e.Exception.Message = expected.Exception.Message
-                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
-                      && e.TargetObject = expected.TargetObject)
+                  cmdlet.Runtime.Errors
+                  |> Expect.all "should have error" (assertErrorRecord expected)
               } ]
 
 module SnippetPredictorInitialization =
@@ -353,6 +324,11 @@ module SnippetPredictorInitialization =
 module SnippetPredictor =
     open System.Management.Automation.Subsystem.Prediction
     open System.Threading
+
+    let getSnippetPath (path: string) =
+        let directory = Path.GetDirectoryName(path)
+
+        (nullArgCheck "directory" directory, path)
 
     type SnippetPredictorForTest(path) =
         inherit SnippetPredictor("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1", fun () -> getSnippetPath path)

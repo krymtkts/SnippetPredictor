@@ -8,6 +8,16 @@ open SnippetPredictorTest.Utility
 
 [<Tests>]
 let tests_parseSnippets =
+    let expectValid =
+        function
+        | Snippet.ConfigState.Valid entry -> entry
+        | _ -> failtest "Expected ConfigState.Valid but got a different state"
+
+    let expectInvalid =
+        function
+        | Snippet.ConfigState.Invalid entry -> entry
+        | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+
     testList
         "parseSnippets"
         [
@@ -22,9 +32,7 @@ let tests_parseSnippets =
           test "when JSON is null" {
               "null"
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Invalid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'.snippet-predictor.json is null or invalid format.'"
@@ -35,18 +43,14 @@ let tests_parseSnippets =
           test "when JSON is empty" {
               "{}"
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = null }
           }
 
           test "when JSON is broken" {
               "{"
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Invalid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
@@ -59,27 +63,21 @@ let tests_parseSnippets =
           test "when JSON has null snippets" {
               """{"snippets":null}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = null }
           }
 
           test "when JSON has empty snippets" {
               """{"snippets":[]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = [||] }
           }
 
           test "when JSON has snippets without group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -91,9 +89,7 @@ let tests_parseSnippets =
           test "when JSON has snippets" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -110,9 +106,7 @@ let tests_parseSnippets =
     ]
 }"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -124,9 +118,7 @@ let tests_parseSnippets =
           test "when JSON has snippet that has null group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -138,9 +130,7 @@ let tests_parseSnippets =
           test "when JSON has snippet that has group with disallowed characters" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Invalid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
@@ -294,25 +284,33 @@ module getPredictiveSuggestions =
 
               ]
 
+let expectOk =
+    function
+    | Ok s -> s
+    | Error e -> failtest $"Expected Error but got Error. {e}"
+
+let expectError =
+    function
+    | Ok _ -> failtest "Expected Error but got Ok."
+    | Error e -> e
+
 [<Tests>]
 let tests_loadSnippets =
+
+
     testList
         "loadSnippets"
         [
 
           test "when snippet file is not found" {
               Snippet.loadSnippets (fun () -> "./", "./not-found.json")
-              |> function
-                  | Ok s -> s
-                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> expectOk
               |> Expect.isEmpty "should return Empty"
           }
 
           test "when snippet file is invalid" {
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-invalid.json")
-              |> function
-                  | Ok _ -> failtest "Expected Error but got Ok."
-                  | Error e -> e
+              |> expectError
               |> Expect.equal
                   "should return Error entry"
                   "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.Snippets[0] | LineNumber: 1 | BytePositionInLine: 15."
@@ -320,17 +318,13 @@ let tests_loadSnippets =
 
           test "when snippet file is valid and null" {
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-null.json")
-              |> function
-                  | Ok _ -> failtest "Expected Error but got Ok."
-                  | Error e -> e
+              |> expectError
               |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
           }
 
           test "when snippet file is valid and snippets is null" {
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-snippet-null.json")
-              |> function
-                  | Ok s -> s
-                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> expectOk
               |> Expect.isEmpty "should return Empty"
           }
 
@@ -348,9 +342,7 @@ let tests_loadSnippets =
                      |]
 
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
-              |> function
-                  | Ok s -> s
-                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> expectOk
               |> Expect.equal "should return snippets" expected
           }
 
@@ -373,9 +365,7 @@ module addAndRemoveSnippets =
                       SnippetEntry.Tooltip = "1 tooltip"
                       SnippetEntry.Group = null } ]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return Ok" ()
 
                   let expected =
@@ -395,34 +385,26 @@ module addAndRemoveSnippets =
               }
 
               test "when snippet file is invalid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-invalid.json")
-                  File.WriteAllText(path, """{"Snippets":[}""")
+                  use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
 
                   [ { SnippetEntry.Snippet = "echo '2'"
                       SnippetEntry.Tooltip = "2 tooltip"
                       SnippetEntry.Group = null } ]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok _ -> failtest "Expected Error but got Ok."
-                      | Error e -> e
+                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> expectError
                   |> Expect.equal
                       "should return Error entry"
                       "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
               }
 
               test "when snippet file is valid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.WriteAllText(path, """{"Snippets": []}""")
+                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": []}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
@@ -436,24 +418,19 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
 
               test "when snippet file is valid and omitted group" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.WriteAllText(path, """{"Snippets": null}""")
+                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
 
                   [| { SnippetEntry.Snippet = "echo '3'"
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
@@ -467,24 +444,19 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
 
               test "when snippet file is valid and has group" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.WriteAllText(path, """{"Snippets": null}""")
+                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
 
                   [| { SnippetEntry.Snippet = "echo '4'"
                        SnippetEntry.Tooltip = "4 tooltip"
                        SnippetEntry.Group = "group4" } |]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
@@ -499,8 +471,7 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should add the snippet to snippet file" expected
 
               }
@@ -519,9 +490,7 @@ module addAndRemoveSnippets =
 
                   [ "echo '1'" ]
                   |> Snippet.removeSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return Ok" ()
 
                   Directory.GetFiles(tmp.Path)
@@ -529,30 +498,26 @@ module addAndRemoveSnippets =
               }
 
               test "when snippet file is invalid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-invalid.json")
-                  File.WriteAllText(path, """{"Snippets":[}""")
+                  use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
 
                   [ "echo '2'" ]
-                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok _ -> failtest "Expected Error but got Ok."
-                      | Error e -> e
+                  |> Snippet.removeSnippets tmp.GetSnippetPath
+                  |> expectError
                   |> Expect.equal
                       "should return Error entry"
                       "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
               }
 
               test "when snippet file is valid" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, ".snippet-predictor-valid.json")
-                  File.AppendAllText(path, """{"Snippet": "echo '3'", "Tooltip": "3 tooltip"}""")
+                  use tmp =
+                      new TempFile(
+                          ".snippet-predictor-valid.json",
+                          """{"Snippet": "echo '3'", "Tooltip": "3 tooltip"}"""
+                      )
 
                   [ "echo '1'"; "echo '3'"; "echo '3'" ]
-                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> Snippet.removeSnippets tmp.GetSnippetPath
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
@@ -561,8 +526,7 @@ module addAndRemoveSnippets =
 }"""
                       |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
+                  tmp.GetSnippetContent()
                   |> Expect.equal "should remove the snippet from snippet file" expected
               }
 
