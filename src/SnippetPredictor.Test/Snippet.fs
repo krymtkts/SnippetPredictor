@@ -350,12 +350,27 @@ let tests_loadSnippets =
 
 module addAndRemoveSnippets =
     open System.IO
+    open System
 
     [<Tests>]
     let tests_addSnippets =
         testList
             "addSnippets"
             [
+
+              test "when snippet file directory is not found" {
+                  let tmpDir =
+                      Path.Combine(Path.GetTempPath(), $"SnippetPredictor.Test.{Guid.NewGuid().ToString()}")
+
+                  let path = Path.Combine(tmpDir, "not-found.json")
+
+                  [ { SnippetEntry.Snippet = "echo '1'"
+                      SnippetEntry.Tooltip = "1 tooltip"
+                      SnippetEntry.Group = null } ]
+                  |> Snippet.addSnippets (fun () -> tmpDir, path)
+                  |> expectError
+                  |> Expect.equal "should return Error" $"Could not find a part of the path '{path}'."
+              }
 
               test "when snippet file is not found" {
                   use tmp = new TempDirectory("SnippetPredictor.Test.")
