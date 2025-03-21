@@ -546,3 +546,30 @@ module addAndRemoveSnippets =
               }
 
               ]
+
+module GroupJsonConverter =
+    open System.Text.Json
+
+    [<Tests>]
+    let test_GroupJsonConverter =
+        testList
+            "GroupJsonConverter"
+            [
+
+              test "when the value is null " {
+                  let json = """{"key": null}"""
+                  let mutable reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json))
+
+                  reader.Read() |> ignore // {
+                  reader.Read() |> ignore // "key"
+                  reader.Read() |> ignore // null
+
+                  let result: string | null =
+                      GroupJsonConverter().Read(&reader, typeof<string>, JsonSerializerOptions())
+
+                  match result with
+                  | null -> ()
+                  | _ -> failtest "Expected null but got a different value"
+              }
+
+              ]
