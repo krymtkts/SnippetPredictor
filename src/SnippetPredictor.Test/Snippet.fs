@@ -284,25 +284,33 @@ module getPredictiveSuggestions =
 
               ]
 
+let expectOk =
+    function
+    | Ok s -> s
+    | Error e -> failtest $"Expected Error but got Error. {e}"
+
+let expectError =
+    function
+    | Ok _ -> failtest "Expected Error but got Ok."
+    | Error e -> e
+
 [<Tests>]
 let tests_loadSnippets =
+
+
     testList
         "loadSnippets"
         [
 
           test "when snippet file is not found" {
               Snippet.loadSnippets (fun () -> "./", "./not-found.json")
-              |> function
-                  | Ok s -> s
-                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> expectOk
               |> Expect.isEmpty "should return Empty"
           }
 
           test "when snippet file is invalid" {
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-invalid.json")
-              |> function
-                  | Ok _ -> failtest "Expected Error but got Ok."
-                  | Error e -> e
+              |> expectError
               |> Expect.equal
                   "should return Error entry"
                   "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.Snippets[0] | LineNumber: 1 | BytePositionInLine: 15."
@@ -310,17 +318,13 @@ let tests_loadSnippets =
 
           test "when snippet file is valid and null" {
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-null.json")
-              |> function
-                  | Ok _ -> failtest "Expected Error but got Ok."
-                  | Error e -> e
+              |> expectError
               |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
           }
 
           test "when snippet file is valid and snippets is null" {
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-snippet-null.json")
-              |> function
-                  | Ok s -> s
-                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> expectOk
               |> Expect.isEmpty "should return Empty"
           }
 
@@ -338,9 +342,7 @@ let tests_loadSnippets =
                      |]
 
               Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
-              |> function
-                  | Ok s -> s
-                  | Error e -> failtest $"Expected Error but got Error. {e}"
+              |> expectOk
               |> Expect.equal "should return snippets" expected
           }
 
@@ -363,9 +365,7 @@ module addAndRemoveSnippets =
                       SnippetEntry.Tooltip = "1 tooltip"
                       SnippetEntry.Group = null } ]
                   |> Snippet.addSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return Ok" ()
 
                   let expected =
@@ -391,9 +391,7 @@ module addAndRemoveSnippets =
                       SnippetEntry.Tooltip = "2 tooltip"
                       SnippetEntry.Group = null } ]
                   |> Snippet.addSnippets tmp.GetSnippetPath
-                  |> function
-                      | Ok _ -> failtest "Expected Error but got Ok."
-                      | Error e -> e
+                  |> expectError
                   |> Expect.equal
                       "should return Error entry"
                       "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
@@ -406,9 +404,7 @@ module addAndRemoveSnippets =
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
                   |> Snippet.addSnippets tmp.GetSnippetPath
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
@@ -434,9 +430,7 @@ module addAndRemoveSnippets =
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
                   |> Snippet.addSnippets tmp.GetSnippetPath
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
@@ -462,9 +456,7 @@ module addAndRemoveSnippets =
                        SnippetEntry.Tooltip = "4 tooltip"
                        SnippetEntry.Group = "group4" } |]
                   |> Snippet.addSnippets tmp.GetSnippetPath
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
@@ -498,9 +490,7 @@ module addAndRemoveSnippets =
 
                   [ "echo '1'" ]
                   |> Snippet.removeSnippets (fun () -> tmp.Path, path)
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return Ok" ()
 
                   Directory.GetFiles(tmp.Path)
@@ -512,9 +502,7 @@ module addAndRemoveSnippets =
 
                   [ "echo '2'" ]
                   |> Snippet.removeSnippets tmp.GetSnippetPath
-                  |> function
-                      | Ok _ -> failtest "Expected Error but got Ok."
-                      | Error e -> e
+                  |> expectError
                   |> Expect.equal
                       "should return Error entry"
                       "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
@@ -529,9 +517,7 @@ module addAndRemoveSnippets =
 
                   [ "echo '1'"; "echo '3'"; "echo '3'" ]
                   |> Snippet.removeSnippets tmp.GetSnippetPath
-                  |> function
-                      | Ok s -> s
-                      | Error e -> failtest $"Expected Error but got Error. {e}"
+                  |> expectOk
                   |> Expect.equal "should return snippets" ()
 
                   let expected =
