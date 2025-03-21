@@ -50,6 +50,11 @@ module Mock =
             member __.TransactionAvailable() = true
             member __.ThrowTerminatingError(errorRecord: ErrorRecord) = errors <- errorRecord :: errors
 
+let assertErrorRecord (expected: ErrorRecord) (e: ErrorRecord) =
+    e.Exception.Message = expected.Exception.Message
+    && e.CategoryInfo.Category = expected.CategoryInfo.Category
+    && e.TargetObject = expected.TargetObject
+
 module AddSnippet =
     type AddSnippetCommandForTest(getSnippetPath) =
         inherit AddSnippetCommand()
@@ -124,10 +129,7 @@ module AddSnippet =
                       )
 
                   cmdlet.Runtime.Errors
-                  |> Expect.all "should have error" (fun e ->
-                      e.Exception.Message = expected.Exception.Message
-                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
-                      && e.TargetObject = expected.TargetObject)
+                  |> Expect.all "should have error" (assertErrorRecord expected)
               }
 
               ]
@@ -197,10 +199,7 @@ module GetSnippet =
                       )
 
                   cmdlet.Runtime.Errors
-                  |> Expect.all "should have error" (fun e ->
-                      e.Exception.Message = expected.Exception.Message
-                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
-                      && e.TargetObject = expected.TargetObject)
+                  |> Expect.all "should have error" (assertErrorRecord expected)
               } ]
 
 module RemoveSnippet =
@@ -269,10 +268,7 @@ module RemoveSnippet =
                       )
 
                   cmdlet.Runtime.Errors
-                  |> Expect.all "should have error" (fun e ->
-                      e.Exception.Message = expected.Exception.Message
-                      && e.CategoryInfo.Category = expected.CategoryInfo.Category
-                      && e.TargetObject = expected.TargetObject)
+                  |> Expect.all "should have error" (assertErrorRecord expected)
               } ]
 
 module SnippetPredictorInitialization =
