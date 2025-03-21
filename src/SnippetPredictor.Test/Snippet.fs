@@ -350,12 +350,27 @@ let tests_loadSnippets =
 
 module addAndRemoveSnippets =
     open System.IO
+    open System
 
     [<Tests>]
     let tests_addSnippets =
         testList
             "addSnippets"
             [
+
+              test "when snippet file directory is not found" {
+                  let tmpDir =
+                      Path.Combine(Path.GetTempPath(), $"SnippetPredictor.Test.{Guid.NewGuid().ToString()}")
+
+                  let path = Path.Combine(tmpDir, "not-found.json")
+
+                  [ { SnippetEntry.Snippet = "echo '1'"
+                      SnippetEntry.Tooltip = "1 tooltip"
+                      SnippetEntry.Group = null } ]
+                  |> Snippet.addSnippets (fun () -> tmpDir, path)
+                  |> expectError
+                  |> Expect.equal "should return Error" $"Could not find a part of the path '{path}'."
+              }
 
               test "when snippet file is not found" {
                   use tmp = new TempDirectory("SnippetPredictor.Test.")
@@ -528,6 +543,33 @@ module addAndRemoveSnippets =
 
                   tmp.GetSnippetContent()
                   |> Expect.equal "should remove the snippet from snippet file" expected
+              }
+
+              ]
+
+module GroupJsonConverter =
+    open System.Text.Json
+
+    [<Tests>]
+    let test_GroupJsonConverter =
+        testList
+            "GroupJsonConverter"
+            [
+
+              test "when the value is null " {
+                  let json = """{"key": null}"""
+                  let mutable reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json))
+
+                  reader.Read() |> ignore // {
+                  reader.Read() |> ignore // "key"
+                  reader.Read() |> ignore // null
+
+                  let result: string | null =
+                      GroupJsonConverter().Read(&reader, typeof<string>, JsonSerializerOptions())
+
+                  match result with
+                  | null -> ()
+                  | _ -> failtest "Expected null but got a different value"
               }
 
               ]

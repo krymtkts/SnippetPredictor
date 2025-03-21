@@ -1,5 +1,22 @@
 namespace SnippetPredictor
 
+#if DEBUG
+type GroupJsonConverter =
+    inherit System.Text.Json.Serialization.JsonConverter<string>
+
+    new: unit -> GroupJsonConverter
+
+    override Read:
+        reader: byref<System.Text.Json.Utf8JsonReader> *
+        _typeToConvert: System.Type *
+        options: System.Text.Json.JsonSerializerOptions ->
+            string
+
+    override Write:
+        writer: System.Text.Json.Utf8JsonWriter * value: string * options: System.Text.Json.JsonSerializerOptions ->
+            unit
+#endif
+
 type SnippetEntry =
     { Snippet: string
       Tooltip: string
