@@ -8,6 +8,16 @@ open SnippetPredictorTest.Utility
 
 [<Tests>]
 let tests_parseSnippets =
+    let expectValid =
+        function
+        | Snippet.ConfigState.Valid entry -> entry
+        | _ -> failtest "Expected ConfigState.Valid but got a different state"
+
+    let expectInvalid =
+        function
+        | Snippet.ConfigState.Invalid entry -> entry
+        | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+
     testList
         "parseSnippets"
         [
@@ -22,9 +32,7 @@ let tests_parseSnippets =
           test "when JSON is null" {
               "null"
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Invalid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'.snippet-predictor.json is null or invalid format.'"
@@ -35,18 +43,14 @@ let tests_parseSnippets =
           test "when JSON is empty" {
               "{}"
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = null }
           }
 
           test "when JSON is broken" {
               "{"
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Invalid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
@@ -59,27 +63,21 @@ let tests_parseSnippets =
           test "when JSON has null snippets" {
               """{"snippets":null}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = null }
           }
 
           test "when JSON has empty snippets" {
               """{"snippets":[]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = [||] }
           }
 
           test "when JSON has snippets without group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -91,9 +89,7 @@ let tests_parseSnippets =
           test "when JSON has snippets" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -110,9 +106,7 @@ let tests_parseSnippets =
     ]
 }"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -124,9 +118,7 @@ let tests_parseSnippets =
           test "when JSON has snippet that has null group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Valid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Valid but got a different state"
+              |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
                   { SnippetConfig.Snippets =
@@ -138,9 +130,7 @@ let tests_parseSnippets =
           test "when JSON has snippet that has group with disallowed characters" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
               |> Snippet.parseSnippets
-              |> function
-                  | Snippet.ConfigState.Invalid entry -> entry
-                  | _ -> failtest "Expected ConfigState.Invalid but got a different state"
+              |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
                   { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
