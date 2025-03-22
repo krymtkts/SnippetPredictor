@@ -28,3 +28,16 @@ type TempFile(fileName: string, content: string) =
 
     member __.GetSnippetContent() =
         File.ReadAllText(path) |> normalizeNewlines
+
+type EnvironmentVariable(value: string) =
+    let name = "SNIPPET_PREDICTOR_CONFIG"
+    let originalValue = Environment.GetEnvironmentVariable(name)
+
+    do Environment.SetEnvironmentVariable(name, value)
+
+    interface IDisposable with
+        member __.Dispose() =
+            if originalValue = null then
+                Environment.SetEnvironmentVariable(name, null)
+            else
+                Environment.SetEnvironmentVariable(name, originalValue)
