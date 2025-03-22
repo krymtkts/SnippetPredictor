@@ -12,7 +12,7 @@
     RootModule = 'SnippetPredictor.dll'
 
     # Version number of this module.
-    ModuleVersion = '0.1.0'
+    ModuleVersion = '0.2.0'
 
     # Supported PSEditions
     CompatiblePSEditions = @(
@@ -32,7 +32,7 @@
     Copyright = 'Copyright (c) 2025 Takatoshi Kuriyama. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description = 'A predictor that suggests a snippet based on the input.'
+    Description = 'A command-line predictor written in F# that suggests code snippets based on the input. This module requires PowerShell 7.2 or higher and PSReadLine 2.2.2. or higher.'
 
     # Minimum version of the PowerShell engine required by this module
     PowerShellVersion = '7.2'

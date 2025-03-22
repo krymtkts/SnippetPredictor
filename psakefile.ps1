@@ -67,6 +67,9 @@ Task Build -Depends Clean {
         throw 'Module manifest (.psd1) version does not match project (.fsproj) version.'
     }
     dotnet publish -c $Stage
+    if (-not $?) {
+        throw 'dotnet publish failed.'
+    }
     "Completed to build $ModuleName ver$ModuleVersion"
 }
 

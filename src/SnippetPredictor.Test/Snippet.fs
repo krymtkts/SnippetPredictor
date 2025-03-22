@@ -537,6 +537,8 @@ module addAndRemoveSnippets =
 
               ]
 
+#if DEBUG
+
 module GroupJsonConverter =
     open System.Text.Json
 
@@ -563,3 +565,5 @@ module GroupJsonConverter =
               }
 
               ]
+
+#endif
