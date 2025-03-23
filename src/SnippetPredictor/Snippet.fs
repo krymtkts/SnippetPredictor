@@ -292,16 +292,16 @@ module Snippet =
                 Seq.empty
             else
                 let pred =
+                    let comparisonType =
+                        match caseSensitive with
+                        | SearchCaseSensitive.CaseSensitive -> StringComparison.Ordinal
+                        | SearchCaseSensitive.CaseInsensitive -> StringComparison.OrdinalIgnoreCase
+
                     match input with
                     | Prefix(groupId, input) ->
 #if DEBUG
                         Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
-                        let comparisonType =
-                            match caseSensitive with
-                            | SearchCaseSensitive.CaseSensitive -> StringComparison.Ordinal
-                            | SearchCaseSensitive.CaseInsensitive -> StringComparison.OrdinalIgnoreCase
-
                         // NOTE: symbol search only support case-insensitive search.
                         // NOTE: If case-sensitive search is required, search without symbol.
                         match groupId with
@@ -309,7 +309,7 @@ module Snippet =
                         | "tip" -> _.Tooltip.Contains(input, comparisonType)
                         | groupId ->
                             fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
-                    | snippet -> _.Snippet.Contains(snippet.Trim())
+                    | snippet -> _.Snippet.Contains(snippet.Trim(), comparisonType)
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
             |> Linq.Enumerable.ToList
