@@ -44,7 +44,10 @@ let tests_parseSnippets =
               "{}"
               |> Snippet.parseSnippets
               |> expectValid
-              |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = null }
+              |> Expect.equal
+                  "should return ConfigState.Valid"
+                  { SearchCaseSensitive = false
+                    SnippetConfig.Snippets = null }
           }
 
           test "when JSON is broken" {
@@ -64,14 +67,20 @@ let tests_parseSnippets =
               """{"snippets":null}"""
               |> Snippet.parseSnippets
               |> expectValid
-              |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = null }
+              |> Expect.equal
+                  "should return ConfigState.Valid"
+                  { SearchCaseSensitive = false
+                    SnippetConfig.Snippets = null }
           }
 
           test "when JSON has empty snippets" {
               """{"snippets":[]}"""
               |> Snippet.parseSnippets
               |> expectValid
-              |> Expect.equal "should return ConfigState.Valid" { SnippetConfig.Snippets = [||] }
+              |> Expect.equal
+                  "should return ConfigState.Valid"
+                  { SearchCaseSensitive = false
+                    SnippetConfig.Snippets = [||] }
           }
 
           test "when JSON has snippets without group" {
@@ -80,7 +89,8 @@ let tests_parseSnippets =
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
-                  { SnippetConfig.Snippets =
+                  { SearchCaseSensitive = false
+                    Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip"
                            SnippetEntry.Group = null } |] }
@@ -92,7 +102,8 @@ let tests_parseSnippets =
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
-                  { SnippetConfig.Snippets =
+                  { SearchCaseSensitive = false
+                    SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip"
                            SnippetEntry.Group = "group" } |] }
@@ -109,7 +120,8 @@ let tests_parseSnippets =
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
-                  { SnippetConfig.Snippets =
+                  { SearchCaseSensitive = false
+                    SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip"
                            SnippetEntry.Group = null } |] }
@@ -121,7 +133,8 @@ let tests_parseSnippets =
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
-                  { SnippetConfig.Snippets =
+                  { SearchCaseSensitive = false
+                    SnippetConfig.Snippets =
                       [| { SnippetEntry.Snippet = "echo 'example'"
                            SnippetEntry.Tooltip = "example tooltip"
                            SnippetEntry.Group = null } |] }
@@ -375,6 +388,7 @@ module addAndRemoveSnippets =
 
                   let expected =
                       """{
+  "SearchCaseSensitive": false,
   "Snippets": [
     {
       "Snippet": "echo '1'",
@@ -414,6 +428,7 @@ module addAndRemoveSnippets =
 
                   let expected =
                       """{
+  "SearchCaseSensitive": false,
   "Snippets": [
     {
       "Snippet": "echo '3'",
@@ -440,6 +455,7 @@ module addAndRemoveSnippets =
 
                   let expected =
                       """{
+  "SearchCaseSensitive": false,
   "Snippets": [
     {
       "Snippet": "echo '3'",
@@ -466,6 +482,7 @@ module addAndRemoveSnippets =
 
                   let expected =
                       """{
+  "SearchCaseSensitive": false,
   "Snippets": [
     {
       "Snippet": "echo '4'",
@@ -527,6 +544,7 @@ module addAndRemoveSnippets =
 
                   let expected =
                       """{
+  "SearchCaseSensitive": false,
   "Snippets": []
 }"""
                       |> normalizeNewlines
