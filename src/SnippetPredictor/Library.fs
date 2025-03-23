@@ -98,7 +98,7 @@ type AddSnippetCommand() =
                 Mandatory = false,
                 ValueFromPipelineByPropertyName = true,
                 HelpMessage = "The group of the snippet")>]
-    [<ValidatePattern("^[A-Za-z0-9]+$")>]
+    [<ValidatePattern(Group.pattern)>]
     member val Group: string | null = null with get, set
 
     abstract member GetSnippetPath: unit -> string * string
