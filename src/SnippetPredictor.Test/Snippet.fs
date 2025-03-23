@@ -151,6 +151,31 @@ let tests_parseSnippets =
                     SnippetEntry.Group = null }
           }
 
+          test "when JSON has search case sensitive set to true" {
+              """{"searchCaseSensitive": true, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
+              |> Snippet.parseSnippets
+              |> expectValid
+              |> Expect.equal
+                  "should return SearchCaseSensitive"
+                  { SearchCaseSensitive = true
+                    SnippetConfig.Snippets =
+                      [| { SnippetEntry.Snippet = "echo 'example'"
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
+          }
+          test "when JSON has search case sensitive set to null" {
+              """{"searchCaseSensitive": null, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
+              |> Snippet.parseSnippets
+              |> expectValid
+              |> Expect.equal
+                  "should return SearchCaseSensitive"
+                  { SearchCaseSensitive = false
+                    SnippetConfig.Snippets =
+                      [| { SnippetEntry.Snippet = "echo 'example'"
+                           SnippetEntry.Tooltip = "example tooltip"
+                           SnippetEntry.Group = null } |] }
+          }
+
           ]
 
 module getSnippet =
