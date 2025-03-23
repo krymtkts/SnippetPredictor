@@ -71,7 +71,22 @@ type SnippetEntry =
       [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
       Group: string | null }
 
-type SnippetConfig = { Snippets: SnippetEntry[] | null }
+type SearchCaseSensitiveJsonConverter() =
+    inherit JsonConverter<bool>()
+
+    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
+        if reader.TokenType = JsonTokenType.Null then
+            false
+        else
+            reader.GetBoolean()
+
+    override _.Write(writer: Utf8JsonWriter, value: bool, options: JsonSerializerOptions) =
+        value |> writer.WriteBooleanValue
+
+type SnippetConfig =
+    { [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
+      SearchCaseSensitive: bool
+      Snippets: SnippetEntry[] | null }
 
 module Snippet =
     open System.Collections
@@ -340,7 +355,10 @@ module Snippet =
     let addSnippets getSnippetPath (snippets: SnippetEntry seq) =
         loadConfig getSnippetPath
         |> function
-            | ConfigState.Empty -> { Snippets = Array.ofSeq snippets } |> storeConfig getSnippetPath
+            | ConfigState.Empty ->
+                { SearchCaseSensitive = false
+                  Snippets = Array.ofSeq snippets }
+                |> storeConfig getSnippetPath
             | ConfigState.Valid config ->
                 let newSnippets =
                     config.Snippets
