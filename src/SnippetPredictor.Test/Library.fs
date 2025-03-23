@@ -388,7 +388,7 @@ module SnippetPredictor =
                   let client = PredictionClient("test", PredictionClientKind.Terminal)
 
                   let result =
-                      predictor.GetSuggestion(client, PredictionContext.Create(":group"), CancellationToken.None)
+                      predictor.GetSuggestion(client, PredictionContext.Create(":group Ex"), CancellationToken.None)
 
                   result.SuggestionEntries
                   |> Expect.isNonEmpty "should provide suggestions for matching input"
@@ -414,7 +414,7 @@ module SnippetPredictor =
                   let client = PredictionClient("test", PredictionClientKind.Terminal)
 
                   let result =
-                      predictor.GetSuggestion(client, PredictionContext.Create(":group ex"), CancellationToken.None)
+                      predictor.GetSuggestion(client, PredictionContext.Create("ex"), CancellationToken.None)
 
                   result.SuggestionEntries
                   |> Expect.isNonEmpty "should provide suggestions for matching input"
@@ -424,7 +424,7 @@ module SnippetPredictor =
                       entry.SuggestionText = "echo 'example'"
                       && entry.ToolTip = "[group]example  tooltip")
 
-                  predictor.GetSuggestion(client, PredictionContext.Create(":group Ex"), CancellationToken.None)
+                  predictor.GetSuggestion(client, PredictionContext.Create(" Ex"), CancellationToken.None)
                   |> _.SuggestionEntries
                   |> Expect.isNull "should not provide suggestions when no match is found"
 
