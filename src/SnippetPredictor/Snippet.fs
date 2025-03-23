@@ -160,7 +160,15 @@ module Snippet =
             return parseSnippets json
         }
 
+    [<RequireQualifiedAccess>]
+    [<NoEquality>]
+    [<NoComparison>]
+    type SearchCaseSensitive =
+        | CaseSensitive
+        | CaseInsensitive
+
     type Cache() =
+        let mutable caseSensitive = SearchCaseSensitive.CaseInsensitive
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
@@ -183,7 +191,17 @@ module Snippet =
                         result
                         |> function
                             | ConfigState.Empty -> ()
-                            | ConfigState.Valid { Snippets = snps } ->
+                            | ConfigState.Valid { SearchCaseSensitive = searchCaseSensitive
+                                                  Snippets = snps } ->
+                                Interlocked.Exchange(
+                                    &caseSensitive,
+                                    searchCaseSensitive
+                                    |> function
+                                        | true -> SearchCaseSensitive.CaseSensitive
+                                        | false -> SearchCaseSensitive.CaseInsensitive
+                                )
+                                |> ignore
+
                                 snps
                                 |> function
                                     | null -> Array.empty
@@ -279,16 +297,18 @@ module Snippet =
 #if DEBUG
                         Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
+                        let comparisonType =
+                            match caseSensitive with
+                            | SearchCaseSensitive.CaseSensitive -> StringComparison.Ordinal
+                            | SearchCaseSensitive.CaseInsensitive -> StringComparison.OrdinalIgnoreCase
 
                         // NOTE: symbol search only support case-insensitive search.
                         // NOTE: If case-sensitive search is required, search without symbol.
                         match groupId with
-                        | "snp" -> _.Snippet.Contains(input, StringComparison.OrdinalIgnoreCase)
-                        | "tip" -> _.Tooltip.Contains(input, StringComparison.OrdinalIgnoreCase)
+                        | "snp" -> _.Snippet.Contains(input, comparisonType)
+                        | "tip" -> _.Tooltip.Contains(input, comparisonType)
                         | groupId ->
-                            fun (s: SnippetEntry) ->
-                                s.Group = groupId
-                                && s.Snippet.Contains(input, StringComparison.OrdinalIgnoreCase)
+                            fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
                     | snippet -> _.Snippet.Contains(snippet.Trim())
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
