@@ -17,6 +17,10 @@ type GroupJsonConverter =
             unit
 #endif
 
+module Group =
+    [<Literal>]
+    val pattern: string = "^[A-Za-z0-9]+$"
+
 type SnippetEntry =
     { Snippet: string
       Tooltip: string
