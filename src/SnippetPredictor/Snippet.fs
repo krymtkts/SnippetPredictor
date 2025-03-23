@@ -45,7 +45,7 @@ module Debug =
 open System.Text.RegularExpressions
 
 // NOTE: A static let generates unreachable code, so this module is used instead for coverage.
-module Json =
+module Group =
     [<Literal>]
     let pattern = "^[A-Za-z0-9]+$"
 
@@ -58,7 +58,7 @@ type GroupJsonConverter() =
         reader.GetString()
         |> function
             | null as value -> value // NOTE: unreachable when JsonIgnoreCondition.WhenWritingNull is used.
-            | value when Json.regex.IsMatch(value) -> value
+            | value when Group.regex.IsMatch(value) -> value
             | value -> JsonException(sprintf "Invalid characters in group: %s" value) |> raise
 
     override _.Write(writer: Utf8JsonWriter, value: string, options: JsonSerializerOptions) =
