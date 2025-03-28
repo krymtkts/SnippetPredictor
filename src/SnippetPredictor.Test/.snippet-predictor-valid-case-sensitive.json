@@ -1,0 +1,7 @@
+{
+  "SearchCaseSensitive": true,
+  "Snippets": [
+    {"Snippet": "echo 'example'", "Tooltip" : "example  tooltip" , "Group": "group"},
+    {"Snippet": "touch sample.txt", "Tooltip" : "new file"}
+  ]
+}

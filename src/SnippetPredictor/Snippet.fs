@@ -71,7 +71,22 @@ type SnippetEntry =
       [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
       Group: string | null }
 
-type SnippetConfig = { Snippets: SnippetEntry[] | null }
+type SearchCaseSensitiveJsonConverter() =
+    inherit JsonConverter<bool>()
+
+    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
+        if reader.TokenType = JsonTokenType.Null then
+            false
+        else
+            reader.GetBoolean()
+
+    override _.Write(writer: Utf8JsonWriter, value: bool, options: JsonSerializerOptions) =
+        value |> writer.WriteBooleanValue
+
+type SnippetConfig =
+    { [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
+      SearchCaseSensitive: bool
+      Snippets: SnippetEntry[] | null }
 
 module Snippet =
     open System.Collections
@@ -145,7 +160,15 @@ module Snippet =
             return parseSnippets json
         }
 
+    [<RequireQualifiedAccess>]
+    [<NoEquality>]
+    [<NoComparison>]
+    type SearchCaseSensitive =
+        | CaseSensitive
+        | CaseInsensitive
+
     type Cache() =
+        let mutable caseSensitive = SearchCaseSensitive.CaseInsensitive
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
@@ -168,7 +191,17 @@ module Snippet =
                         result
                         |> function
                             | ConfigState.Empty -> ()
-                            | ConfigState.Valid { Snippets = snps } ->
+                            | ConfigState.Valid { SearchCaseSensitive = searchCaseSensitive
+                                                  Snippets = snps } ->
+                                Interlocked.Exchange(
+                                    &caseSensitive,
+                                    searchCaseSensitive
+                                    |> function
+                                        | true -> SearchCaseSensitive.CaseSensitive
+                                        | false -> SearchCaseSensitive.CaseInsensitive
+                                )
+                                |> ignore
+
                                 snps
                                 |> function
                                     | null -> Array.empty
@@ -259,22 +292,24 @@ module Snippet =
                 Seq.empty
             else
                 let pred =
+                    let comparisonType =
+                        match caseSensitive with
+                        | SearchCaseSensitive.CaseSensitive -> StringComparison.Ordinal
+                        | SearchCaseSensitive.CaseInsensitive -> StringComparison.OrdinalIgnoreCase
+
                     match input with
                     | Prefix(groupId, input) ->
 #if DEBUG
                         Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
-
                         // NOTE: symbol search only support case-insensitive search.
                         // NOTE: If case-sensitive search is required, search without symbol.
                         match groupId with
-                        | "snp" -> _.Snippet.Contains(input, StringComparison.OrdinalIgnoreCase)
-                        | "tip" -> _.Tooltip.Contains(input, StringComparison.OrdinalIgnoreCase)
+                        | "snp" -> _.Snippet.Contains(input, comparisonType)
+                        | "tip" -> _.Tooltip.Contains(input, comparisonType)
                         | groupId ->
-                            fun (s: SnippetEntry) ->
-                                s.Group = groupId
-                                && s.Snippet.Contains(input, StringComparison.OrdinalIgnoreCase)
-                    | snippet -> _.Snippet.Contains(snippet.Trim())
+                            fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
+                    | snippet -> _.Snippet.Contains(snippet.Trim(), comparisonType)
 
                 snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
             |> Linq.Enumerable.ToList
@@ -340,7 +375,10 @@ module Snippet =
     let addSnippets getSnippetPath (snippets: SnippetEntry seq) =
         loadConfig getSnippetPath
         |> function
-            | ConfigState.Empty -> { Snippets = Array.ofSeq snippets } |> storeConfig getSnippetPath
+            | ConfigState.Empty ->
+                { SearchCaseSensitive = false
+                  Snippets = Array.ofSeq snippets }
+                |> storeConfig getSnippetPath
             | ConfigState.Valid config ->
                 let newSnippets =
                     config.Snippets

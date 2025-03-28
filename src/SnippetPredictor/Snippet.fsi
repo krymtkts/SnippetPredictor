@@ -26,7 +26,9 @@ type SnippetEntry =
       Tooltip: string
       Group: string | null }
 
-type SnippetConfig = { Snippets: SnippetEntry array | null }
+type SnippetConfig =
+    { SearchCaseSensitive: bool
+      Snippets: SnippetEntry array | null }
 
 module Snippet =
     [<Literal>]

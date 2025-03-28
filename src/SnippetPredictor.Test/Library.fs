@@ -91,6 +91,7 @@ module Cmdlets =
 
                   let expected =
                       """{
+  "SearchCaseSensitive": false,
   "Snippets": [
     {
       "Snippet": "Add-Snippet 'echo test'",
@@ -245,6 +246,7 @@ module Cmdlets =
 
                   let expected =
                       """{
+  "SearchCaseSensitive": false,
   "Snippets": []
 }"""
                       |> normalizeNewlines
@@ -386,7 +388,7 @@ module SnippetPredictor =
                   let client = PredictionClient("test", PredictionClientKind.Terminal)
 
                   let result =
-                      predictor.GetSuggestion(client, PredictionContext.Create(":group"), CancellationToken.None)
+                      predictor.GetSuggestion(client, PredictionContext.Create(":group Ex"), CancellationToken.None)
 
                   result.SuggestionEntries
                   |> Expect.isNonEmpty "should provide suggestions for matching input"
@@ -397,6 +399,32 @@ module SnippetPredictor =
                       && entry.ToolTip = "[group]example  tooltip")
 
                   predictor.GetSuggestion(client, PredictionContext.Create(":test"), CancellationToken.None)
+                  |> _.SuggestionEntries
+                  |> Expect.isNull "should not provide suggestions when no match is found"
+
+              }
+
+              test "GetSuggestion with case sensitivity" {
+                  let predictor =
+                      SnippetPredictorForTest("./.snippet-predictor-valid-case-sensitive.json") :> ICommandPredictor
+
+                  // NOTE: This is a workaround for the test; the test crashes without a proper wait.
+                  Async.Sleep(1000) |> Async.RunSynchronously
+
+                  let client = PredictionClient("test", PredictionClientKind.Terminal)
+
+                  let result =
+                      predictor.GetSuggestion(client, PredictionContext.Create("ex"), CancellationToken.None)
+
+                  result.SuggestionEntries
+                  |> Expect.isNonEmpty "should provide suggestions for matching input"
+
+                  result.SuggestionEntries
+                  |> Expect.all "should provide suggestions for matching input" (fun entry ->
+                      entry.SuggestionText = "echo 'example'"
+                      && entry.ToolTip = "[group]example  tooltip")
+
+                  predictor.GetSuggestion(client, PredictionContext.Create(" Ex"), CancellationToken.None)
                   |> _.SuggestionEntries
                   |> Expect.isNull "should not provide suggestions when no match is found"
 
