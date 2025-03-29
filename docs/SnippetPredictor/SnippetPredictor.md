@@ -17,6 +17,18 @@ title: SnippetPredictor Module
 A predictor that suggests a snippet based on the input.
 The snippet configuration is located at `~/.snippet-predictor.json`.
 
+Filter snippets in your `~/.snippet-predictor.json` file using the following keywords:
+
+- Use `:snp {input}` to search for `{input}` in the `Snippet` field.
+- Use `:tip {input}` to search for `{input}` in the `Tooltip` field.
+- Use `:{group} {input}` to search for `{input}` in the `Snippet` field for snippets in a specified `Group`.
+  - Allowed characters for the `Group` field: `^[a-zA-Z0-9]+$`.
+    (That is, the group name must consist of alphanumeric characters only.)
+
+Default, snippets are searched in a case-insensitive manner.
+You can specify the case-sensitivity to `SearchCaseSensitive` in `.snippet-predictor.json`.
+default value is `SearchCaseSensitive = false.`
+
 ## SnippetPredictor
 
 ### [Add-Snippet](Add-Snippet.md)
