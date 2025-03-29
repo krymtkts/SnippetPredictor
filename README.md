@@ -100,8 +100,9 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
   - Allowed characters for the `Group` field: `^[a-zA-Z0-9]+$`.
     (That is, the group name must consist of alphanumeric characters only.)
 
-Keywords entered after `:{symbol}` are searched in a case-insensitive manner.
-Without a keyword, the search becomes case-sensitive.
+Default, snippets are searched in a case-insensitive manner.
+You can specify the case-sensitivity to `SearchCaseSensitive` in `.snippet-predictor.json`.
+default value is `SearchCaseSensitive = false.`
 
 You can list your registered snippets with the `Get-Snippet` command.
 
