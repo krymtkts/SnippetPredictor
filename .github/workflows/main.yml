@@ -18,13 +18,6 @@ jobs:
           - windows-latest
           - ubuntu-latest
           - macos-latest
-        shell:
-          - pwsh
-        include:
-          - os: windows-latest
-            shell: pwsh
-          - os: windows-latest
-            shell: powershell
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
