@@ -18,7 +18,9 @@ updates:
       - "krymtkts"
   # Maintain dependencies for NuGet
   - package-ecosystem: "nuget"
-    directory: "/"
+    directories:
+      - "src/SnippetPredictor"
+      - "src/SnippetPredictor.Test"
     schedule:
       interval: "weekly"
       day: "friday"
