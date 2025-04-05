@@ -18,9 +18,10 @@ updates:
       - "krymtkts"
   # Maintain dependencies for NuGet
   - package-ecosystem: "nuget"
+    # NOTE: dependabot raises dependency_file_not_found error with root directory.
+    # NOTE: directories can use glob patterns.
     directories:
-      - "src/SnippetPredictor"
-      - "src/SnippetPredictor.Test"
+      - "src/SnippetPredictor*"
     schedule:
       interval: "weekly"
       day: "friday"
