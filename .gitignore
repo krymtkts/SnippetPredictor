@@ -397,3 +397,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# FSharp.Analyzers.SDK SARIF report
+analysisreports
