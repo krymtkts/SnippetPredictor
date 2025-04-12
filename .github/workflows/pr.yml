@@ -10,13 +10,13 @@ permissions:
 jobs:
   test:
     strategy:
+      # NOTE: disable fail-fast to run tests on all platforms.
+      fail-fast: false
       matrix:
         os:
           - windows-latest
           - ubuntu-latest
           - macos-latest
-      # NOTE: disable fail-fast to run tests on all platforms.
-      fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
