@@ -52,7 +52,7 @@ Task Lint {
         throw 'dotnet fantomas failed.'
     }
     $analyzerPath = dotnet build $ModuleSrcPath --getProperty:PkgIonide_Analyzers
-    dotnet fsharp-analyzers --project $ModuleSrcProject --analyzers-path $analyzerPath --report analysisreports
+    dotnet fsharp-analyzers --project $ModuleSrcProject --analyzers-path $analyzerPath --report report.sarif
     if (-not $?) {
         throw 'dotnet fsharp-analyzers failed.'
     }
