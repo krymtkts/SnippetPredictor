@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Add-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 03-16-2025
+ms.date: 04-12-2025
 PlatyPS schema version: 2024-05-01
 title: Add-Snippet
 ---
