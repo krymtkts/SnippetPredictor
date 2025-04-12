@@ -6,8 +6,9 @@ Properties {
         $DryRun = $true
     }
     $ModuleName = Get-ChildItem ./src/*/*.psd1 | Select-Object -ExpandProperty BaseName
-    $ModuleVersion = (Resolve-Path "./src/${ModuleName}/*.fsproj" | Select-Xml '//Version/text()').Node.Value
     $ModuleSrcPath = Resolve-Path "./src/${ModuleName}/"
+    $ModuleSrcProject = Resolve-Path "$ModuleSrcPath/*.fsproj"
+    $ModuleVersion = ($ModuleSrcProject | Select-Xml '//Version/text()').Node.Value
     $ModulePublishPath = Resolve-Path "./publish/${ModuleName}/"
     "Module: ${ModuleName} ver${ModuleVersion} root=${ModuleSrcPath} publish=${ModulePublishPath}"
 }
@@ -49,6 +50,11 @@ Task Lint {
     dotnet fantomas ./src --check
     if (-not $?) {
         throw 'dotnet fantomas failed.'
+    }
+    $analyzerPath = dotnet build $ModuleSrcPath --getProperty:PkgIonide_Analyzers
+    dotnet fsharp-analyzers --project $ModuleSrcProject --analyzers-path $analyzerPath --report analysisreports
+    if (-not $?) {
+        throw 'dotnet fsharp-analyzers failed.'
     }
     @('./psakefile.ps1', './tests/SnippetPredictor.Tests.ps1') | ForEach-Object {
         $warn = Invoke-ScriptAnalyzer -Path $_ -Settings .\PSScriptAnalyzerSettings.psd1
