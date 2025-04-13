@@ -52,9 +52,11 @@ Task Lint {
         throw 'dotnet fantomas failed.'
     }
     $analyzerPath = dotnet build $ModuleSrcPath --getProperty:PkgIonide_Analyzers
-    dotnet fsharp-analyzers --project $ModuleSrcProject --analyzers-path $analyzerPath --report report.sarif
-    if (-not $?) {
-        throw 'dotnet fsharp-analyzers failed.'
+    Get-ChildItem './src/*/*.fsproj' | ForEach-Object {
+        dotnet fsharp-analyzers --project $_ --analyzers-path $analyzerPath --report "analysis/$($_.BaseName)-report.sarif"
+        if (-not $?) {
+            throw "dotnet fsharp-analyzers for $($_.BaseName) failed."
+        }
     }
     @('./psakefile.ps1', './tests/SnippetPredictor.Tests.ps1') | ForEach-Object {
         $warn = Invoke-ScriptAnalyzer -Path $_ -Settings .\PSScriptAnalyzerSettings.psd1
