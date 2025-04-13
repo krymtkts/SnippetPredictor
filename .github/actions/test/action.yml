@@ -31,8 +31,10 @@ runs:
         file: ./coverage.cobertura.xml
       env:
         CODECOV_TOKEN: ${{ inputs.codecov_token }}
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
+    # NOTE: to merge multiple SARIF into a single file. see https://github.blog/changelog/2024-05-06-code-scanning-will-stop-combining-runs-from-a-single-upload/
+    - name: Temporary store SARIF file
+      uses: actions/upload-artifact@v4
       if: runner.os == 'Linux'
       with:
-        sarif_file: ./analysis
+        name: sarif-reports
+        path: analysis
