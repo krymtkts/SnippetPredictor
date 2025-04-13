@@ -399,4 +399,4 @@ FodyWeavers.xsd
 *.sln.iml
 
 # FSharp.Analyzers.SDK SARIF report
-report.sarif
+*.sarif
