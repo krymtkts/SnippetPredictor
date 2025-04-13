@@ -53,7 +53,7 @@ Task Lint {
     }
     $analyzerPath = dotnet build $ModuleSrcPath --getProperty:PkgIonide_Analyzers
     Get-ChildItem './src/*/*.fsproj' | ForEach-Object {
-        dotnet fsharp-analyzers --project $_ --analyzers-path $analyzerPath --report "analysis/$($_.BaseName)-report.sarif"
+        dotnet fsharp-analyzers --project $_ --analyzers-path $analyzerPath --report "analysis/$($_.BaseName)-report.sarif" --code-root src
         if (-not $?) {
             throw "dotnet fsharp-analyzers for $($_.BaseName) failed."
         }
