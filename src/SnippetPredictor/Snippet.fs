@@ -160,15 +160,26 @@ module Snippet =
             return parseSnippets json
         }
 
-    [<RequireQualifiedAccess>]
-    [<NoEquality>]
-    [<NoComparison>]
-    type SearchCaseSensitive =
-        | CaseSensitive
-        | CaseInsensitive
+    module CaseSensitivity =
+        [<Literal>]
+        let sensitive = 1
+
+        [<Literal>]
+        let insensitive = 0
+
+    module SearchCaseSensitivity =
+        let ofBool =
+            function
+            | true -> CaseSensitivity.sensitive
+            | false -> CaseSensitivity.insensitive
+
+        let stringComparison =
+            function
+            | CaseSensitivity.sensitive -> StringComparison.Ordinal
+            | _ -> StringComparison.OrdinalIgnoreCase
 
     type Cache() =
-        let mutable caseSensitive = SearchCaseSensitive.CaseInsensitive
+        let mutable caseSensitive = CaseSensitivity.insensitive
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
@@ -195,10 +206,7 @@ module Snippet =
                                                   Snippets = snps } ->
                                 Interlocked.Exchange(
                                     &caseSensitive,
-                                    searchCaseSensitive
-                                    |> function
-                                        | true -> SearchCaseSensitive.CaseSensitive
-                                        | false -> SearchCaseSensitive.CaseInsensitive
+                                    searchCaseSensitive |> SearchCaseSensitivity.ofBool
                                 )
                                 |> ignore
 
@@ -292,10 +300,7 @@ module Snippet =
                 Seq.empty
             else
                 let pred =
-                    let comparisonType =
-                        match caseSensitive with
-                        | SearchCaseSensitive.CaseSensitive -> StringComparison.Ordinal
-                        | SearchCaseSensitive.CaseInsensitive -> StringComparison.OrdinalIgnoreCase
+                    let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
 
                     match input with
                     | Prefix(groupId, input) ->
