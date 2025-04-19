@@ -86,7 +86,7 @@ type SearchCaseSensitiveJsonConverter() =
 type SnippetConfig =
     { [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
       SearchCaseSensitive: bool
-      Snippets: SnippetEntry[] | null }
+      Snippets: SnippetEntry array | null }
 
 module Snippet =
     open System.Collections
