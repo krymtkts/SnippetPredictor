@@ -342,9 +342,7 @@ module SnippetPredictorInitialization =
                   (subsystem :> IModuleAssemblyInitializer).OnImport()
 
                   let predictor = getSnippetPredictorSubsystem ()
-
-                  predictor |> Expect.isSome "should have Snippet predictor"
-                  let predictor = predictor.Value
+                  let predictor = predictor |> Expect.wantSome "should have Snippet predictor"
 
                   predictor.Description
                   |> Expect.equal "Description" "A predictor that suggests a snippet based on the input."
