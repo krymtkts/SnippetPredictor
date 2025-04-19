@@ -311,7 +311,12 @@ module Snippet =
                             fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
                     | snippet -> _.Snippet.Contains(snippet.Trim(), comparisonType)
 
-                snippets |> Seq.filter pred |> Seq.map (snippetToTuple >> PredictiveSuggestion)
+                snippets
+                |> Seq.choose (fun x ->
+                    if pred x then
+                        Some(snippetToTuple x |> PredictiveSuggestion)
+                    else
+                        None)
             |> Linq.Enumerable.ToList
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
