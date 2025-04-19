@@ -142,7 +142,7 @@ module Snippet =
         try
             json.Trim()
             |> function
-                | "" -> ConfigState.Empty
+                | json when String.length json = 0 -> ConfigState.Empty
                 | json ->
                     JsonSerializer.Deserialize<SnippetConfig>(json, jsonOptions)
                     |> function
@@ -316,9 +316,10 @@ module Snippet =
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
+            // NOTE: Split branches to narrow the type (string | null)
             match getEnvironmentVariable environmentVariable with
-            | null
-            | "" -> getUserProfilePath ()
+            | null -> getUserProfilePath ()
+            | path when String.length path = 0 -> getUserProfilePath ()
             | path -> path
 
         snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
