@@ -37,7 +37,6 @@ type EnvironmentVariable(value: string) =
 
     interface IDisposable with
         member __.Dispose() =
-            if originalValue = null then
-                Environment.SetEnvironmentVariable(name, null)
-            else
-                Environment.SetEnvironmentVariable(name, originalValue)
+            match originalValue with
+            | null -> Environment.SetEnvironmentVariable(name, null)
+            | _ -> Environment.SetEnvironmentVariable(name, originalValue)

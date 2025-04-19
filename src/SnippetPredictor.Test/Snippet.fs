@@ -235,10 +235,9 @@ module getPredictiveSuggestions =
 
         let asserter expected (actual: System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion) =
             actual.SuggestionText = expected.Snippet
-            && actual.ToolTip = if expected.Group = null then
-                                    expected.Tooltip
-                                else
-                                    $"[{expected.Group}]{expected.Tooltip}"
+            && actual.ToolTip = match expected.Group with
+                                | null -> expected.Tooltip
+                                | _ -> $"[{expected.Group}]{expected.Tooltip}"
 
         testList
             "getPredictiveSuggestions"
