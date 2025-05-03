@@ -46,6 +46,8 @@ module Snippet =
     val parseSnippets: json: string -> ConfigState
 
     type Cache =
+        interface System.IDisposable
+
         new: unit -> Cache
 
         member getPredictiveSuggestions:

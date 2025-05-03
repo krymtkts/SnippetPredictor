@@ -107,8 +107,6 @@ module Snippet =
     [<Literal>]
     let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
 
-    let mutable watcher: FileSystemWatcher option = None
-
     let readSnippetFile (path: string) =
         task {
             // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
@@ -186,6 +184,7 @@ module Snippet =
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
+        let mutable watcher: FileSystemWatcher option = None
 
         let startRefreshTask (path: string) =
             let cancellationToken = new CancellationToken()
@@ -326,6 +325,13 @@ module Snippet =
                     else
                         None)
             |> Linq.Enumerable.ToList
+
+        interface IDisposable with
+            member __.Dispose() =
+                watcher
+                |> Option.iter (fun w ->
+                    w.EnableRaisingEvents <- false
+                    w.Dispose())
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
