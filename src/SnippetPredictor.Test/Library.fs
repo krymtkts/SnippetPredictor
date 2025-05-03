@@ -377,8 +377,10 @@ module SnippetPredictor =
             [
 
               test "GetSuggestion" {
-                  let predictor =
-                      SnippetPredictorForTest("./.snippet-predictor-valid.json") :> ICommandPredictor
+                  use predictorForTest =
+                      new SnippetPredictorForTest("./.snippet-predictor-valid.json")
+
+                  let predictor = predictorForTest :> ICommandPredictor
 
                   // NOTE: This is a workaround for the test; the test crashes without a proper wait.
                   Async.Sleep(1000) |> Async.RunSynchronously
@@ -403,8 +405,10 @@ module SnippetPredictor =
               }
 
               test "GetSuggestion with case sensitivity" {
-                  let predictor =
-                      SnippetPredictorForTest("./.snippet-predictor-valid-case-sensitive.json") :> ICommandPredictor
+                  use predictorForTest =
+                      new SnippetPredictorForTest("./.snippet-predictor-valid-case-sensitive.json")
+
+                  let predictor = predictorForTest :> ICommandPredictor
 
                   // NOTE: This is a workaround for the test; the test crashes without a proper wait.
                   Async.Sleep(1000) |> Async.RunSynchronously
@@ -429,8 +433,10 @@ module SnippetPredictor =
               }
 
               test "for coverage" {
-                  let predictor =
-                      SnippetPredictorForTest("./.snippet-predictor-valid.json") :> ICommandPredictor
+                  use predictorForTest =
+                      new SnippetPredictorForTest("./.snippet-predictor-valid.json")
+
+                  let predictor = predictorForTest :> ICommandPredictor
 
                   predictor.FunctionsToDefine
                   |> Expect.isEmpty "should not have functions to define"
@@ -447,8 +453,10 @@ module SnippetPredictor =
               }
 
               test "snippet file is not found" {
-                  let predictor =
-                      SnippetPredictorForTest("./.snippet-predictor-not-found.json") :> ICommandPredictor
+                  use predictorForTest =
+                      new SnippetPredictorForTest("./.snippet-predictor-not-found.json")
+
+                  let predictor = predictorForTest :> ICommandPredictor
 
                   predictor.FunctionsToDefine
                   |> Expect.isEmpty "should not have functions to define"

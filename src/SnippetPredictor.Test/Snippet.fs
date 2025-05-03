@@ -220,7 +220,7 @@ module getPredictiveSuggestions =
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
-        let cache = Snippet.Cache()
+        let cache = new Snippet.Cache()
         cache.load (fun () -> "./", "./.snippet-predictor-valid.json")
 
         let expected1 =
