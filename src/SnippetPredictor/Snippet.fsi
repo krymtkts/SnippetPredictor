@@ -1,5 +1,8 @@
 namespace SnippetPredictor
 
+module Option =
+    val dispose: d: #System.IDisposable option -> unit
+
 #if DEBUG
 type GroupJsonConverter =
     inherit System.Text.Json.Serialization.JsonConverter<string>

@@ -42,6 +42,9 @@ module Debug =
                 ))
 #endif
 
+module Option =
+    let dispose (d: 'a option when 'a :> IDisposable) = d |> Option.iter _.Dispose()
+
 open System.Text.RegularExpressions
 
 // NOTE: A static let generates unreachable code, so this module is used instead for coverage.
