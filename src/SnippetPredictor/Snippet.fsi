@@ -1,5 +1,8 @@
 namespace SnippetPredictor
 
+module Option =
+    val dispose: d: #System.IDisposable option -> unit
+
 #if DEBUG
 type GroupJsonConverter =
     inherit System.Text.Json.Serialization.JsonConverter<string>
@@ -43,6 +46,8 @@ module Snippet =
     val parseSnippets: json: string -> ConfigState
 
     type Cache =
+        interface System.IDisposable
+
         new: unit -> Cache
 
         member getPredictiveSuggestions:

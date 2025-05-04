@@ -42,6 +42,9 @@ module Debug =
                 ))
 #endif
 
+module Option =
+    let dispose (d: 'a option when 'a :> IDisposable) = d |> Option.iter _.Dispose()
+
 open System.Text.RegularExpressions
 
 // NOTE: A static let generates unreachable code, so this module is used instead for coverage.
@@ -103,8 +106,6 @@ module Snippet =
 
     [<Literal>]
     let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
-
-    let mutable watcher: FileSystemWatcher option = None
 
     let readSnippetFile (path: string) =
         task {
@@ -183,6 +184,7 @@ module Snippet =
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
+        let mutable watcher: FileSystemWatcher option = None
 
         let startRefreshTask (path: string) =
             let cancellationToken = new CancellationToken()
@@ -323,6 +325,13 @@ module Snippet =
                     else
                         None)
             |> Linq.Enumerable.ToList
+
+        interface IDisposable with
+            member __.Dispose() =
+                watcher
+                |> Option.iter (fun w ->
+                    w.EnableRaisingEvents <- false
+                    w.Dispose())
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =

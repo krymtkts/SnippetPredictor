@@ -7,6 +7,19 @@ open SnippetPredictor
 open SnippetPredictorTest.Utility
 
 [<Tests>]
+let tests_Dispose =
+    testList
+        "Option.dispose"
+        [
+
+          test "when value is None" {
+              // NOTE: for coverage.
+              None |> Option.dispose
+          }
+
+          ]
+
+[<Tests>]
 let tests_parseSnippets =
     let expectValid =
         function
@@ -220,7 +233,7 @@ module getPredictiveSuggestions =
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
-        let cache = Snippet.Cache()
+        let cache = new Snippet.Cache()
         cache.load (fun () -> "./", "./.snippet-predictor-valid.json")
 
         let expected1 =
@@ -317,6 +330,23 @@ module getPredictiveSuggestions =
               test "when group symbol is set and invalid" {
                   cache.getPredictiveSuggestions ":grp     "
                   |> Expect.isEmpty "should return empty."
+              }
+
+              ]
+
+    open System
+
+    [<Tests>]
+    let tests_Dispose =
+        let cache = new Snippet.Cache()
+
+        testList
+            "Cache.Dispose"
+            [
+
+              test "when watcher is stopped" {
+                  // NOTE: for coverage.
+                  (cache :> IDisposable).Dispose()
               }
 
               ]

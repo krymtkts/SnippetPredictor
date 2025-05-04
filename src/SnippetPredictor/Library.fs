@@ -16,7 +16,7 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
 
-    let cache = Snippet.Cache()
+    let cache = new Snippet.Cache()
 
     do cache.load getSnippetPath
 
@@ -48,18 +48,25 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
 
         member __.OnCommandLineExecuted(client: PredictionClient, commandLine: string, success: bool) : unit = ()
 
+    interface IDisposable with
+        member __.Dispose() = (cache :> IDisposable).Dispose()
+
 type Init() =
     [<Literal>]
     let identifier = "f6dbcf05-2f90-4c47-b40e-6a4cec337cc1"
 
+    let mutable predictor: SnippetPredictor option = None
+
     interface IModuleAssemblyInitializer with
         member __.OnImport() =
-            let predictor = SnippetPredictor(identifier, Snippet.getSnippetPath)
-            SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, predictor)
+            let p = new SnippetPredictor(identifier, Snippet.getSnippetPath)
+            SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, p)
+            predictor <- Some p
 
     interface IModuleAssemblyCleanup with
         member __.OnRemove(psModuleInfo: PSModuleInfo) =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
+            predictor |> Option.dispose
 
 [<Cmdlet(VerbsCommon.Get, Snippet.name)>]
 [<OutputType(typeof<SnippetEntry>)>]
