@@ -301,6 +301,12 @@ module Snippet =
                 else
                     None)
 
+        [<Literal>]
+        let Snp = "snp"
+
+        [<Literal>]
+        let Tip = "tip"
+
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
 
@@ -320,8 +326,8 @@ module Snippet =
 
                 let pred =
                     match groupId with
-                    | "snp" -> _.Snippet.Contains(input, comparisonType)
-                    | "tip" -> _.Tooltip.Contains(input, comparisonType)
+                    | Snp -> _.Snippet.Contains(input, comparisonType)
+                    | Tip -> _.Tooltip.Contains(input, comparisonType)
                     | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
 
                 pred |> chooseSnippets
