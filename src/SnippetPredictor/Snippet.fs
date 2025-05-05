@@ -289,6 +289,8 @@ module Snippet =
                 | 3 -> (m.Groups[1].Value, m.Groups[2].Value.TrimEnd()) |> Some
                 | _ -> None
 
+        let (|NoPrefix|) (value: string) = value.Trim()
+
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
 
@@ -314,7 +316,7 @@ module Snippet =
                         | "tip" -> _.Tooltip.Contains(input, comparisonType)
                         | groupId ->
                             fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
-                    | snippet -> _.Snippet.Contains(snippet.Trim(), comparisonType)
+                    | NoPrefix snippet -> _.Snippet.Contains(snippet, comparisonType)
 
                 snippets
                 |> Seq.choose (fun x ->
