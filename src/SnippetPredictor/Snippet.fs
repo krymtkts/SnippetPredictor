@@ -330,7 +330,19 @@ module Snippet =
                     | Tip -> _.Tooltip.Contains(input, comparisonType)
                     | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
 
-                pred |> chooseSnippets
+                let groupIds =
+                    if String.IsNullOrWhiteSpace(input) then
+                        groups.Keys
+                        |> Seq.append [ Snp; Tip ]
+                        |> Seq.choose (fun g ->
+                            if g <> groupId && g.StartsWith(groupId) then
+                                ($":{g}", "") |> PredictiveSuggestion |> Some
+                            else
+                                None)
+                    else
+                        Seq.empty
+
+                pred |> chooseSnippets |> Seq.append groupIds
             | NoPrefix snippet ->
                 _.Snippet.Contains(snippet, caseSensitive |> SearchCaseSensitivity.stringComparison)
                 |> chooseSnippets
