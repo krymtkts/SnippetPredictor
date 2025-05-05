@@ -309,8 +309,6 @@ module Snippet =
 #if DEBUG
                         Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
-                        // NOTE: symbol search only support case-insensitive search.
-                        // NOTE: If case-sensitive search is required, search without symbol.
                         match groupId with
                         | "snp" -> _.Snippet.Contains(input, comparisonType)
                         | "tip" -> _.Tooltip.Contains(input, comparisonType)
