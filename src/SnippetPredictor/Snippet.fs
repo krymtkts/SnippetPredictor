@@ -293,6 +293,14 @@ module Snippet =
 
         let (|NoPrefix|) (value: string) = value.Trim()
 
+        let chooseSnippets pred =
+            snippets
+            |> Seq.choose (fun x ->
+                if pred x then
+                    Some(snippetToTuple x |> PredictiveSuggestion)
+                else
+                    None)
+
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
 
@@ -304,28 +312,22 @@ module Snippet =
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
             match input with
             | Empty -> Seq.empty
-            | _ ->
-                let pred =
-                    let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
-
-                    match input with
-                    | Prefix(groupId, input) ->
+            | Prefix(groupId, input) ->
 #if DEBUG
-                        Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
+                Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
-                        match groupId with
-                        | "snp" -> _.Snippet.Contains(input, comparisonType)
-                        | "tip" -> _.Tooltip.Contains(input, comparisonType)
-                        | groupId ->
-                            fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
-                    | NoPrefix snippet -> _.Snippet.Contains(snippet, comparisonType)
+                let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
 
-                snippets
-                |> Seq.choose (fun x ->
-                    if pred x then
-                        Some(snippetToTuple x |> PredictiveSuggestion)
-                    else
-                        None)
+                let pred =
+                    match groupId with
+                    | "snp" -> _.Snippet.Contains(input, comparisonType)
+                    | "tip" -> _.Tooltip.Contains(input, comparisonType)
+                    | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
+
+                pred |> chooseSnippets
+            | NoPrefix snippet ->
+                _.Snippet.Contains(snippet, caseSensitive |> SearchCaseSensitivity.stringComparison)
+                |> chooseSnippets
             |> Linq.Enumerable.ToList
 
         interface IDisposable with
