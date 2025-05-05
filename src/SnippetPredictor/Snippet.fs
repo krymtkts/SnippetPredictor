@@ -276,6 +276,8 @@ module Snippet =
                 | null -> s.Snippet, s.Tooltip
                 | g -> s.Snippet, $"[{g}]{s.Tooltip}"
 
+        let (|Empty|_|) (input: string) = String.IsNullOrWhiteSpace(input)
+
         let inputPattern = Regex(":([a-zA-Z0-9]+)\\s*(.*)")
 
         let (|Prefix|_|) (value: string) =
@@ -300,9 +302,9 @@ module Snippet =
             startFileWatchingEvent snippetDirectory
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
-            if String.IsNullOrWhiteSpace(input) then
-                Seq.empty
-            else
+            match input with
+            | Empty -> Seq.empty
+            | _ ->
                 let pred =
                     let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
 
