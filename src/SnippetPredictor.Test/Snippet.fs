@@ -341,6 +341,18 @@ module getPredictiveSuggestions =
                   |> Expect.isEmpty "should return empty."
               }
 
+              let expectedGroups =
+                  [ PredictiveSuggestion(":group", "")
+                    PredictiveSuggestion("Write-Host gr", "[gr]example 2") ]
+
+              test "when group symbol is set and partially matched" {
+                  cache.getPredictiveSuggestions ":gr     "
+                  |> Seq.iteri (fun index actual ->
+                      actual
+                      |> asserter expectedGroups[index]
+                      |> Expect.isTrue "should return group and matched snippets")
+              }
+
               ]
 
     open System
