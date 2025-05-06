@@ -230,6 +230,7 @@ module getSnippet =
               ]
 
 module getPredictiveSuggestions =
+    open System.Management.Automation.Subsystem.Prediction
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
@@ -246,7 +247,7 @@ module getPredictiveSuggestions =
               SnippetEntry.Tooltip = "new file"
               SnippetEntry.Group = null }
 
-        let asserter expected (actual: System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion) =
+        let asserter expected (actual: PredictiveSuggestion) =
             actual.SuggestionText = expected.Snippet
             && actual.ToolTip = match expected.Group with
                                 | null -> expected.Tooltip
