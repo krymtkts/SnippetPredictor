@@ -404,6 +404,9 @@ let tests_loadSnippets =
                      { SnippetEntry.Snippet = "touch sample.txt"
                        SnippetEntry.Tooltip = "new file"
                        SnippetEntry.Group = null }
+                     { SnippetEntry.Snippet = "Write-Host gr"
+                       SnippetEntry.Tooltip = "example 2"
+                       SnippetEntry.Group = "gr" }
 
                      |]
 
