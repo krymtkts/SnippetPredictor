@@ -230,6 +230,7 @@ module getSnippet =
               ]
 
 module getPredictiveSuggestions =
+    open System.Management.Automation.Subsystem.Prediction
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
@@ -246,11 +247,17 @@ module getPredictiveSuggestions =
               SnippetEntry.Tooltip = "new file"
               SnippetEntry.Group = null }
 
-        let asserter expected (actual: System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion) =
-            actual.SuggestionText = expected.Snippet
-            && actual.ToolTip = match expected.Group with
-                                | null -> expected.Tooltip
-                                | _ -> $"[{expected.Group}]{expected.Tooltip}"
+        let entryToSuggestion snippet =
+            PredictiveSuggestion(
+                snippet.Snippet,
+                match snippet.Group with
+                | null -> snippet.Tooltip
+                | _ -> $"[{snippet.Group}]{snippet.Tooltip}"
+            )
+
+        let asserter (expected: PredictiveSuggestion) (actual: PredictiveSuggestion) =
+            actual.SuggestionText = expected.SuggestionText
+            && actual.ToolTip = expected.ToolTip
 
         testList
             "getPredictiveSuggestions"
@@ -263,7 +270,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing snippet symbol."
-                      (asserter expected1)
+                      (entryToSuggestion >> asserter <| expected1)
               }
 
               test "when snippet symbol is not set and matched" {
@@ -271,7 +278,9 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all "should return the snippets filtered by the input." (asserter expected2)
+                  |> Expect.all
+                      "should return the snippets filtered by the input."
+                      (entryToSuggestion >> asserter <| expected2)
               }
 
               test "when no snippets matched with :" {
@@ -294,7 +303,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing tooltip symbol."
-                      (asserter expected1)
+                      (entryToSuggestion >> asserter <| expected1)
               }
 
               test "when tooltip symbol is not set and not matched" {
@@ -309,7 +318,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing group symbol."
-                      (asserter expected1)
+                      (entryToSuggestion >> asserter <| expected1)
               }
 
               test "when group symbol is set and matched case insensitive" {
@@ -319,7 +328,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing group symbol."
-                      (asserter expected1)
+                      (entryToSuggestion >> asserter <| expected1)
               }
 
               test "when no group symbol is set and not matched" {
@@ -330,6 +339,18 @@ module getPredictiveSuggestions =
               test "when group symbol is set and invalid" {
                   cache.getPredictiveSuggestions ":grp     "
                   |> Expect.isEmpty "should return empty."
+              }
+
+              let expectedGroups =
+                  [ PredictiveSuggestion(":group", "")
+                    PredictiveSuggestion("Write-Host gr", "[gr]example 2") ]
+
+              test "when group symbol is set and partially matched" {
+                  cache.getPredictiveSuggestions ":gr     "
+                  |> Seq.iteri (fun index actual ->
+                      actual
+                      |> asserter expectedGroups[index]
+                      |> Expect.isTrue "should return group and matched snippets")
               }
 
               ]
@@ -395,6 +416,9 @@ let tests_loadSnippets =
                      { SnippetEntry.Snippet = "touch sample.txt"
                        SnippetEntry.Tooltip = "new file"
                        SnippetEntry.Group = null }
+                     { SnippetEntry.Snippet = "Write-Host gr"
+                       SnippetEntry.Tooltip = "example 2"
+                       SnippetEntry.Group = "gr" }
 
                      |]
 

@@ -276,6 +276,8 @@ module Snippet =
                 | null -> s.Snippet, s.Tooltip
                 | g -> s.Snippet, $"[{g}]{s.Tooltip}"
 
+        let (|Empty|_|) (input: string) = String.IsNullOrWhiteSpace(input)
+
         let inputPattern = Regex(":([a-zA-Z0-9]+)\\s*(.*)")
 
         let (|Prefix|_|) (value: string) =
@@ -289,6 +291,22 @@ module Snippet =
                 | 3 -> (m.Groups[1].Value, m.Groups[2].Value.TrimEnd()) |> Some
                 | _ -> None
 
+        let (|NoPrefix|) (value: string) = value.Trim()
+
+        let chooseSnippets pred =
+            snippets
+            |> Seq.choose (fun x ->
+                if pred x then
+                    Some(snippetToTuple x |> PredictiveSuggestion)
+                else
+                    None)
+
+        [<Literal>]
+        let Snp = "snp"
+
+        [<Literal>]
+        let Tip = "tip"
+
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
 
@@ -298,32 +316,36 @@ module Snippet =
             startFileWatchingEvent snippetDirectory
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
-            if String.IsNullOrWhiteSpace(input) then
-                Seq.empty
-            else
-                let pred =
-                    let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
-
-                    match input with
-                    | Prefix(groupId, input) ->
+            match input with
+            | Empty -> Seq.empty
+            | Prefix(groupId, input) ->
 #if DEBUG
-                        Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
+                Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
-                        // NOTE: symbol search only support case-insensitive search.
-                        // NOTE: If case-sensitive search is required, search without symbol.
-                        match groupId with
-                        | "snp" -> _.Snippet.Contains(input, comparisonType)
-                        | "tip" -> _.Tooltip.Contains(input, comparisonType)
-                        | groupId ->
-                            fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
-                    | snippet -> _.Snippet.Contains(snippet.Trim(), comparisonType)
+                let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
 
-                snippets
-                |> Seq.choose (fun x ->
-                    if pred x then
-                        Some(snippetToTuple x |> PredictiveSuggestion)
+                let pred =
+                    match groupId with
+                    | Snp -> _.Snippet.Contains(input, comparisonType)
+                    | Tip -> _.Tooltip.Contains(input, comparisonType)
+                    | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
+
+                let groupIds =
+                    if String.IsNullOrWhiteSpace(input) then
+                        groups.Keys
+                        |> Seq.append [ Snp; Tip ]
+                        |> Seq.choose (fun g ->
+                            if g <> groupId && g.StartsWith(groupId) then
+                                ($":{g}", "") |> PredictiveSuggestion |> Some
+                            else
+                                None)
                     else
-                        None)
+                        Seq.empty
+
+                pred |> chooseSnippets |> Seq.append groupIds
+            | NoPrefix snippet ->
+                _.Snippet.Contains(snippet, caseSensitive |> SearchCaseSensitivity.stringComparison)
+                |> chooseSnippets
             |> Linq.Enumerable.ToList
 
         interface IDisposable with

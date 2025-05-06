@@ -1,6 +1,7 @@
 {
   "Snippets": [
     {"Snippet": "echo 'example'", "Tooltip" : "example  tooltip" , "Group": "group"},
-    {"Snippet": "touch sample.txt", "Tooltip" : "new file"}
+    {"Snippet": "touch sample.txt", "Tooltip" : "new file"},
+    {"Snippet": "Write-Host gr", "Tooltip" : "example 2" , "Group": "gr"}
   ]
 }
