@@ -10,7 +10,7 @@
       <command:noun>Snippet</command:noun>
     </command:details>
     <maml:description>
-      <maml:para>Add snippets with tooltip to the snippet configuration. The snippet configuration is located at `~/.snippet-predictor.json`.</maml:para>
+      <maml:para>Add snippets with tooltip to the snippet configuration. The snippet configuration resides in `~/.snippet-predictor.json`.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -67,7 +67,7 @@
           <dev:name>System.String</dev:name>
         </dev:type>
         <maml:description>
-          <maml:para>The snippet string to be added.</maml:para>
+          <maml:para>The snippet string to add.</maml:para>
         </maml:description>
       </command:inputType>
     </command:inputTypes>
@@ -116,7 +116,7 @@ Add-Snippet 'echo hello' 'say hello'
 {echo hello} | Add-Snippet
 ```</maml:para>
           <maml:para>Add a snippet.
-You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.</maml:para>
+You can pass code blocks. Code blocks are implicitly converted to strings through the pipeline.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
@@ -150,7 +150,7 @@ You can pass code blocks because code blocks are implicitly converted to strings
       <command:noun>Snippet</command:noun>
     </command:details>
     <maml:description>
-      <maml:para>Retrieves a saved snippets. The save snippets stored in the snippet configuration. The snippet configuration is located at `~/.snippet-predictor.json`.</maml:para>
+      <maml:para>Retrieves a saved snippets. The save snippets stored in the snippet configuration. The snippet configuration resides in `~/.snippet-predictor.json`.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -204,7 +204,7 @@ Get-Snippet
       <command:noun>Snippet</command:noun>
     </command:details>
     <maml:description>
-      <maml:para>Remove specified snippets from the snippet configuration. The snippet configuration is located at `~/.snippet-predictor.json`.</maml:para>
+      <maml:para>Remove specified snippets from the snippet configuration. The snippet configuration resides in `~/.snippet-predictor.json`.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -233,7 +233,7 @@ Get-Snippet
           <dev:name>System.String</dev:name>
         </dev:type>
         <maml:description>
-          <maml:para>The snippet string to be removed.</maml:para>
+          <maml:para>The snippet string to remove.</maml:para>
         </maml:description>
       </command:inputType>
     </command:inputTypes>
@@ -271,7 +271,7 @@ Remove-Snippet "echo hello"
 {echo hello} | Remove-Snippet
 ```</maml:para>
           <maml:para>Remove the snippet.
-You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.</maml:para>
+You can pass code blocks. Code blocks are implicitly converted to strings through the pipeline.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
