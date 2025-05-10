@@ -29,7 +29,7 @@ Get-Snippet [<CommonParameters>]
 
 Retrieves a saved snippets.
 The save snippets stored in the snippet configuration.
-The snippet configuration is located at `~/.snippet-predictor.json`.
+The snippet configuration resides in `~/.snippet-predictor.json`.
 
 ## EXAMPLES
 

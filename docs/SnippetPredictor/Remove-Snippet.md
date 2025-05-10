@@ -28,7 +28,7 @@ Remove-Snippet [-Snippet] <string> [<CommonParameters>]
 ## DESCRIPTION
 
 Remove specified snippets from the snippet configuration.
-The snippet configuration is located at `~/.snippet-predictor.json`.
+The snippet configuration resides in `~/.snippet-predictor.json`.
 
 ## EXAMPLES
 
@@ -47,7 +47,7 @@ Remove the snippet.
 ```
 
 Remove the snippet.
-You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.
+You can pass code blocks. Code blocks are implicitly converted to strings through the pipeline.
 
 ### Example 3
 
@@ -92,7 +92,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### System.String
 
-The snippet string to be removed.
+The snippet string to remove.
 
 ## OUTPUTS
 
