@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Get-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 04-12-2025
+ms.date: 05-10-2025
 PlatyPS schema version: 2024-05-01
 title: Get-Snippet
 ---
