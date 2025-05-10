@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Add-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 04-12-2025
+ms.date: 05-10-2025
 PlatyPS schema version: 2024-05-01
 title: Add-Snippet
 ---
@@ -28,7 +28,7 @@ Add-Snippet [-Snippet] <string> [[-Tooltip] <string>] [[-Group] <string>] [<Comm
 ## DESCRIPTION
 
 Add snippets with tooltip to the snippet configuration.
-The snippet configuration is located at `~/.snippet-predictor.json`.
+The snippet configuration resides in `~/.snippet-predictor.json`.
 
 ## EXAMPLES
 
@@ -55,7 +55,7 @@ Add a snippet with tooltip.
 ```
 
 Add a snippet.
-You can pass code blocks because code blocks are implicitly converted to strings through the pipeline.
+You can pass code blocks. Code blocks are implicitly converted to strings through the pipeline.
 
 ### Example 4
 
@@ -144,7 +144,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### System.String
 
-The snippet string to be added.
+The snippet string to add.
 
 ## OUTPUTS
 

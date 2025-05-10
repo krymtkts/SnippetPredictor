@@ -7,10 +7,10 @@
 ![Top Language](https://img.shields.io/github/languages/top/krymtkts/SnippetPredictor?color=%23b845fc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-SnippetPredictor is a command-line predictor written in F# that suggests code snippet based on the input.
+SnippetPredictor is a command-line predictor written in F#. It suggests code snippets based on the input.
 This module requires PowerShell 7.2 and PSReadLine 2.2.2.
 
-This project is based on this article.
+This project builds upon the following article:
 
 [How to create a command-line predictor - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/dev-cross-plat/create-cmdline-predictor?view=powershell-7.4)
 
@@ -28,7 +28,7 @@ Install-PSResource -Name SnippetPredictor
 Install-Module -Name SnippetPredictor
 ```
 
-Before using SnippetPredictor, verify that your PowerShell `PredictionSource` is set to `HistoryAndPlugin`[^1]:
+Before using SnippetPredictor, ensure that your PowerShell `PredictionSource` equals `HistoryAndPlugin`[^1]:
 
 ```powershell
 # PredictionSource = HistoryAndPlugin required.
@@ -41,7 +41,7 @@ Get-PSReadLineOption | Select-Object PredictionSource
 
 [^1]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#managing-predictive-intellisense)
 
-Next, import the SnippetPredictor module and confirm that the predictor has been loaded:
+Import the SnippetPredictor module and verify that the predictor loads:
 
 ```powershell
 Import-Module SnippetPredictor
@@ -54,7 +54,7 @@ Get-PSSubsystem -Kind CommandPredictor
 # CommandPredictor  ICommandPredictor          True {Snippet, Windows Package Manager - WinGet}
 ```
 
-Finally, set the prediction view style to `ListView`[^2]:
+Set the prediction view style to `ListView`[^2]:
 
 ```powershell
 Set-PSReadLineOption -PredictionViewStyle ListView
@@ -100,23 +100,24 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
 - Use `:tip {input}` to search for `{input}` in the `Tooltip` field.
 - Use `:{group} {input}` to search for `{input}` in the `Snippet` field for snippets in a specified `Group`.
   - Allowed characters for the `Group` field: `^[a-zA-Z0-9]+$`.
-    (That is, the group name must consist of alphanumeric characters only.)
+    (Group names must consist of alphanumeric characters.)
+  - Typing `:` or a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
-Default, snippets are searched in a case-insensitive manner.
-You can specify the case-sensitivity to `SearchCaseSensitive` in `.snippet-predictor.json`.
-default value is `SearchCaseSensitive = false.`
+By default, the predictor searches snippets in a case-insensitive manner.
+To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
+The default value is `false`.
 
 You can list your registered snippets with the `Get-Snippet` command.
 
-To remove a snippet, use the `Remove-Snippet` command or delete it directly from `~/.snippet-predictor.json`.
-
-For example:
+To remove a snippet, use the `Remove-Snippet` command.
 
 ```powershell
 Remove-Snippet "echo 'hello'"
 ```
 
-By combining `Get-Snippet` and `Remove-Snippet`, you can remove multiple snippets that match a specific pattern in one go:
+You can also delete it directly from `~/.snippet-predictor.json`.
+
+By combining `Get-Snippet` and `Remove-Snippet`, you can remove snippets that match a specific pattern. Perform this in one step:
 
 ```powershell
 Get-Snippet | Where-Object -Property Tooltip -like *test* | Remove-Snippet

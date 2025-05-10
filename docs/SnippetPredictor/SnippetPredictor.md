@@ -15,7 +15,7 @@ title: SnippetPredictor Module
 ## Description
 
 A predictor that suggests a snippet based on the input.
-The snippet configuration is located at `~/.snippet-predictor.json`.
+The snippet configuration resides in `~/.snippet-predictor.json`.
 
 Filter snippets in your `~/.snippet-predictor.json` file using the following keywords:
 
@@ -23,11 +23,12 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
 - Use `:tip {input}` to search for `{input}` in the `Tooltip` field.
 - Use `:{group} {input}` to search for `{input}` in the `Snippet` field for snippets in a specified `Group`.
   - Allowed characters for the `Group` field: `^[a-zA-Z0-9]+$`.
-    (That is, the group name must consist of alphanumeric characters only.)
+    (Group names must consist of alphanumeric characters.)
+  - Typing `:` or a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
-Default, snippets are searched in a case-insensitive manner.
-You can specify the case-sensitivity to `SearchCaseSensitive` in `.snippet-predictor.json`.
-default value is `SearchCaseSensitive = false.`
+By default, the predictor searches snippets in a case-insensitive manner.
+To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
+The default value is `false`.
 
 ## SnippetPredictor
 
@@ -37,7 +38,7 @@ Add snippets with tooltip to the snippet configuration.
 
 ### [Get-Snippet](Get-Snippet.md)
 
-Retrieves a saved snippets.
+Retrieve a saved snippet.
 
 ### [Remove-Snippet](Remove-Snippet.md)
 
