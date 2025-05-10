@@ -24,6 +24,7 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
 - Use `:{group} {input}` to search for `{input}` in the `Snippet` field for snippets in a specified `Group`.
   - Allowed characters for the `Group` field: `^[a-zA-Z0-9]+$`.
     (Group names must consist of alphanumeric characters.)
+  - Typing `:` or a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
