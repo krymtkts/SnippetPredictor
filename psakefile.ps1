@@ -23,7 +23,7 @@ Task Init {
 
 Task Clean {
     'Clean is running!'
-    Get-Module pocof -All | Remove-Module -Force -ErrorAction SilentlyContinue
+    Get-Module $ModuleName -All | Remove-Module -Force -ErrorAction SilentlyContinue
     @(
         "./src/*/*/${Stage}"
         './release'
