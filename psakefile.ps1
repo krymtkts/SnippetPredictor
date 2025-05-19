@@ -58,7 +58,7 @@ Task Lint {
             throw "dotnet fsharp-analyzers for $($_.BaseName) failed."
         }
     }
-    @('./psakefile.ps1', './tests/SnippetPredictor.Tests.ps1') | ForEach-Object {
+    @('./psakefile.ps1', "./tests/$ModuleName.Tests.ps1") | ForEach-Object {
         $warn = Invoke-ScriptAnalyzer -Path $_ -Settings .\PSScriptAnalyzerSettings.psd1
         if ($warn) {
             $warn
