@@ -60,7 +60,7 @@ type GroupJsonConverter() =
     override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
         reader.GetString()
         |> function
-            | null as value -> value // NOTE: unreachable when JsonIgnoreCondition.WhenWritingNull is used.
+            | null -> "" // NOTE: unreachable when JsonIgnoreCondition.WhenWritingNull is used.
             | value when Group.regex.IsMatch(value) -> value
             | value -> JsonException(sprintf "Invalid characters in group: %s" value) |> raise
 

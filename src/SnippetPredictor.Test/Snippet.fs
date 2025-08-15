@@ -656,7 +656,7 @@ module GroupJsonConverter =
                       GroupJsonConverter().Read(&reader, typeof<string>, JsonSerializerOptions())
 
                   match result with
-                  | null -> ()
+                  | "" -> ()
                   | _ -> failtest "Expected null but got a different value"
               }
 
