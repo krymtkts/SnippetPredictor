@@ -10,7 +10,7 @@ runs:
   using: composite
   steps:
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         global-json-file: ./global.json
     - name: Install modules from PSGallery
@@ -25,7 +25,7 @@ runs:
         Invoke-Psake -taskList TestAll
         if (-not $psake.build_success) { exit 1 }
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       if: runner.os == 'Linux'
       with:
         file: ./coverage.cobertura.xml
@@ -33,13 +33,13 @@ runs:
         CODECOV_TOKEN: ${{ inputs.codecov_token }}
     # NOTE: separate multiple SARIF uploads to add categories. see https://github.blog/changelog/2024-05-06-code-scanning-will-stop-combining-runs-from-a-single-upload/
     - name: Upload SARIF file for main project
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: runner.os == 'Linux'
       with:
         sarif_file: analysis/SnippetPredictor-report.sarif
         category: Main
     - name: Upload SARIF file for test project
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: runner.os == 'Linux'
       with:
         sarif_file: analysis/SnippetPredictor.Test-report.sarif
