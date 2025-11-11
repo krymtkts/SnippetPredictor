@@ -1,7 +1,9 @@
 <Project>
     <ItemGroup>
-        <!-- Analyzer configurations. -->
-        <PackageReference Include="Ionide.Analyzers" Version="0.14.4">
+        <!-- NOTE: F# dependencies. -->
+        <PackageReference Include="FSharp.Core" />
+        <!-- NOTE: Analyzer configurations. -->
+        <PackageReference Include="Ionide.Analyzers">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
