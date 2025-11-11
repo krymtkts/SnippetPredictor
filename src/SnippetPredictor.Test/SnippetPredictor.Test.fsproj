@@ -19,10 +19,6 @@
   <ItemGroup>
     <PackageReference Include="Expecto" />
     <PackageReference Include="YoloDev.Expecto.TestSdk" />
-    <PackageReference Include="Microsoft.PowerShell.SDK">
-      <ExcludeAssets>contentFiles</ExcludeAssets>
-      <PrivateAssets>All</PrivateAssets>
-    </PackageReference>
     <!-- NOTE: for IModuleAssemblyCleanup.OnRemove to work correctly. -->
     <PackageReference Include="Microsoft.Management.Infrastructure" />
   </ItemGroup>

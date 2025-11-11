@@ -2,6 +2,11 @@
     <ItemGroup>
         <!-- NOTE: F# dependencies. -->
         <PackageReference Include="FSharp.Core" />
+        <!-- NOTE: PowerShell dependencies. -->
+            <PackageReference Include="Microsoft.PowerShell.SDK">
+            <ExcludeAssets>contentFiles</ExcludeAssets>
+        <PrivateAssets>All</PrivateAssets>
+        </PackageReference>
         <!-- NOTE: Analyzer configurations. -->
         <PackageReference Include="Ionide.Analyzers">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
