@@ -14,8 +14,6 @@ updates:
       workflow:
         patterns:
           - "*"
-    assignees:
-      - "krymtkts"
   # Maintain dependencies for NuGet
   - package-ecosystem: "nuget"
     # NOTE: dependabot raises dependency_file_not_found error with root directory.
@@ -56,5 +54,3 @@ updates:
           - "version-update:semver-major"
           - "version-update:semver-minor"
           - "version-update:semver-patch"
-    assignees:
-      - "krymtkts"
