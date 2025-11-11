@@ -21,6 +21,7 @@ updates:
     # NOTE: dependabot raises dependency_file_not_found error with root directory.
     # NOTE: directories can use glob patterns.
     directories:
+      - "/"
       - "src/SnippetPredictor*"
     schedule:
       interval: "weekly"
@@ -28,6 +29,19 @@ updates:
       time: "06:00"
       timezone: "Asia/Tokyo"
     groups:
+      dotnet-tools:
+        patterns:
+          - "fantomas"
+          - "coverlet.console"
+          - "dotnet-reportgenerator-globaltool"
+          - "fsharp-analyzers"
+      test:
+        patterns:
+          - "Expecto"
+          - "YoloDev.Expecto.TestSdk"
+          - "Microsoft.Management.Infrastructure"
+        update-types:
+          - "patch"
       powershell-sdk:
         patterns:
           - "Microsoft.PowerShell.SDK"
