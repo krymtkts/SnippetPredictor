@@ -35,6 +35,7 @@ updates:
           - "coverlet.console"
           - "dotnet-reportgenerator-globaltool"
           - "fsharp-analyzers"
+          - "Ionide.Analyzers"
       test:
         patterns:
           - "Expecto"
@@ -50,5 +51,10 @@ updates:
         update-types:
           - "version-update:semver-major"
           - "version-update:semver-minor"
+      - dependency-name: "FSharp.Core"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
     assignees:
       - "krymtkts"
