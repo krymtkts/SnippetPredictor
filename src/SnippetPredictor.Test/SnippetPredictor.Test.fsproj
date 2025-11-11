@@ -8,23 +8,15 @@
     <GenerateProgramFile>false</GenerateProgramFile>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
 
-    <Nullable>enable</Nullable>
-    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-
     <!-- NOTE: For output to console. -->
     <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Expecto" Version="10.2.3" />
-    <PackageReference Include="YoloDev.Expecto.TestSdk" Version="0.15.3" />
-    <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.2.24">
-      <ExcludeAssets>contentFiles</ExcludeAssets>
-      <PrivateAssets>All</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="Expecto" />
+    <PackageReference Include="YoloDev.Expecto.TestSdk" />
     <!-- NOTE: for IModuleAssemblyCleanup.OnRemove to work correctly. -->
-    <PackageReference Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Management.Infrastructure" />
   </ItemGroup>
 
   <ItemGroup>
