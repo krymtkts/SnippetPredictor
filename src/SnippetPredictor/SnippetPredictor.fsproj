@@ -12,11 +12,6 @@
     <GenerateDependencyFile>false</GenerateDependencyFile>
     <!-- Deploy the produced assembly -->
     <PublishDir>..\..\publish\SnippetPredictor</PublishDir>
-    <!-- Disable satellite assemblies generation -->
-    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
-    <!-- Set warning level to 4 and treat warnings as errors -->
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">

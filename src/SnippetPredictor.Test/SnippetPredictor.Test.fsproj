@@ -8,10 +8,6 @@
     <GenerateProgramFile>false</GenerateProgramFile>
     <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
 
-    <Nullable>enable</Nullable>
-    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-
     <!-- NOTE: For output to console. -->
     <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
   </PropertyGroup>
