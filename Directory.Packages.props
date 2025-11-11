@@ -10,7 +10,7 @@
         <PackageVersion Include="Ionide.Analyzers" Version="0.14.4" />
         <!-- NOTE: Test dependencies. -->
         <PackageVersion Include="Expecto" Version="10.2.3" />
-        <PackageVersion Include="YoloDev.Expecto.TestSdk" Version="0.15.3" />
+        <PackageVersion Include="YoloDev.Expecto.TestSdk" Version="0.15.5" />
         <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.2.24" />
         <PackageVersion Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
     </ItemGroup>
