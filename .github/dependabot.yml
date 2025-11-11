@@ -40,8 +40,6 @@ updates:
           - "Expecto"
           - "YoloDev.Expecto.TestSdk"
           - "Microsoft.Management.Infrastructure"
-        update-types:
-          - "patch"
       powershell-sdk:
         patterns:
           - "Microsoft.PowerShell.SDK"
