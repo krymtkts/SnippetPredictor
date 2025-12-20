@@ -20,7 +20,7 @@ updates:
     # NOTE: directories can use glob patterns.
     directories:
       - "/"
-      - "src/SnippetPredictor*"
+      - "/.config"
     schedule:
       interval: "weekly"
       day: "friday"
