@@ -5,11 +5,11 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- NOTE: F# dependencies. -->
-    <PackageVersion Include="FSharp.Core" Version="10.0.100" />
+    <PackageVersion Include="FSharp.Core" Version="10.0.101" />
     <!-- NOTE: Analyzer dependencies. -->
     <PackageVersion Include="Ionide.Analyzers" Version="0.14.10" />
     <!-- NOTE: Test dependencies. -->
-    <PackageVersion Include="Expecto" Version="10.2.3" />
+    <PackageVersion Include="Expecto" Version="11.0.0-alpha8" />
     <PackageVersion Include="YoloDev.Expecto.TestSdk" Version="0.15.5" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.2.24" />
     <PackageVersion Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
