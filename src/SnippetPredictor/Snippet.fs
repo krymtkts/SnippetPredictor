@@ -180,13 +180,20 @@ module Snippet =
             | _ -> StringComparison.OrdinalIgnoreCase
 
     module private Disposal =
+        [<Literal>]
+        let disposed = 1
+
+        [<Literal>]
+        let notDisposed = 0
+
         type Flag() =
-            let mutable disposed = 0
 
-            member __.IsDisposed = Volatile.Read(&disposed) = 1
+            let mutable status = notDisposed
 
-            member __.MarkDisposed() =
-                Interlocked.Exchange(&disposed, 1) |> ignore
+            member __.IsDisposed = Volatile.Read(&status) = disposed
+
+            member __.TryMarkDisposed() =
+                Interlocked.Exchange(&status, disposed) = notDisposed
 
             member __.IfNotDisposed(f: unit -> unit) = if __.IsDisposed then () else f ()
             member __.IfDisposed(f: unit -> unit) = if __.IsDisposed then f () else ()
@@ -196,20 +203,24 @@ module Snippet =
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
+        let refreshCts = new CancellationTokenSource()
         let mutable watcher: FileSystemWatcher option = None
         let disposed = Disposal.Flag()
 
         let startRefreshTask (path: string) =
-            let cancellationToken = new CancellationToken()
+            let cancellationToken = refreshCts.Token
 
             task {
-                do! semaphore.WaitAsync(cancellationToken)
-#if DEBUG
-                Logger.LogFile [ "Refreshing snippets." ]
-#endif
+                let mutable acquired = false
 
                 try
                     try
+                        do! semaphore.WaitAsync(cancellationToken)
+                        acquired <- true
+#if DEBUG
+                        Logger.LogFile [ "Refreshing snippets." ]
+#endif
+
                         let! result = parseSnippetFile path
                         snippets.Clear()
                         groups.Clear()
@@ -241,16 +252,24 @@ module Snippet =
 #if DEBUG
                         Logger.LogFile [ "Refreshed snippets." ]
 #endif
-                    with e ->
+                    with
+                    | :? OperationCanceledException
+                    | :? ObjectDisposedException ->
 #if DEBUG
-                        Logger.LogFile [ $"An error occurred while refreshing snippets: {e.Message}" ]
+                        Logger.LogFile [ $"Operation canceled or object disposed while refreshing snippets." ]
+#else
+                        ()
+#endif
+                    | e ->
+#if DEBUG
+                        Logger.LogFile [ $"Unexpected error occurred while refreshing snippets: {e.Message}" ]
 #else
                         ()
 #endif
                 finally
-                    semaphore.Release() |> ignore
+                    if acquired then
+                        semaphore.Release() |> ignore
             }
-            |> _.WaitAsync(cancellationToken)
             |> ignore
 
         let handleRefresh (e: FileSystemEventArgs) =
@@ -370,7 +389,8 @@ module Snippet =
 
         interface IDisposable with
             member __.Dispose() =
-                disposed.MarkDisposed()
+                if disposed.TryMarkDisposed() then
+                    refreshCts.Cancel()
 
                 watcher
                 |> Option.iter (fun w ->
@@ -378,6 +398,7 @@ module Snippet =
                     w.EnableRaisingEvents <- false
                     w.Dispose())
 
+                refreshCts.Dispose()
                 semaphore.Dispose()
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
