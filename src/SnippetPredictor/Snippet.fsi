@@ -45,10 +45,22 @@ module Snippet =
 
     val parseSnippets: json: string -> ConfigState
 
+    module Disposal =
+        type Flag =
+            new: unit -> Flag
+            member IsDisposed: bool with get
+            member TryMarkDisposed: unit -> bool
+            member IfNotDisposed: f: (unit -> unit) -> unit
+            member IfDisposed: f: (unit -> unit) -> unit
+
     type Cache =
         interface System.IDisposable
 
         new: unit -> Cache
+
+        abstract CreateWatcher: directory: string * filter: string -> System.IO.FileSystemWatcher
+
+        abstract OnRefresh: path: string -> unit
 
         member getPredictiveSuggestions:
             input: string ->

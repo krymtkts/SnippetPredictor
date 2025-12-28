@@ -179,24 +179,72 @@ module Snippet =
             | CaseSensitivity.sensitive -> StringComparison.Ordinal
             | _ -> StringComparison.OrdinalIgnoreCase
 
-    type Cache() =
+    module Disposal =
+        [<Literal>]
+        let disposed = 1
+
+        [<Literal>]
+        let notDisposed = 0
+
+        type Flag() =
+
+            let mutable status = notDisposed
+
+            member __.IsDisposed = Volatile.Read(&status) = disposed
+
+            member __.TryMarkDisposed() =
+                Interlocked.Exchange(&status, disposed) = notDisposed
+
+            member __.IfNotDisposed(f: unit -> unit) = if __.IsDisposed then () else f ()
+            member __.IfDisposed(f: unit -> unit) = if __.IsDisposed then f () else ()
+
+    type Cache() as __ =
+
         let mutable caseSensitive = CaseSensitivity.insensitive
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
-        let mutable watcher: FileSystemWatcher option = None
+        let refreshCts = new CancellationTokenSource()
+        let mutable watcher: FileSystemWatcher | null = null
+        let disposed = Disposal.Flag()
+
+        let disposeWatcher (w: FileSystemWatcher | null) =
+            match w with
+            | null -> ()
+            | w ->
+                try
+                    w.EnableRaisingEvents <- false
+                    w.Dispose()
+                with :? ObjectDisposedException ->
+                    ()
+
+        let exchangeAndDisposeWatcher (newWatcher: FileSystemWatcher | null) =
+            let oldWatcher = Interlocked.Exchange(&watcher, newWatcher)
+            disposeWatcher oldWatcher
+
+        let tryRemoveCurrentWatcher (expected: FileSystemWatcher) =
+            let removed = Interlocked.CompareExchange(&watcher, null, expected)
+
+            if Object.ReferenceEquals(removed, expected) then
+                disposeWatcher expected
+                true
+            else
+                false
 
         let startRefreshTask (path: string) =
-            let cancellationToken = new CancellationToken()
+            let cancellationToken = refreshCts.Token
 
             task {
-                do! semaphore.WaitAsync(cancellationToken)
-#if DEBUG
-                Logger.LogFile [ "Refreshing snippets." ]
-#endif
+                let mutable acquired = false
 
                 try
                     try
+                        do! semaphore.WaitAsync(cancellationToken)
+                        acquired <- true
+#if DEBUG
+                        Logger.LogFile [ "Refreshing snippets." ]
+#endif
+
                         let! result = parseSnippetFile path
                         snippets.Clear()
                         groups.Clear()
@@ -228,47 +276,73 @@ module Snippet =
 #if DEBUG
                         Logger.LogFile [ "Refreshed snippets." ]
 #endif
-                    with e ->
+                    with
+                    | :? OperationCanceledException
+                    | :? ObjectDisposedException ->
 #if DEBUG
-                        Logger.LogFile [ $"An error occurred while refreshing snippets: {e.Message}" ]
+                        Logger.LogFile [ $"Operation canceled or object disposed while refreshing snippets." ]
+#else
+                        ()
+#endif
+                    | e ->
+#if DEBUG
+                        Logger.LogFile [ $"Unexpected error occurred while refreshing snippets: {e.Message}" ]
 #else
                         ()
 #endif
                 finally
-                    semaphore.Release() |> ignore
+                    if acquired then
+                        try
+                            semaphore.Release() |> ignore
+                        with :? ObjectDisposedException ->
+#if DEBUG
+                            Logger.LogFile [ $"Semaphore was disposed while releasing." ]
+#else
+                            ()
+#endif
+
             }
-            |> _.WaitAsync(cancellationToken)
             |> ignore
 
         let handleRefresh (e: FileSystemEventArgs) =
+            disposed.IfNotDisposed(fun () ->
 #if DEBUG
-            Logger.LogFile
-                [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
+                Logger.LogFile
+                    [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
 #endif
-            startRefreshTask e.FullPath
+                __.OnRefresh e.FullPath
+                startRefreshTask e.FullPath)
 
         let rec startFileWatchingEvent (directory: string) =
-            let w = new FileSystemWatcher(directory, snippetFilesName)
+            disposed.IfNotDisposed(fun () ->
+                let w = __.CreateWatcher(directory, snippetFilesName)
 
-            w.EnableRaisingEvents <- true
-            w.IncludeSubdirectories <- false
-            w.NotifyFilter <- NotifyFilters.LastWrite
+                w.EnableRaisingEvents <- true
+                w.IncludeSubdirectories <- false
+                w.NotifyFilter <- NotifyFilters.LastWrite
 
-            handleRefresh |> w.Created.Add
-            handleRefresh |> w.Changed.Add
+                handleRefresh |> w.Created.Add
+                handleRefresh |> w.Changed.Add
 
-            w.Error.Add
-            <| fun e ->
+                w.Error.Add
+                <| fun e ->
 #if DEBUG
-                Logger.LogFile [ $"Error occurred in file watching event: {e.GetException().Message}" ]
+                    Logger.LogFile [ $"Error occurred in file watching event: {e.GetException().Message}" ]
 #endif
-                watcher |> Option.iter _.Dispose()
-                startFileWatchingEvent directory
+                    // NOTE: Only the currently registered watcher instance may restart.
+                    if Object.ReferenceEquals(Volatile.Read(&watcher), w) then
+                        if tryRemoveCurrentWatcher w then
+                            disposed.IfNotDisposed(fun () -> startFileWatchingEvent directory)
 
-            watcher <- w |> Some
+                if disposed.IsDisposed then
+                    // NOTE: Dispose immediately if already disposed.
+                    disposeWatcher w
+                else
+                    exchangeAndDisposeWatcher w
 #if DEBUG
-            Logger.LogFile [ "Started file watching event." ]
+                Logger.LogFile [ "Started file watching event." ]
 #endif
+            )
 
         let snippetToTuple (s: SnippetEntry) =
             s.Group
@@ -306,6 +380,14 @@ module Snippet =
 
         [<Literal>]
         let Tip = "tip"
+
+        abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
+
+        default _.CreateWatcher(directory: string, filter: string) =
+            new FileSystemWatcher(directory, filter)
+
+        abstract OnRefresh: path: string -> unit
+        default _.OnRefresh(_path: string) = ()
 
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
@@ -350,10 +432,12 @@ module Snippet =
 
         interface IDisposable with
             member __.Dispose() =
-                watcher
-                |> Option.iter (fun w ->
-                    w.EnableRaisingEvents <- false
-                    w.Dispose())
+                if disposed.TryMarkDisposed() then
+                    refreshCts.Cancel()
+
+                exchangeAndDisposeWatcher null
+                refreshCts.Dispose()
+                semaphore.Dispose()
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
