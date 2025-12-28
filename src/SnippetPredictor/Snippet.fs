@@ -185,6 +185,11 @@ module Snippet =
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
         let mutable watcher: FileSystemWatcher option = None
+        let mutable disposed = 0
+
+        let isDisposed () = Volatile.Read(&disposed) = 1
+
+        let ifNotDisposed (f: unit -> unit) = if isDisposed () then () else f ()
 
         let startRefreshTask (path: string) =
             let cancellationToken = new CancellationToken()
@@ -241,34 +246,42 @@ module Snippet =
             |> ignore
 
         let handleRefresh (e: FileSystemEventArgs) =
+            ifNotDisposed (fun () ->
 #if DEBUG
-            Logger.LogFile
-                [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
+                Logger.LogFile
+                    [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
 #endif
-            startRefreshTask e.FullPath
+                startRefreshTask e.FullPath)
 
         let rec startFileWatchingEvent (directory: string) =
-            let w = new FileSystemWatcher(directory, snippetFilesName)
+            ifNotDisposed (fun () ->
+                let w = new FileSystemWatcher(directory, snippetFilesName)
 
-            w.EnableRaisingEvents <- true
-            w.IncludeSubdirectories <- false
-            w.NotifyFilter <- NotifyFilters.LastWrite
+                w.EnableRaisingEvents <- true
+                w.IncludeSubdirectories <- false
+                w.NotifyFilter <- NotifyFilters.LastWrite
 
-            handleRefresh |> w.Created.Add
-            handleRefresh |> w.Changed.Add
+                handleRefresh |> w.Created.Add
+                handleRefresh |> w.Changed.Add
 
-            w.Error.Add
-            <| fun e ->
+                w.Error.Add
+                <| fun e ->
 #if DEBUG
-                Logger.LogFile [ $"Error occurred in file watching event: {e.GetException().Message}" ]
+                    Logger.LogFile [ $"Error occurred in file watching event: {e.GetException().Message}" ]
 #endif
-                watcher |> Option.iter _.Dispose()
-                startFileWatchingEvent directory
+                    watcher |> Option.iter _.Dispose()
+                    watcher <- None
 
-            watcher <- w |> Some
+                    ifNotDisposed (fun () -> startFileWatchingEvent directory)
+
+                ifNotDisposed (fun () -> watcher <- w |> Some)
+
+                if isDisposed () then
+                    w.Dispose()
 #if DEBUG
-            Logger.LogFile [ "Started file watching event." ]
+                Logger.LogFile [ "Started file watching event." ]
 #endif
+            )
 
         let snippetToTuple (s: SnippetEntry) =
             s.Group
@@ -350,8 +363,11 @@ module Snippet =
 
         interface IDisposable with
             member __.Dispose() =
+                Interlocked.Exchange(&disposed, 1) |> ignore
+
                 watcher
                 |> Option.iter (fun w ->
+                    watcher <- None
                     w.EnableRaisingEvents <- false
                     w.Dispose())
 
