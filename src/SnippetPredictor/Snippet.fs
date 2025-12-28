@@ -268,7 +268,15 @@ module Snippet =
 #endif
                 finally
                     if acquired then
-                        semaphore.Release() |> ignore
+                        try
+                            semaphore.Release() |> ignore
+                        with :? ObjectDisposedException ->
+#if DEBUG
+                            Logger.LogFile [ $"Semaphore was disposed while releasing." ]
+#else
+                            ()
+#endif
+
             }
             |> ignore
 
