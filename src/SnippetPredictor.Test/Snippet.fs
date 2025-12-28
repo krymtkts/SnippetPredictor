@@ -221,9 +221,8 @@ let tests_parseSnippets =
           ]
 
 module getSnippet =
-    open System
 
-    let PathSeparator = IO.Path.DirectorySeparatorChar
+    let PathSeparator = Path.DirectorySeparatorChar
 
     [<Tests>]
     let tests_getSnippetPathWith =
@@ -384,8 +383,6 @@ module getPredictiveSuggestions =
 
               ]
 
-    open System
-
     [<Tests>]
     let tests_Dispose =
         let cache = new Snippet.Cache()
@@ -487,7 +484,6 @@ module CacheDisposeBehavior =
 [<Tests>]
 let tests_loadSnippets =
 
-
     testList
         "loadSnippets"
         [
@@ -542,8 +538,6 @@ let tests_loadSnippets =
           ]
 
 module addAndRemoveSnippets =
-    open System.IO
-    open System
 
     [<Tests>]
     let tests_addSnippets =
