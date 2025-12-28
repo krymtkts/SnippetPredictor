@@ -355,6 +355,8 @@ module Snippet =
                     w.EnableRaisingEvents <- false
                     w.Dispose())
 
+                semaphore.Dispose()
+
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
             // NOTE: Split branches to narrow the type (string | null)
