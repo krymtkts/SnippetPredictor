@@ -20,6 +20,32 @@ let tests_Dispose =
           ]
 
 [<Tests>]
+let tests_Disposal =
+    // NOTE: for coverage.
+    testList
+        "Disposal"
+        [
+
+          test "when not disposed" {
+              let flag = Snippet.Disposal.Flag()
+              let mutable called = false
+              flag.IfDisposed(fun () -> failtest "should not call the function disposed handler")
+              flag.IfNotDisposed(fun () -> called <- true)
+              Expect.equal "should call the function not disposed handler" called true
+          }
+
+          test "when disposed" {
+              let flag = Snippet.Disposal.Flag()
+              let mutable called = false
+              flag.TryMarkDisposed() |> ignore
+              flag.IfDisposed(fun () -> called <- true)
+              flag.IfNotDisposed(fun () -> failtest "should not call the function not disposed handler")
+              Expect.equal "should call the function disposed handler" called true
+          }
+
+          ]
+
+[<Tests>]
 let tests_parseSnippets =
     let expectValid =
         function

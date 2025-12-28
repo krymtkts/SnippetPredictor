@@ -179,7 +179,7 @@ module Snippet =
             | CaseSensitivity.sensitive -> StringComparison.Ordinal
             | _ -> StringComparison.OrdinalIgnoreCase
 
-    module private Disposal =
+    module Disposal =
         [<Literal>]
         let disposed = 1
 
