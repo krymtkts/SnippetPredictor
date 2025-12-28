@@ -58,6 +58,10 @@ module Snippet =
 
         new: unit -> Cache
 
+        abstract CreateWatcher: directory: string * filter: string -> System.IO.FileSystemWatcher
+
+        abstract OnRefresh: path: string -> unit
+
         member getPredictiveSuggestions:
             input: string ->
                 System.Collections.Generic.List<System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion>

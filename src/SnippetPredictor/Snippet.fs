@@ -198,7 +198,8 @@ module Snippet =
             member __.IfNotDisposed(f: unit -> unit) = if __.IsDisposed then () else f ()
             member __.IfDisposed(f: unit -> unit) = if __.IsDisposed then f () else ()
 
-    type Cache() =
+    type Cache() as __ =
+
         let mutable caseSensitive = CaseSensitivity.insensitive
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
@@ -309,11 +310,12 @@ module Snippet =
                 Logger.LogFile
                     [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
 #endif
+                __.OnRefresh e.FullPath
                 startRefreshTask e.FullPath)
 
         let rec startFileWatchingEvent (directory: string) =
             disposed.IfNotDisposed(fun () ->
-                let w = new FileSystemWatcher(directory, snippetFilesName)
+                let w = __.CreateWatcher(directory, snippetFilesName)
 
                 w.EnableRaisingEvents <- true
                 w.IncludeSubdirectories <- false
@@ -378,6 +380,14 @@ module Snippet =
 
         [<Literal>]
         let Tip = "tip"
+
+        abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
+
+        default _.CreateWatcher(directory: string, filter: string) =
+            new FileSystemWatcher(directory, filter)
+
+        abstract OnRefresh: path: string -> unit
+        default _.OnRefresh(_path: string) = ()
 
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()

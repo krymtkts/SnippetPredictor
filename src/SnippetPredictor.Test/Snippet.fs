@@ -6,6 +6,9 @@ open Expecto.Flip
 open SnippetPredictor
 open SnippetPredictorTest.Utility
 
+open System
+open System.IO
+
 [<Tests>]
 let tests_Dispose =
     testList
@@ -398,6 +401,89 @@ module getPredictiveSuggestions =
 
               ]
 
+module CacheDisposeBehavior =
+
+    type CacheForTest(createWatcher: string * string -> FileSystemWatcher, onRefresh: string -> unit) =
+        inherit Snippet.Cache()
+
+        override _.CreateWatcher(directory: string, filter: string) = createWatcher (directory, filter)
+
+        override _.OnRefresh(path: string) = onRefresh path
+
+    type TestWatcher(directory: string, filter: string) =
+        inherit FileSystemWatcher(directory, filter)
+
+        // NOTE: For this behavior test we need to be able to raise events after Cache.Dispose() without relying on OS timing. Avoid tearing down native resources here.
+        override __.Dispose(_: bool) = __.EnableRaisingEvents <- false
+
+        member __.TriggerChanged(directory: string, name: string) =
+            __.OnChanged(new FileSystemEventArgs(WatcherChangeTypes.Changed, directory, name))
+
+        member __.TriggerError(ex: exn) = __.OnError(new ErrorEventArgs(ex))
+
+    [<Tests>]
+    let tests_DisposeStopsHandlingEvents =
+        testList
+            "Cache.Dispose behavior"
+            [ test "Changed after Dispose does nothing" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable watcherCreatedCount = 0
+                  let mutable refreshCalls = 0
+                  let mutable watcher: TestWatcher option = None
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              watcherCreatedCount <- watcherCreatedCount + 1
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          (fun _ -> refreshCalls <- refreshCalls + 1)
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+                  (cache :> IDisposable).Dispose()
+
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+                  w.TriggerChanged(tmpDir.Path, fileName)
+
+                  refreshCalls |> Expect.equal "should not refresh after Dispose" 0
+
+                  watcherCreatedCount |> Expect.equal "should not create watcher again" 1
+              }
+
+              test "Error after Dispose does not restart watcher" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable watcherCreatedCount = 0
+                  let mutable watcher: TestWatcher option = None
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              watcherCreatedCount <- watcherCreatedCount + 1
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          ignore
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+                  (cache :> IDisposable).Dispose()
+
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+                  w.TriggerError(InvalidOperationException("boom"))
+
+                  watcherCreatedCount |> Expect.equal "should not restart watcher after Dispose" 1
+              } ]
+
 [<Tests>]
 let tests_loadSnippets =
 
@@ -682,8 +768,9 @@ module GroupJsonConverter =
                       GroupJsonConverter().Read(&reader, typeof<string>, JsonSerializerOptions())
 
                   match result with
-                  | "" -> ()
-                  | _ -> failtest "Expected null but got a different value"
+                  | null -> failtest "Expected empty string but got null"
+                  | value when value.Length = 0 -> ()
+                  | _ -> failtest "Expected empty string but got a different value"
               }
 
               ]
