@@ -391,6 +391,11 @@ module getPredictiveSuggestions =
             "Cache.Dispose"
             [
 
+              test "OnRefresh default is callable" {
+                  // NOTE: for coverage. (Cache.OnRefresh has a default implementation.)
+                  cache.OnRefresh("dummy")
+              }
+
               test "when watcher is stopped" {
                   // NOTE: for coverage.
                   (cache :> IDisposable).Dispose()
@@ -412,6 +417,8 @@ module CacheDisposeBehavior =
 
         // NOTE: For this behavior test we need to be able to raise events after Cache.Dispose() without relying on OS timing. Avoid tearing down native resources here.
         override __.Dispose(_: bool) = __.EnableRaisingEvents <- false
+
+        member __.ReleaseHandles() = base.Dispose(true)
 
         member __.TriggerChanged(directory: string, name: string) =
             __.OnChanged(new FileSystemEventArgs(WatcherChangeTypes.Changed, directory, name))
@@ -446,7 +453,11 @@ module CacheDisposeBehavior =
                   (cache :> IDisposable).Dispose()
 
                   let w = watcher |> Expect.wantSome "watcher should be created"
-                  w.TriggerChanged(tmpDir.Path, fileName)
+
+                  try
+                      w.TriggerChanged(tmpDir.Path, fileName)
+                  finally
+                      w.ReleaseHandles()
 
                   refreshCalls |> Expect.equal "should not refresh after Dispose" 0
 
@@ -476,7 +487,11 @@ module CacheDisposeBehavior =
                   (cache :> IDisposable).Dispose()
 
                   let w = watcher |> Expect.wantSome "watcher should be created"
-                  w.TriggerError(InvalidOperationException("boom"))
+
+                  try
+                      w.TriggerError(InvalidOperationException("boom"))
+                  finally
+                      w.ReleaseHandles()
 
                   watcherCreatedCount |> Expect.equal "should not restart watcher after Dispose" 1
               } ]
