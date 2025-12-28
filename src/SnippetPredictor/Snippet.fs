@@ -204,8 +204,31 @@ module Snippet =
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
         let refreshCts = new CancellationTokenSource()
-        let mutable watcher: FileSystemWatcher option = None
+        let mutable watcher: FileSystemWatcher | null = null
         let disposed = Disposal.Flag()
+
+        let disposeWatcher (w: FileSystemWatcher | null) =
+            match w with
+            | null -> ()
+            | w ->
+                try
+                    w.EnableRaisingEvents <- false
+                    w.Dispose()
+                with :? ObjectDisposedException ->
+                    ()
+
+        let exchangeAndDisposeWatcher (newWatcher: FileSystemWatcher | null) =
+            let oldWatcher = Interlocked.Exchange(&watcher, newWatcher)
+            disposeWatcher oldWatcher
+
+        let tryRemoveCurrentWatcher (expected: FileSystemWatcher) =
+            let removed = Interlocked.CompareExchange(&watcher, null, expected)
+
+            if Object.ReferenceEquals(removed, expected) then
+                disposeWatcher expected
+                true
+            else
+                false
 
         let startRefreshTask (path: string) =
             let cancellationToken = refreshCts.Token
@@ -304,14 +327,16 @@ module Snippet =
 #if DEBUG
                     Logger.LogFile [ $"Error occurred in file watching event: {e.GetException().Message}" ]
 #endif
-                    watcher |> Option.iter _.Dispose()
-                    watcher <- None
+                    // NOTE: Only the currently registered watcher instance may restart.
+                    if Object.ReferenceEquals(Volatile.Read(&watcher), w) then
+                        if tryRemoveCurrentWatcher w then
+                            disposed.IfNotDisposed(fun () -> startFileWatchingEvent directory)
 
-                    disposed.IfNotDisposed(fun () -> startFileWatchingEvent directory)
-
-                disposed.IfNotDisposed(fun () -> watcher <- w |> Some)
-
-                disposed.IfDisposed(fun () -> w.Dispose())
+                if disposed.IsDisposed then
+                    // NOTE: Dispose immediately if already disposed.
+                    disposeWatcher w
+                else
+                    exchangeAndDisposeWatcher w
 #if DEBUG
                 Logger.LogFile [ "Started file watching event." ]
 #endif
@@ -400,12 +425,7 @@ module Snippet =
                 if disposed.TryMarkDisposed() then
                     refreshCts.Cancel()
 
-                watcher
-                |> Option.iter (fun w ->
-                    watcher <- None
-                    w.EnableRaisingEvents <- false
-                    w.Dispose())
-
+                exchangeAndDisposeWatcher null
                 refreshCts.Dispose()
                 semaphore.Dispose()
 
