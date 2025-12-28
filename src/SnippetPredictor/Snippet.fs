@@ -179,17 +179,25 @@ module Snippet =
             | CaseSensitivity.sensitive -> StringComparison.Ordinal
             | _ -> StringComparison.OrdinalIgnoreCase
 
+    module private Disposal =
+        type Flag() =
+            let mutable disposed = 0
+
+            member __.IsDisposed = Volatile.Read(&disposed) = 1
+
+            member __.MarkDisposed() =
+                Interlocked.Exchange(&disposed, 1) |> ignore
+
+            member __.IfNotDisposed(f: unit -> unit) = if __.IsDisposed then () else f ()
+            member __.IfDisposed(f: unit -> unit) = if __.IsDisposed then f () else ()
+
     type Cache() =
         let mutable caseSensitive = CaseSensitivity.insensitive
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let semaphore = new SemaphoreSlim(1, 1)
         let mutable watcher: FileSystemWatcher option = None
-        let mutable disposed = 0
-
-        let isDisposed () = Volatile.Read(&disposed) = 1
-
-        let ifNotDisposed (f: unit -> unit) = if isDisposed () then () else f ()
+        let disposed = Disposal.Flag()
 
         let startRefreshTask (path: string) =
             let cancellationToken = new CancellationToken()
@@ -246,7 +254,7 @@ module Snippet =
             |> ignore
 
         let handleRefresh (e: FileSystemEventArgs) =
-            ifNotDisposed (fun () ->
+            disposed.IfNotDisposed(fun () ->
 #if DEBUG
                 Logger.LogFile
                     [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
@@ -254,7 +262,7 @@ module Snippet =
                 startRefreshTask e.FullPath)
 
         let rec startFileWatchingEvent (directory: string) =
-            ifNotDisposed (fun () ->
+            disposed.IfNotDisposed(fun () ->
                 let w = new FileSystemWatcher(directory, snippetFilesName)
 
                 w.EnableRaisingEvents <- true
@@ -272,12 +280,11 @@ module Snippet =
                     watcher |> Option.iter _.Dispose()
                     watcher <- None
 
-                    ifNotDisposed (fun () -> startFileWatchingEvent directory)
+                    disposed.IfNotDisposed(fun () -> startFileWatchingEvent directory)
 
-                ifNotDisposed (fun () -> watcher <- w |> Some)
+                disposed.IfNotDisposed(fun () -> watcher <- w |> Some)
 
-                if isDisposed () then
-                    w.Dispose()
+                disposed.IfDisposed(fun () -> w.Dispose())
 #if DEBUG
                 Logger.LogFile [ "Started file watching event." ]
 #endif
@@ -363,7 +370,7 @@ module Snippet =
 
         interface IDisposable with
             member __.Dispose() =
-                Interlocked.Exchange(&disposed, 1) |> ignore
+                disposed.MarkDisposed()
 
                 watcher
                 |> Option.iter (fun w ->
