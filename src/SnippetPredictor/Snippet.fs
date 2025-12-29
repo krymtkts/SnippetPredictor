@@ -304,14 +304,73 @@ module Snippet =
             }
             |> ignore
 
+        let refreshDebounceMs = 200
+        let mutable pendingRefreshPath = ""
+
+        let createGuardedTimer (invoke: unit -> unit) =
+            new Timer(
+                TimerCallback(fun _ ->
+                    try
+                        disposed.IfNotDisposed invoke
+                    with
+                    | :? ObjectDisposedException
+                    | :? OperationCanceledException -> ()
+                    | e ->
+#if DEBUG
+                        Logger.LogFile
+                            [ $"Unexpected error occurred while running guarded timer callback: {e.Message}" ]
+#else
+                        ()
+#endif
+                ),
+                null,
+                Timeout.Infinite,
+                Timeout.Infinite
+            )
+
+        let refreshTimer =
+            createGuardedTimer (fun () ->
+                let path = Volatile.Read(&pendingRefreshPath)
+
+                if not (String.IsNullOrWhiteSpace(path)) then
+                    __.OnRefresh path
+                    startRefreshTask path)
+
+        let scheduleDebouncedRefresh (path: string) =
+            Volatile.Write(&pendingRefreshPath, path)
+
+            try
+                refreshTimer.Change(refreshDebounceMs, Timeout.Infinite) |> ignore
+            with :? ObjectDisposedException ->
+                ()
+
+        let watcherRestartBackoffMs = 200
+        let mutable pendingRestartDirectory = ""
+
+        let mutable restartAction: string -> unit = ignore
+
+        let restartWatcherTimer =
+            createGuardedTimer (fun () ->
+                let path = Volatile.Read(&pendingRestartDirectory)
+
+                if not (String.IsNullOrWhiteSpace(path)) then
+                    restartAction path)
+
+        let scheduleWatcherRestart (directory: string) =
+            Volatile.Write(&pendingRestartDirectory, directory)
+
+            try
+                restartWatcherTimer.Change(watcherRestartBackoffMs, Timeout.Infinite) |> ignore
+            with :? ObjectDisposedException ->
+                ()
+
         let handleRefresh (e: FileSystemEventArgs) =
             disposed.IfNotDisposed(fun () ->
 #if DEBUG
                 Logger.LogFile
                     [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
 #endif
-                __.OnRefresh e.FullPath
-                startRefreshTask e.FullPath)
+                scheduleDebouncedRefresh e.FullPath)
 
         let rec startFileWatchingEvent (directory: string) =
             disposed.IfNotDisposed(fun () ->
@@ -332,7 +391,7 @@ module Snippet =
                     // NOTE: Only the currently registered watcher instance may restart.
                     if Object.ReferenceEquals(Volatile.Read(&watcher), w) then
                         if tryRemoveCurrentWatcher w then
-                            disposed.IfNotDisposed(fun () -> startFileWatchingEvent directory)
+                            scheduleWatcherRestart directory
 
                 if disposed.IsDisposed then
                     // NOTE: Dispose immediately if already disposed.
@@ -343,6 +402,10 @@ module Snippet =
                 Logger.LogFile [ "Started file watching event." ]
 #endif
             )
+
+        do
+            // NOTE: Assign after definition to avoid forward-reference issues.
+            restartAction <- startFileWatchingEvent
 
         let snippetToTuple (s: SnippetEntry) =
             s.Group
@@ -435,9 +498,12 @@ module Snippet =
                 if disposed.TryMarkDisposed() then
                     refreshCts.Cancel()
 
-                exchangeAndDisposeWatcher null
-                refreshCts.Dispose()
-                semaphore.Dispose()
+                    refreshTimer.Dispose()
+                    restartWatcherTimer.Dispose()
+
+                    exchangeAndDisposeWatcher null
+                    refreshCts.Dispose()
+                    semaphore.Dispose()
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
