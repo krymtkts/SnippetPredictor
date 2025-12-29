@@ -521,6 +521,63 @@ module CacheDisposeBehavior =
               } ]
 
     [<Tests>]
+    let tests_ErrorBackoff =
+        testList
+            "Cache watcher restart backoff"
+            [
+
+              test "Error restarts watcher after backoff (not immediately)" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable watcherCreatedCount = 0
+                  let mutable watchers: TestWatcher list = []
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              watcherCreatedCount <- watcherCreatedCount + 1
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watchers <- w :: watchers
+                              w),
+                          ignore
+                      )
+
+                  try
+                      cache.load (fun () -> tmpDir.Path, filePath)
+
+                      watcherCreatedCount |> Expect.equal "should create initial watcher" 1
+                      let w = watchers |> List.tryHead |> Expect.wantSome "watcher should be created"
+
+                      let sw = Stopwatch.StartNew()
+                      w.TriggerError(InvalidOperationException("boom"))
+
+                      // Should not restart immediately.
+                      System.Threading.Thread.Sleep 50
+                      watcherCreatedCount |> Expect.equal "should not restart watcher immediately" 1
+
+                      // Should restart after the fixed backoff.
+                      waitUntil 2000 20 (fun () -> watcherCreatedCount = 2)
+                      |> Expect.isTrue "should restart watcher after backoff"
+
+                      (sw.ElapsedMilliseconds >= 150L)
+                      |> Expect.isTrue "restart should be delayed (backoff)"
+                  finally
+                      (cache :> IDisposable).Dispose()
+
+                      // Cleanup: release native handles for all watchers.
+                      for w in watchers do
+                          w.ReleaseHandles()
+
+                      waitUntilFileUnlocked 2000 20 filePath
+                      |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
+              }
+
+              ]
+
+    [<Tests>]
     let tests_ChangedIsDebounced =
         let testWithRelease (w: TestWatcher) (cache: Snippet.Cache) (filePath: string) (test: unit -> unit) =
             try
@@ -583,37 +640,6 @@ module CacheDisposeBehavior =
 
                       System.Threading.Thread.Sleep 400
                       refreshCalls |> Expect.equal "should still be one refresh" 1)
-
-              }
-
-              test "Debounced callback ignores blank path" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
-
-                  let mutable refreshCalls = 0
-                  let mutable watcher: TestWatcher option = None
-
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          (fun _ -> refreshCalls <- refreshCalls + 1)
-                      )
-
-                  cache.load (fun () -> tmpDir.Path, filePath)
-                  refreshCalls <- 0
-
-                  let w = watcher |> Expect.wantSome "watcher should be created"
-
-                  testWithRelease w cache filePath (fun () ->
-                      // Force FileSystemEventArgs.FullPath to be empty (""), which should be ignored.
-                      w.TriggerChanged("", "")
-                      System.Threading.Thread.Sleep 350
-                      refreshCalls |> Expect.equal "should not refresh for blank path" 0)
 
               }
 

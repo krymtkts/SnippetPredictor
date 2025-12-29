@@ -307,23 +307,18 @@ module Snippet =
         let refreshDebounceMs = 200
         let mutable pendingRefreshPath = ""
 
-        let refreshTimer =
+        let createGuardedTimer (invoke: unit -> unit) =
             new Timer(
                 TimerCallback(fun _ ->
                     try
-                        disposed.IfNotDisposed(fun () ->
-                            let path = Volatile.Read(&pendingRefreshPath)
-
-                            if not (String.IsNullOrWhiteSpace(path)) then
-                                __.OnRefresh path
-                                startRefreshTask path)
+                        disposed.IfNotDisposed invoke
                     with
-                    | :? ObjectDisposedException -> ()
+                    | :? ObjectDisposedException
                     | :? OperationCanceledException -> ()
                     | e ->
 #if DEBUG
                         Logger.LogFile
-                            [ $"Unexpected error occurred while debounced refreshing snippets: {e.Message}" ]
+                            [ $"Unexpected error occurred while running coalesced timer callback: {e.Message}" ]
 #else
                         ()
 #endif
@@ -333,11 +328,39 @@ module Snippet =
                 Timeout.Infinite
             )
 
+        let refreshTimer =
+            createGuardedTimer (fun () ->
+                let path = Volatile.Read(&pendingRefreshPath)
+
+                if not (String.IsNullOrWhiteSpace(path)) then
+                    __.OnRefresh path
+                    startRefreshTask path)
+
         let scheduleDebouncedRefresh (path: string) =
             Volatile.Write(&pendingRefreshPath, path)
 
             try
                 refreshTimer.Change(refreshDebounceMs, Timeout.Infinite) |> ignore
+            with :? ObjectDisposedException ->
+                ()
+
+        let watcherRestartBackoffMs = 200
+        let mutable pendingRestartDirectory = ""
+
+        let mutable restartAction: string -> unit = ignore
+
+        let restartWatcherTimer =
+            createGuardedTimer (fun () ->
+                let path = Volatile.Read(&pendingRestartDirectory)
+
+                if not (String.IsNullOrWhiteSpace(path)) then
+                    restartAction path)
+
+        let scheduleWatcherRestart (directory: string) =
+            Volatile.Write(&pendingRestartDirectory, directory)
+
+            try
+                restartWatcherTimer.Change(watcherRestartBackoffMs, Timeout.Infinite) |> ignore
             with :? ObjectDisposedException ->
                 ()
 
@@ -368,7 +391,7 @@ module Snippet =
                     // NOTE: Only the currently registered watcher instance may restart.
                     if Object.ReferenceEquals(Volatile.Read(&watcher), w) then
                         if tryRemoveCurrentWatcher w then
-                            disposed.IfNotDisposed(fun () -> startFileWatchingEvent directory)
+                            scheduleWatcherRestart directory
 
                 if disposed.IsDisposed then
                     // NOTE: Dispose immediately if already disposed.
@@ -379,6 +402,10 @@ module Snippet =
                 Logger.LogFile [ "Started file watching event." ]
 #endif
             )
+
+        do
+            // NOTE: Assign after definition to avoid forward-reference issues.
+            restartAction <- startFileWatchingEvent
 
         let snippetToTuple (s: SnippetEntry) =
             s.Group
@@ -472,6 +499,7 @@ module Snippet =
                     refreshCts.Cancel()
 
                 refreshTimer.Dispose()
+                restartWatcherTimer.Dispose()
 
                 exchangeAndDisposeWatcher null
                 refreshCts.Dispose()
