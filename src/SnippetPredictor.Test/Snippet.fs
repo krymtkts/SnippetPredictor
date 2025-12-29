@@ -414,6 +414,15 @@ module CacheDisposeBehavior =
 
         predicate ()
 
+    let waitUntilFileUnlocked (timeoutMs: int) (pollMs: int) (filePath: string) =
+        waitUntil timeoutMs pollMs (fun () ->
+            try
+                use _ = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+
+                true
+            with :? IOException ->
+                false)
+
     type CacheForTest(createWatcher: string * string -> FileSystemWatcher, onRefresh: string -> unit) =
         inherit Snippet.Cache()
 
@@ -468,6 +477,9 @@ module CacheDisposeBehavior =
                   finally
                       w.ReleaseHandles()
 
+                  waitUntilFileUnlocked 2000 20 filePath
+                  |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
+
                   refreshCalls |> Expect.equal "should not refresh after Dispose" 0
 
                   watcherCreatedCount |> Expect.equal "should not create watcher again" 1
@@ -502,6 +514,9 @@ module CacheDisposeBehavior =
                   finally
                       w.ReleaseHandles()
 
+                  waitUntilFileUnlocked 2000 20 filePath
+                  |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
+
                   watcherCreatedCount |> Expect.equal "should not restart watcher after Dispose" 1
               } ]
 
@@ -520,7 +535,7 @@ module CacheDisposeBehavior =
                   let mutable refreshCalls = 0
                   let mutable watcher: TestWatcher option = None
 
-                  use cache =
+                  let cache =
                       new CacheForTest(
                           (fun _ ->
                               let w = new TestWatcher(tmpDir.Path, fileName)
@@ -546,6 +561,154 @@ module CacheDisposeBehavior =
                       refreshCalls |> Expect.equal "should still be one refresh" 1
                   finally
                       w.ReleaseHandles()
+                      (cache :> IDisposable).Dispose()
+
+                      waitUntilFileUnlocked 2000 20 filePath
+                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+              }
+
+              test "Debounced callback ignores blank path" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable refreshCalls = 0
+                  let mutable watcher: TestWatcher option = None
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          (fun _ -> refreshCalls <- refreshCalls + 1)
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+                  refreshCalls <- 0
+
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+
+                  try
+                      // Force FileSystemEventArgs.FullPath to be empty (""), which should be ignored.
+                      w.TriggerChanged("", "")
+                      System.Threading.Thread.Sleep 350
+                      refreshCalls |> Expect.equal "should not refresh for blank path" 0
+                  finally
+                      w.ReleaseHandles()
+                      (cache :> IDisposable).Dispose()
+
+                      waitUntilFileUnlocked 2000 20 filePath
+                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+              }
+
+              test "Debounced callback swallows ObjectDisposedException" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable called = false
+                  let mutable watcher: TestWatcher option = None
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          (fun _ ->
+                              called <- true
+                              raise (ObjectDisposedException("boom")))
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+
+                  try
+                      w.TriggerChanged(tmpDir.Path, fileName)
+
+                      waitUntil 2000 20 (fun () -> called)
+                      |> Expect.isTrue "should reach OnRefresh even if it throws"
+                  finally
+                      w.ReleaseHandles()
+                      (cache :> IDisposable).Dispose()
+
+                      waitUntilFileUnlocked 2000 20 filePath
+                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+              }
+
+              test "Debounced callback swallows OperationCanceledException" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable called = false
+                  let mutable watcher: TestWatcher option = None
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          (fun _ ->
+                              called <- true
+                              raise (OperationCanceledException("boom")))
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+
+                  try
+                      w.TriggerChanged(tmpDir.Path, fileName)
+
+                      waitUntil 2000 20 (fun () -> called)
+                      |> Expect.isTrue "should reach OnRefresh even if it throws"
+                  finally
+                      w.ReleaseHandles()
+                      (cache :> IDisposable).Dispose()
+
+                      waitUntilFileUnlocked 2000 20 filePath
+                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+              }
+
+              test "Debounced callback swallows unexpected exceptions" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable called = false
+                  let mutable watcher: TestWatcher option = None
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          (fun _ ->
+                              called <- true
+                              raise (InvalidOperationException("boom")))
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+
+                  try
+                      w.TriggerChanged(tmpDir.Path, fileName)
+
+                      waitUntil 2000 20 (fun () -> called)
+                      |> Expect.isTrue "should reach OnRefresh even if it throws"
+                  finally
+                      w.ReleaseHandles()
+                      (cache :> IDisposable).Dispose()
+
+                      waitUntilFileUnlocked 2000 20 filePath
+                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
               }
 
               ]
