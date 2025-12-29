@@ -318,7 +318,7 @@ module Snippet =
                     | e ->
 #if DEBUG
                         Logger.LogFile
-                            [ $"Unexpected error occurred while running coalesced timer callback: {e.Message}" ]
+                            [ $"Unexpected error occurred while running guarded timer callback: {e.Message}" ]
 #else
                         ()
 #endif
