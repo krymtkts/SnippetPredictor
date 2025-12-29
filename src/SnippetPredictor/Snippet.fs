@@ -498,12 +498,12 @@ module Snippet =
                 if disposed.TryMarkDisposed() then
                     refreshCts.Cancel()
 
-                refreshTimer.Dispose()
-                restartWatcherTimer.Dispose()
+                    refreshTimer.Dispose()
+                    restartWatcherTimer.Dispose()
 
-                exchangeAndDisposeWatcher null
-                refreshCts.Dispose()
-                semaphore.Dispose()
+                    exchangeAndDisposeWatcher null
+                    refreshCts.Dispose()
+                    semaphore.Dispose()
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
