@@ -304,14 +304,50 @@ module Snippet =
             }
             |> ignore
 
+        let refreshDebounceMs = 200
+        let mutable pendingRefreshPath = ""
+
+        let refreshTimer =
+            new Timer(
+                TimerCallback(fun _ ->
+                    try
+                        disposed.IfNotDisposed(fun () ->
+                            let path = Volatile.Read(&pendingRefreshPath)
+
+                            if not (String.IsNullOrWhiteSpace(path)) then
+                                __.OnRefresh path
+                                startRefreshTask path)
+                    with
+                    | :? ObjectDisposedException -> ()
+                    | :? OperationCanceledException -> ()
+                    | e ->
+#if DEBUG
+                        Logger.LogFile
+                            [ $"Unexpected error occurred while debounced refreshing snippets: {e.Message}" ]
+#else
+                        ()
+#endif
+                ),
+                null,
+                Timeout.Infinite,
+                Timeout.Infinite
+            )
+
+        let scheduleDebouncedRefresh (path: string) =
+            Volatile.Write(&pendingRefreshPath, path)
+
+            try
+                refreshTimer.Change(refreshDebounceMs, Timeout.Infinite) |> ignore
+            with :? ObjectDisposedException ->
+                ()
+
         let handleRefresh (e: FileSystemEventArgs) =
             disposed.IfNotDisposed(fun () ->
 #if DEBUG
                 Logger.LogFile
                     [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
 #endif
-                __.OnRefresh e.FullPath
-                startRefreshTask e.FullPath)
+                scheduleDebouncedRefresh e.FullPath)
 
         let rec startFileWatchingEvent (directory: string) =
             disposed.IfNotDisposed(fun () ->
@@ -434,6 +470,8 @@ module Snippet =
             member __.Dispose() =
                 if disposed.TryMarkDisposed() then
                     refreshCts.Cancel()
+
+                refreshTimer.Dispose()
 
                 exchangeAndDisposeWatcher null
                 refreshCts.Dispose()

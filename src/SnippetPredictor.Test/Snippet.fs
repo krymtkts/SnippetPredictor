@@ -7,6 +7,7 @@ open SnippetPredictor
 open SnippetPredictorTest.Utility
 
 open System
+open System.Diagnostics
 open System.IO
 
 [<Tests>]
@@ -405,6 +406,14 @@ module getPredictiveSuggestions =
 
 module CacheDisposeBehavior =
 
+    let waitUntil (timeoutMs: int) (pollMs: int) (predicate: unit -> bool) =
+        let sw = Stopwatch.StartNew()
+
+        while sw.ElapsedMilliseconds < int64 timeoutMs && not (predicate ()) do
+            System.Threading.Thread.Sleep pollMs
+
+        predicate ()
+
     type CacheForTest(createWatcher: string * string -> FileSystemWatcher, onRefresh: string -> unit) =
         inherit Snippet.Cache()
 
@@ -495,6 +504,51 @@ module CacheDisposeBehavior =
 
                   watcherCreatedCount |> Expect.equal "should not restart watcher after Dispose" 1
               } ]
+
+    [<Tests>]
+    let tests_ChangedIsDebounced =
+        testList
+            "Cache debounced refresh"
+            [
+
+              test "Changed is debounced" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                  File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                  let mutable refreshCalls = 0
+                  let mutable watcher: TestWatcher option = None
+
+                  use cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          (fun _ -> refreshCalls <- refreshCalls + 1)
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+
+                  refreshCalls <- 0
+
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+
+                  try
+                      for _ in 1..10 do
+                          w.TriggerChanged(tmpDir.Path, fileName)
+
+                      waitUntil 2000 20 (fun () -> refreshCalls = 1)
+                      |> Expect.isTrue "should refresh exactly once after debounced Changed burst"
+
+                      System.Threading.Thread.Sleep 400
+                      refreshCalls |> Expect.equal "should still be one refresh" 1
+                  finally
+                      w.ReleaseHandles()
+              }
+
+              ]
 
 [<Tests>]
 let tests_loadSnippets =
