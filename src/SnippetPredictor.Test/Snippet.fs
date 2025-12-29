@@ -522,6 +522,30 @@ module CacheDisposeBehavior =
 
     [<Tests>]
     let tests_ChangedIsDebounced =
+        let testWithRelease (w: TestWatcher) (cache: Snippet.Cache) (filePath: string) (test: unit -> unit) =
+            try
+                test ()
+            finally
+                w.ReleaseHandles()
+                (cache :> IDisposable).Dispose()
+
+                waitUntilFileUnlocked 2000 20 filePath
+                |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+
+        let testTriggerAndRelease
+            (w: TestWatcher)
+            (cache: Snippet.Cache)
+            (predicate: unit -> bool)
+            (tmpDirPath: string)
+            (fileName: string)
+            (filePath: string)
+            =
+            testWithRelease w cache filePath (fun () ->
+                w.TriggerChanged(tmpDirPath, fileName)
+
+                waitUntil 2000 20 predicate
+                |> Expect.isTrue "should reach OnRefresh even if it throws")
+
         testList
             "Cache debounced refresh"
             [
@@ -550,7 +574,7 @@ module CacheDisposeBehavior =
 
                   let w = watcher |> Expect.wantSome "watcher should be created"
 
-                  try
+                  testWithRelease w cache filePath (fun () ->
                       for _ in 1..10 do
                           w.TriggerChanged(tmpDir.Path, fileName)
 
@@ -558,13 +582,8 @@ module CacheDisposeBehavior =
                       |> Expect.isTrue "should refresh exactly once after debounced Changed burst"
 
                       System.Threading.Thread.Sleep 400
-                      refreshCalls |> Expect.equal "should still be one refresh" 1
-                  finally
-                      w.ReleaseHandles()
-                      (cache :> IDisposable).Dispose()
+                      refreshCalls |> Expect.equal "should still be one refresh" 1)
 
-                      waitUntilFileUnlocked 2000 20 filePath
-                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
               }
 
               test "Debounced callback ignores blank path" {
@@ -590,17 +609,12 @@ module CacheDisposeBehavior =
 
                   let w = watcher |> Expect.wantSome "watcher should be created"
 
-                  try
+                  testWithRelease w cache filePath (fun () ->
                       // Force FileSystemEventArgs.FullPath to be empty (""), which should be ignored.
                       w.TriggerChanged("", "")
                       System.Threading.Thread.Sleep 350
-                      refreshCalls |> Expect.equal "should not refresh for blank path" 0
-                  finally
-                      w.ReleaseHandles()
-                      (cache :> IDisposable).Dispose()
+                      refreshCalls |> Expect.equal "should not refresh for blank path" 0)
 
-                      waitUntilFileUnlocked 2000 20 filePath
-                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
               }
 
               test "Debounced callback swallows ObjectDisposedException" {
@@ -625,18 +639,7 @@ module CacheDisposeBehavior =
 
                   cache.load (fun () -> tmpDir.Path, filePath)
                   let w = watcher |> Expect.wantSome "watcher should be created"
-
-                  try
-                      w.TriggerChanged(tmpDir.Path, fileName)
-
-                      waitUntil 2000 20 (fun () -> called)
-                      |> Expect.isTrue "should reach OnRefresh even if it throws"
-                  finally
-                      w.ReleaseHandles()
-                      (cache :> IDisposable).Dispose()
-
-                      waitUntilFileUnlocked 2000 20 filePath
-                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+                  testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
               }
 
               test "Debounced callback swallows OperationCanceledException" {
@@ -661,18 +664,7 @@ module CacheDisposeBehavior =
 
                   cache.load (fun () -> tmpDir.Path, filePath)
                   let w = watcher |> Expect.wantSome "watcher should be created"
-
-                  try
-                      w.TriggerChanged(tmpDir.Path, fileName)
-
-                      waitUntil 2000 20 (fun () -> called)
-                      |> Expect.isTrue "should reach OnRefresh even if it throws"
-                  finally
-                      w.ReleaseHandles()
-                      (cache :> IDisposable).Dispose()
-
-                      waitUntilFileUnlocked 2000 20 filePath
-                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+                  testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
               }
 
               test "Debounced callback swallows unexpected exceptions" {
@@ -697,18 +689,7 @@ module CacheDisposeBehavior =
 
                   cache.load (fun () -> tmpDir.Path, filePath)
                   let w = watcher |> Expect.wantSome "watcher should be created"
-
-                  try
-                      w.TriggerChanged(tmpDir.Path, fileName)
-
-                      waitUntil 2000 20 (fun () -> called)
-                      |> Expect.isTrue "should reach OnRefresh even if it throws"
-                  finally
-                      w.ReleaseHandles()
-                      (cache :> IDisposable).Dispose()
-
-                      waitUntilFileUnlocked 2000 20 filePath
-                      |> Expect.isTrue "temp snippet file should be unlocked after Cache.Dispose"
+                  testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
               }
 
               ]
