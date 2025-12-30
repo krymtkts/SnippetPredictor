@@ -93,6 +93,7 @@
           <maml:para>```powershell
 Add-Snippet "echo hello"
 ```</maml:para>
+          <maml:para>&#x80;</maml:para>
           <maml:para>Add a snippet.</maml:para>
         </maml:introduction>
         <dev:code />
@@ -104,6 +105,7 @@ Add-Snippet "echo hello"
           <maml:para>```powershell
 Add-Snippet 'echo hello' 'say hello'
 ```</maml:para>
+          <maml:para>&#x80;</maml:para>
           <maml:para>Add a snippet with tooltip.</maml:para>
         </maml:introduction>
         <dev:code />
@@ -115,6 +117,7 @@ Add-Snippet 'echo hello' 'say hello'
           <maml:para>```powershell
 {echo hello} | Add-Snippet
 ```</maml:para>
+          <maml:para>&#x80;</maml:para>
           <maml:para>Add a snippet.
 You can pass code blocks. Code blocks are implicitly converted to strings through the pipeline.</maml:para>
         </maml:introduction>
@@ -127,6 +130,7 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
           <maml:para>```powershell
 @{Snippet='echo hello'; Tooltip='say hello'},@{Snippet='echo goodbye'; Tooltip='say goobye'} | % {[pscustomobject]$_} | Add-Snippet
 ```</maml:para>
+          <maml:para>&#x80;</maml:para>
           <maml:para>Add a snippet through pipeline.</maml:para>
         </maml:introduction>
         <dev:code />
@@ -134,6 +138,10 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
       </command:example>
     </command:examples>
     <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Add-Snippet.md</command:uri>
+      </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>SnippetPredictor.md</maml:linkText>
         <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
@@ -181,6 +189,7 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
           <maml:para>```powershell
 Get-Snippet
 ```</maml:para>
+          <maml:para>&#x80;</maml:para>
           <maml:para>Retrieves a saved snippets.</maml:para>
         </maml:introduction>
         <dev:code />
@@ -188,6 +197,10 @@ Get-Snippet
       </command:example>
     </command:examples>
     <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Get-Snippet.md</command:uri>
+      </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>SnippetPredictor.md</maml:linkText>
         <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
@@ -259,6 +272,7 @@ Get-Snippet
           <maml:para>```powershell
 Remove-Snippet "echo hello"
 ```</maml:para>
+          <maml:para>&#x80;</maml:para>
           <maml:para>Remove the snippet.</maml:para>
         </maml:introduction>
         <dev:code />
@@ -270,8 +284,9 @@ Remove-Snippet "echo hello"
           <maml:para>```powershell
 {echo hello} | Remove-Snippet
 ```</maml:para>
-          <maml:para>Remove the snippet.
-You can pass code blocks. Code blocks are implicitly converted to strings through the pipeline.</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Remove the snippet. You can pass code blocks. Code blocks are implicitly
+converted to strings through the pipeline.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
@@ -282,6 +297,7 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
           <maml:para>```powershell
 Get-Snippet | ? tooltip -like *test* | Remove-Snippet
 ```</maml:para>
+          <maml:para>&#x80;</maml:para>
           <maml:para>Remove snippets whose tooltip contains "test".</maml:para>
         </maml:introduction>
         <dev:code />
@@ -289,6 +305,10 @@ Get-Snippet | ? tooltip -like *test* | Remove-Snippet
       </command:example>
     </command:examples>
     <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Remove-Snippet.md</command:uri>
+      </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>SnippetPredictor.md</maml:linkText>
         <command:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md</command:uri>
