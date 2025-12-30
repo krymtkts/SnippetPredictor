@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Add-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 05-10-2025
+ms.date: 12-30-2025
 PlatyPS schema version: 2024-05-01
 title: Add-Snippet
 ---
@@ -75,7 +75,6 @@ The group of the snippet
 Type: System.String
 DefaultValue: ""
 SupportsWildcards: false
-ParameterValue: []
 Aliases: []
 ParameterSets:
   - Name: (All)
@@ -97,7 +96,6 @@ The text of the snippet
 Type: System.String
 DefaultValue: ""
 SupportsWildcards: false
-ParameterValue: []
 Aliases: []
 ParameterSets:
   - Name: (All)
@@ -119,7 +117,6 @@ The tooltip of the snippet
 Type: System.String
 DefaultValue: ""
 SupportsWildcards: false
-ParameterValue: []
 Aliases: []
 ParameterSets:
   - Name: (All)

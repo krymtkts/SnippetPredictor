@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Remove-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 05-10-2025
+ms.date: 12-30-2025
 PlatyPS schema version: 2024-05-01
 title: Remove-Snippet
 ---
@@ -27,8 +27,8 @@ Remove-Snippet [-Snippet] <string> [<CommonParameters>]
 
 ## DESCRIPTION
 
-Remove specified snippets from the snippet configuration.
-The snippet configuration resides in `~/.snippet-predictor.json`.
+Remove specified snippets from the snippet configuration. The snippet
+configuration resides in `~/.snippet-predictor.json`.
 
 ## EXAMPLES
 
@@ -46,8 +46,8 @@ Remove the snippet.
 {echo hello} | Remove-Snippet
 ```
 
-Remove the snippet.
-You can pass code blocks. Code blocks are implicitly converted to strings through the pipeline.
+Remove the snippet. You can pass code blocks. Code blocks are implicitly
+converted to strings through the pipeline.
 
 ### Example 3
 
@@ -67,7 +67,6 @@ The text of the snippet to remove
 Type: System.String
 DefaultValue: ""
 SupportsWildcards: false
-ParameterValue: []
 Aliases: []
 ParameterSets:
   - Name: (All)
