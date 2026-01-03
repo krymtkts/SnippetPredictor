@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text.Json
 open System.Text.Json.Serialization
+open System.Text.RegularExpressions
 
 #if DEBUG
 [<AutoOpen>]
@@ -44,8 +45,6 @@ module Debug =
 
 module Option =
     let dispose (d: 'a option when 'a :> IDisposable) = d |> Option.iter _.Dispose()
-
-open System.Text.RegularExpressions
 
 // NOTE: A static let generates unreachable code, so this module is used instead for coverage.
 module Group =
