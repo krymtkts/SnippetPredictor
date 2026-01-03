@@ -444,6 +444,17 @@ module Snippet =
         [<Literal>]
         let Tip = "tip"
 
+        let basicGroupIds = [| Snp; Tip |]
+
+        let chooseGroupIds input =
+            groups.Keys
+            |> Seq.append basicGroupIds
+            |> Seq.choose (fun groupId ->
+                if groupId <> input && groupId.StartsWith(input) then
+                    ($":{groupId}", "") |> PredictiveSuggestion |> Some
+                else
+                    None)
+
         abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
 
         default _.CreateWatcher(directory: string, filter: string) =
@@ -461,13 +472,14 @@ module Snippet =
             startFileWatchingEvent snippetDirectory
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
+            let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
+
             match input with
             | Empty -> Seq.empty
             | Prefix(groupId, input) ->
 #if DEBUG
                 Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
-                let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
 
                 let pred =
                     match groupId with
@@ -477,20 +489,12 @@ module Snippet =
 
                 let groupIds =
                     if String.IsNullOrWhiteSpace(input) then
-                        groups.Keys
-                        |> Seq.append [ Snp; Tip ]
-                        |> Seq.choose (fun g ->
-                            if g <> groupId && g.StartsWith(groupId) then
-                                ($":{g}", "") |> PredictiveSuggestion |> Some
-                            else
-                                None)
+                        chooseGroupIds groupId
                     else
                         Seq.empty
 
                 pred |> chooseSnippets |> Seq.append groupIds
-            | NoPrefix snippet ->
-                _.Snippet.Contains(snippet, caseSensitive |> SearchCaseSensitivity.stringComparison)
-                |> chooseSnippets
+            | NoPrefix input -> _.Snippet.Contains(input, comparisonType) |> chooseSnippets
             |> Linq.Enumerable.ToList
 
         interface IDisposable with
