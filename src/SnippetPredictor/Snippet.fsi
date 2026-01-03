@@ -4,14 +4,6 @@ module Snippet =
     [<Literal>]
     val name: string = "Snippet"
 
-    [<RequireQualifiedAccess; NoEquality; NoComparison>]
-    type ConfigState =
-        | Empty
-        | Valid of SnippetConfig
-        | Invalid of SnippetEntry
-
-    val parseSnippets: json: string -> ConfigState
-
 #if DEBUG
     module Disposal =
         type Flag =
@@ -42,7 +34,7 @@ module Snippet =
 
     val getSnippetPath: unit -> string * string
 
-    val loadConfig: getSnippetPath: (unit -> string * string) -> ConfigState
+    val loadConfig: getSnippetPath: (unit -> string * string) -> File.ConfigState
 
     val makeErrorRecord: e: string -> System.Management.Automation.ErrorRecord
 
