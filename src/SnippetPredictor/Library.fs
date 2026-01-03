@@ -55,18 +55,18 @@ type Init() =
     [<Literal>]
     let identifier = "f6dbcf05-2f90-4c47-b40e-6a4cec337cc1"
 
-    let mutable predictor: SnippetPredictor option = None
+    let mutable predictor: SnippetPredictor | null = null
 
     interface IModuleAssemblyInitializer with
         member __.OnImport() =
             let p = new SnippetPredictor(identifier, Snippet.getSnippetPath)
             SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, p)
-            predictor <- Some p
+            predictor <- p
 
     interface IModuleAssemblyCleanup with
         member __.OnRemove(psModuleInfo: PSModuleInfo) =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
-            predictor |> Option.dispose
+            predictor |> Nullable.dispose
 
 [<Cmdlet(VerbsCommon.Get, Snippet.name)>]
 [<OutputType(typeof<SnippetEntry>)>]

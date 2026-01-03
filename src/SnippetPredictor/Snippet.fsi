@@ -1,7 +1,7 @@
 namespace SnippetPredictor
 
-module Option =
-    val dispose: d: #System.IDisposable option -> unit
+module Nullable =
+    val dispose: d: #System.IDisposable | null -> unit
 
 #if DEBUG
 type GroupJsonConverter =

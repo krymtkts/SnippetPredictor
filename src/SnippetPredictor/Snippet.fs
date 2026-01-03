@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Text.Json
 open System.Text.Json.Serialization
+open System.Text.RegularExpressions
 
 #if DEBUG
 [<AutoOpen>]
@@ -42,10 +43,12 @@ module Debug =
                 ))
 #endif
 
-module Option =
-    let dispose (d: 'a option when 'a :> IDisposable) = d |> Option.iter _.Dispose()
-
-open System.Text.RegularExpressions
+module Nullable =
+    let dispose (d: 'a | null when 'a :> IDisposable) =
+        d
+        |> function
+            | null -> ()
+            | p -> (p :> IDisposable).Dispose()
 
 // NOTE: A static let generates unreachable code, so this module is used instead for coverage.
 module Group =
@@ -413,9 +416,9 @@ module Snippet =
                 | null -> s.Snippet, s.Tooltip
                 | g -> s.Snippet, $"[{g}]{s.Tooltip}"
 
-        let (|Empty|_|) (input: string) = String.IsNullOrWhiteSpace(input)
+        let (|Empty|_|) = String.IsNullOrWhiteSpace
 
-        let inputPattern = Regex(":([a-zA-Z0-9]+)\\s*(.*)")
+        let inputPattern = Regex("^\\s*:([a-zA-Z0-9]+)\\s*(.*)")
 
         let (|Prefix|_|) (value: string) =
             // NOTE: Remove the snippet or tooltip symbol from the input.
@@ -444,6 +447,17 @@ module Snippet =
         [<Literal>]
         let Tip = "tip"
 
+        let basicGroupIds = [| Snp; Tip |]
+
+        let chooseGroupIds input =
+            groups.Keys
+            |> Seq.append basicGroupIds
+            |> Seq.choose (fun groupId ->
+                if groupId <> input && groupId.StartsWith(input) then
+                    ($":{groupId}", "") |> PredictiveSuggestion |> Some
+                else
+                    None)
+
         abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
 
         default _.CreateWatcher(directory: string, filter: string) =
@@ -461,13 +475,14 @@ module Snippet =
             startFileWatchingEvent snippetDirectory
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
+            let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
+
             match input with
             | Empty -> Seq.empty
             | Prefix(groupId, input) ->
 #if DEBUG
                 Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
-                let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
 
                 let pred =
                     match groupId with
@@ -477,20 +492,12 @@ module Snippet =
 
                 let groupIds =
                     if String.IsNullOrWhiteSpace(input) then
-                        groups.Keys
-                        |> Seq.append [ Snp; Tip ]
-                        |> Seq.choose (fun g ->
-                            if g <> groupId && g.StartsWith(groupId) then
-                                ($":{g}", "") |> PredictiveSuggestion |> Some
-                            else
-                                None)
+                        chooseGroupIds groupId
                     else
                         Seq.empty
 
                 pred |> chooseSnippets |> Seq.append groupIds
-            | NoPrefix snippet ->
-                _.Snippet.Contains(snippet, caseSensitive |> SearchCaseSensitivity.stringComparison)
-                |> chooseSnippets
+            | NoPrefix input -> _.Snippet.Contains(input, comparisonType) |> chooseSnippets
             |> Linq.Enumerable.ToList
 
         interface IDisposable with
