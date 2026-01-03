@@ -413,7 +413,7 @@ module Snippet =
                 | null -> s.Snippet, s.Tooltip
                 | g -> s.Snippet, $"[{g}]{s.Tooltip}"
 
-        let (|Empty|_|) (input: string) = String.IsNullOrWhiteSpace(input)
+        let (|Empty|_|) = String.IsNullOrWhiteSpace
 
         let inputPattern = Regex(":([a-zA-Z0-9]+)\\s*(.*)")
 
