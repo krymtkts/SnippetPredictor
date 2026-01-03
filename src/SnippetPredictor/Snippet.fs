@@ -43,8 +43,12 @@ module Debug =
                 ))
 #endif
 
-module Option =
-    let dispose (d: 'a option when 'a :> IDisposable) = d |> Option.iter _.Dispose()
+module Nullable =
+    let dispose (d: 'a | null when 'a :> IDisposable) =
+        d
+        |> function
+            | null -> ()
+            | p -> (p :> IDisposable).Dispose()
 
 // NOTE: A static let generates unreachable code, so this module is used instead for coverage.
 module Group =

@@ -13,12 +13,12 @@ open System.IO
 [<Tests>]
 let tests_Dispose =
     testList
-        "Option.dispose"
+        "Nullable.dispose"
         [
 
-          test "when value is None" {
+          test "when value is null" {
               // NOTE: for coverage.
-              None |> Option.dispose
+              null |> Nullable.dispose
           }
 
           ]
