@@ -45,6 +45,7 @@ module Snippet =
 
     val parseSnippets: json: string -> ConfigState
 
+#if DEBUG
     module Disposal =
         type Flag =
             new: unit -> Flag
@@ -52,6 +53,7 @@ module Snippet =
             member TryMarkDisposed: unit -> bool
             member IfNotDisposed: f: (unit -> unit) -> unit
             member IfDisposed: f: (unit -> unit) -> unit
+#endif
 
     type Cache =
         interface System.IDisposable

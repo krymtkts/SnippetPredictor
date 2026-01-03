@@ -23,6 +23,7 @@ let tests_Dispose =
 
           ]
 
+#if DEBUG
 [<Tests>]
 let tests_Disposal =
     // NOTE: for coverage.
@@ -48,6 +49,7 @@ let tests_Disposal =
           }
 
           ]
+#endif
 
 [<Tests>]
 let tests_parseSnippets =
