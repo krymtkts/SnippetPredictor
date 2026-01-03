@@ -415,7 +415,7 @@ module Snippet =
 
         let (|Empty|_|) = String.IsNullOrWhiteSpace
 
-        let inputPattern = Regex(":([a-zA-Z0-9]+)\\s*(.*)")
+        let inputPattern = Regex("^\\s*:([a-zA-Z0-9]+)\\s*(.*)")
 
         let (|Prefix|_|) (value: string) =
             // NOTE: Remove the snippet or tooltip symbol from the input.
