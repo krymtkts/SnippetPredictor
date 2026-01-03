@@ -2,167 +2,17 @@
 
 open System
 open System.IO
-open System.Text.Json
-open System.Text.Json.Serialization
 open System.Text.RegularExpressions
 
-#if DEBUG
-[<AutoOpen>]
-module Debug =
-    open System.Runtime.CompilerServices
-    open System.Runtime.InteropServices
-
-    let lockObj = new obj ()
-
-    [<Literal>]
-    let logPath = "./debug.log"
-
-    [<AbstractClass; Sealed>]
-    type Logger =
-        static member LogFile
-            (
-                res,
-                [<Optional; DefaultParameterValue(""); CallerMemberName>] caller: string,
-                [<CallerFilePath; Optional; DefaultParameterValue("")>] path: string,
-                [<CallerLineNumber; Optional; DefaultParameterValue(0)>] line: int
-            ) =
-
-            // NOTE: lock to avoid another process error when dotnet test.
-            lock lockObj (fun () ->
-                use sw = new StreamWriter(logPath, true)
-
-                res
-                |> List.iter (
-                    fprintfn
-                        sw
-                        "[%s] %s at %d %s <%A>"
-                        (DateTimeOffset.Now.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz"))
-                        path
-                        line
-                        caller
-                ))
-#endif
-
-module Nullable =
-    let dispose (d: 'a | null when 'a :> IDisposable) =
-        d
-        |> function
-            | null -> ()
-            | p -> (p :> IDisposable).Dispose()
-
-// NOTE: A static let generates unreachable code, so this module is used instead for coverage.
-module Group =
-    [<Literal>]
-    let pattern = "^[A-Za-z0-9]+$"
-
-    let regex = Regex(pattern)
-
-type GroupJsonConverter() =
-    inherit JsonConverter<string>()
-
-    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
-        reader.GetString()
-        |> function
-            | null -> "" // NOTE: unreachable when JsonIgnoreCondition.WhenWritingNull is used.
-            | value when Group.regex.IsMatch(value) -> value
-            | value -> JsonException(sprintf "Invalid characters in group: %s" value) |> raise
-
-    override _.Write(writer: Utf8JsonWriter, value: string, options: JsonSerializerOptions) =
-        value |> writer.WriteStringValue
-
-type SnippetEntry =
-    { Snippet: string
-      Tooltip: string
-      [<JsonConverter(typeof<GroupJsonConverter>)>]
-      [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
-      Group: string | null }
-
-type SearchCaseSensitiveJsonConverter() =
-    inherit JsonConverter<bool>()
-
-    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
-        if reader.TokenType = JsonTokenType.Null then
-            false
-        else
-            reader.GetBoolean()
-
-    override _.Write(writer: Utf8JsonWriter, value: bool, options: JsonSerializerOptions) =
-        value |> writer.WriteBooleanValue
-
-type SnippetConfig =
-    { [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
-      SearchCaseSensitive: bool
-      Snippets: SnippetEntry array | null }
-
 module Snippet =
+    [<Literal>]
+    let name = "Snippet"
+
     open System.Collections
     open System.Management.Automation
     open System.Management.Automation.Subsystem.Prediction
     open System.Threading
-    open System.Text.Encodings.Web
-
-    [<Literal>]
-    let name = "Snippet"
-
-    [<Literal>]
-    let snippetFilesName = ".snippet-predictor.json"
-
-    [<Literal>]
-    let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
-
-    let readSnippetFile (path: string) =
-        task {
-            // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
-            use fs =
-                new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
-
-            use sr = new StreamReader(fs)
-            return! sr.ReadToEndAsync()
-        }
-
-    let makeEntry (snippet: string) (tooltip: string) =
-        { Snippet = $"'{snippet}'"
-          Tooltip = tooltip
-          Group = null }
-
-    [<RequireQualifiedAccess>]
-    [<NoEquality>]
-    [<NoComparison>]
-    type ConfigState =
-        | Empty
-        | Valid of SnippetConfig
-        | Invalid of SnippetEntry
-
-    let jsonOptions =
-        JsonSerializerOptions(
-            AllowTrailingCommas = true,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            PropertyNameCaseInsensitive = true,
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            WriteIndented = true
-        )
-
-    let parseSnippets (json: string) =
-        try
-            json.Trim()
-            |> function
-                | json when String.length json = 0 -> ConfigState.Empty
-                | json ->
-                    JsonSerializer.Deserialize<SnippetConfig>(json, jsonOptions)
-                    |> function
-                        | null ->
-                            makeEntry $"{snippetFilesName} is null or invalid format." ""
-                            |> ConfigState.Invalid
-                        | snippets -> ConfigState.Valid snippets
-        with e ->
-            makeEntry $"An error occurred while parsing {snippetFilesName}" e.Message
-            |> ConfigState.Invalid
-
-    let parseSnippetFile (path: string) =
-        task {
-            let! json = readSnippetFile path
-            return parseSnippets json
-        }
+    open File
 
     module CaseSensitivity =
         [<Literal>]
@@ -377,7 +227,7 @@ module Snippet =
 
         let rec startFileWatchingEvent (directory: string) =
             disposed.IfNotDisposed(fun () ->
-                let w = __.CreateWatcher(directory, snippetFilesName)
+                let w = __.CreateWatcher(directory, File.snippetFilesName)
 
                 w.EnableRaisingEvents <- true
                 w.IncludeSubdirectories <- false
@@ -548,16 +398,6 @@ module Snippet =
         { Snippet = snippet
           Tooltip = tooltip
           Group = group }
-
-    let storeConfig getSnippetPath (config: SnippetConfig) =
-        let json = JsonSerializer.Serialize(config, jsonOptions)
-        let snippetPath = getSnippetPath () |> snd
-
-        try
-            File.WriteAllText(snippetPath, json)
-            Ok()
-        with e ->
-            e.Message |> Error
 
     let loadSnippets getSnippetPath =
         loadConfig getSnippetPath

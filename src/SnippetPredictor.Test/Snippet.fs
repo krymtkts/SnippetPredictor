@@ -23,6 +23,7 @@ let tests_Dispose =
 
           ]
 
+#if DEBUG
 [<Tests>]
 let tests_Disposal =
     // NOTE: for coverage.
@@ -48,17 +49,18 @@ let tests_Disposal =
           }
 
           ]
+#endif
 
 [<Tests>]
 let tests_parseSnippets =
     let expectValid =
         function
-        | Snippet.ConfigState.Valid entry -> entry
+        | File.ConfigState.Valid entry -> entry
         | _ -> failtest "Expected ConfigState.Valid but got a different state"
 
     let expectInvalid =
         function
-        | Snippet.ConfigState.Invalid entry -> entry
+        | File.ConfigState.Invalid entry -> entry
         | _ -> failtest "Expected ConfigState.Invalid but got a different state"
 
     testList
@@ -67,14 +69,14 @@ let tests_parseSnippets =
 
           test "when JSON is empty string" {
               ""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> _.IsEmpty
               |> Expect.equal "should return ConfigState.Empty" true
           }
 
           test "when JSON is null" {
               "null"
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -85,7 +87,7 @@ let tests_parseSnippets =
 
           test "when JSON is empty" {
               "{}"
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -95,7 +97,7 @@ let tests_parseSnippets =
 
           test "when JSON is broken" {
               "{"
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -108,7 +110,7 @@ let tests_parseSnippets =
 
           test "when JSON has null snippets" {
               """{"snippets":null}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -118,7 +120,7 @@ let tests_parseSnippets =
 
           test "when JSON has empty snippets" {
               """{"snippets":[]}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -128,7 +130,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippets without group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -141,7 +143,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippets" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -159,7 +161,7 @@ let tests_parseSnippets =
         {"snippet": "echo 'example'", "tooltip": "example tooltip"},
     ]
 }"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -172,7 +174,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippet that has null group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -185,7 +187,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippet that has group with disallowed characters" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -196,7 +198,7 @@ let tests_parseSnippets =
 
           test "when JSON has search case sensitive set to true" {
               """{"searchCaseSensitive": true, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return SearchCaseSensitive"
@@ -208,7 +210,7 @@ let tests_parseSnippets =
           }
           test "when JSON has search case sensitive set to null" {
               """{"searchCaseSensitive": null, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Snippet.parseSnippets
+              |> File.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return SearchCaseSensitive"
