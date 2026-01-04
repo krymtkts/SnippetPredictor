@@ -23,6 +23,7 @@ let tests_Dispose =
 
           ]
 
+#if DEBUG
 [<Tests>]
 let tests_Disposal =
     // NOTE: for coverage.
@@ -31,7 +32,7 @@ let tests_Disposal =
         [
 
           test "when not disposed" {
-              let flag = Snippet.Disposal.Flag()
+              let flag = Suggestion.Disposal.Flag()
               let mutable called = false
               flag.IfDisposed(fun () -> failtest "should not call the function disposed handler")
               flag.IfNotDisposed(fun () -> called <- true)
@@ -39,7 +40,7 @@ let tests_Disposal =
           }
 
           test "when disposed" {
-              let flag = Snippet.Disposal.Flag()
+              let flag = Suggestion.Disposal.Flag()
               let mutable called = false
               flag.TryMarkDisposed() |> ignore
               flag.IfDisposed(fun () -> called <- true)
@@ -48,17 +49,18 @@ let tests_Disposal =
           }
 
           ]
+#endif
 
 [<Tests>]
 let tests_parseSnippets =
     let expectValid =
         function
-        | Snippet.ConfigState.Valid entry -> entry
+        | Config.ConfigState.Valid entry -> entry
         | _ -> failtest "Expected ConfigState.Valid but got a different state"
 
     let expectInvalid =
         function
-        | Snippet.ConfigState.Invalid entry -> entry
+        | Config.ConfigState.Invalid entry -> entry
         | _ -> failtest "Expected ConfigState.Invalid but got a different state"
 
     testList
@@ -67,14 +69,14 @@ let tests_parseSnippets =
 
           test "when JSON is empty string" {
               ""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> _.IsEmpty
               |> Expect.equal "should return ConfigState.Empty" true
           }
 
           test "when JSON is null" {
               "null"
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -85,7 +87,7 @@ let tests_parseSnippets =
 
           test "when JSON is empty" {
               "{}"
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -95,7 +97,7 @@ let tests_parseSnippets =
 
           test "when JSON is broken" {
               "{"
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -108,7 +110,7 @@ let tests_parseSnippets =
 
           test "when JSON has null snippets" {
               """{"snippets":null}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -118,7 +120,7 @@ let tests_parseSnippets =
 
           test "when JSON has empty snippets" {
               """{"snippets":[]}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -128,7 +130,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippets without group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -141,7 +143,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippets" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -159,7 +161,7 @@ let tests_parseSnippets =
         {"snippet": "echo 'example'", "tooltip": "example tooltip"},
     ]
 }"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -172,7 +174,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippet that has null group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -185,7 +187,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippet that has group with disallowed characters" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -196,7 +198,7 @@ let tests_parseSnippets =
 
           test "when JSON has search case sensitive set to true" {
               """{"searchCaseSensitive": true, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return SearchCaseSensitive"
@@ -208,7 +210,7 @@ let tests_parseSnippets =
           }
           test "when JSON has search case sensitive set to null" {
               """{"searchCaseSensitive": null, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Snippet.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return SearchCaseSensitive"
@@ -232,7 +234,7 @@ module getSnippet =
             [
 
               test "when env var is set" {
-                  Snippet.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
+                  Config.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
                   |> Expect.equal
                       "should return the path based on env var."
                       (".", $".{PathSeparator}.snippet-predictor.json")
@@ -241,7 +243,7 @@ module getSnippet =
               test "when env var is null" {
                   let userProfile = "/Users/username"
 
-                  Snippet.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
+                  Config.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
                   |> Expect.equal
                       "should return the default path"
                       (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
@@ -250,7 +252,7 @@ module getSnippet =
               test "when env var is empty" {
                   let userProfile = "/Users/username"
 
-                  Snippet.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
+                  Config.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
                   |> Expect.equal
                       "should return the default path"
                       (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
@@ -263,7 +265,7 @@ module getPredictiveSuggestions =
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
-        let cache = new Snippet.Cache()
+        let cache = new Suggestion.Cache()
         cache.load (fun () -> "./", "./.snippet-predictor-valid.json")
 
         let expected1 =
@@ -391,7 +393,7 @@ module getPredictiveSuggestions =
 
     [<Tests>]
     let tests_Dispose =
-        let cache = new Snippet.Cache()
+        let cache = new Suggestion.Cache()
 
         testList
             "Cache.Dispose"
@@ -429,7 +431,7 @@ module CacheDisposeBehavior =
                 false)
 
     type CacheForTest(createWatcher: string * string -> FileSystemWatcher, onRefresh: string -> unit) =
-        inherit Snippet.Cache()
+        inherit Suggestion.Cache()
 
         override _.CreateWatcher(directory: string, filter: string) = createWatcher (directory, filter)
 
@@ -584,7 +586,7 @@ module CacheDisposeBehavior =
 
     [<Tests>]
     let tests_ChangedIsDebounced =
-        let testWithRelease (w: TestWatcher) (cache: Snippet.Cache) (filePath: string) (test: unit -> unit) =
+        let testWithRelease (w: TestWatcher) (cache: Suggestion.Cache) (filePath: string) (test: unit -> unit) =
             try
                 test ()
             finally
@@ -596,7 +598,7 @@ module CacheDisposeBehavior =
 
         let testTriggerAndRelease
             (w: TestWatcher)
-            (cache: Snippet.Cache)
+            (cache: Suggestion.Cache)
             (predicate: unit -> bool)
             (tmpDirPath: string)
             (fileName: string)
@@ -733,13 +735,13 @@ let tests_loadSnippets =
         [
 
           test "when snippet file is not found" {
-              Snippet.loadSnippets (fun () -> "./", "./not-found.json")
+              Store.loadSnippets (fun () -> "./", "./not-found.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.isEmpty "should return Empty"
           }
 
           test "when snippet file is invalid" {
-              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-invalid.json")
+              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-invalid.json")
               |> Expect.wantError "should return Error"
               |> Expect.equal
                   "should return Error entry"
@@ -747,13 +749,13 @@ let tests_loadSnippets =
           }
 
           test "when snippet file is valid and null" {
-              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-null.json")
+              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-null.json")
               |> Expect.wantError "should return Error"
               |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
           }
 
           test "when snippet file is valid and snippets is null" {
-              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-snippet-null.json")
+              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-snippet-null.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.isEmpty "should return Empty"
           }
@@ -774,7 +776,7 @@ let tests_loadSnippets =
 
                      |]
 
-              Snippet.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
+              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.equal "should return snippets" expected
           }
@@ -798,7 +800,7 @@ module addAndRemoveSnippets =
                   [ { SnippetEntry.Snippet = "echo '1'"
                       SnippetEntry.Tooltip = "1 tooltip"
                       SnippetEntry.Group = null } ]
-                  |> Snippet.addSnippets (fun () -> tmpDir, path)
+                  |> Store.addSnippets (fun () -> tmpDir, path)
                   |> Expect.wantError "should return Error"
                   |> Expect.equal "should return Error" $"Could not find a part of the path '{path}'."
               }
@@ -810,7 +812,7 @@ module addAndRemoveSnippets =
                   [ { SnippetEntry.Snippet = "echo '1'"
                       SnippetEntry.Tooltip = "1 tooltip"
                       SnippetEntry.Group = null } ]
-                  |> Snippet.addSnippets (fun () -> tmp.Path, path)
+                  |> Store.addSnippets (fun () -> tmp.Path, path)
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return Ok" ()
 
@@ -837,7 +839,7 @@ module addAndRemoveSnippets =
                   [ { SnippetEntry.Snippet = "echo '2'"
                       SnippetEntry.Tooltip = "2 tooltip"
                       SnippetEntry.Group = null } ]
-                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> Store.addSnippets tmp.GetSnippetPath
                   |> Expect.wantError "should return Error"
                   |> Expect.equal
                       "should return Error entry"
@@ -850,7 +852,7 @@ module addAndRemoveSnippets =
                   [| { SnippetEntry.Snippet = "echo '3'"
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
-                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> Store.addSnippets tmp.GetSnippetPath
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return snippets" ()
 
@@ -877,7 +879,7 @@ module addAndRemoveSnippets =
                   [| { SnippetEntry.Snippet = "echo '3'"
                        SnippetEntry.Tooltip = "3 tooltip"
                        SnippetEntry.Group = null } |]
-                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> Store.addSnippets tmp.GetSnippetPath
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return snippets" ()
 
@@ -904,7 +906,7 @@ module addAndRemoveSnippets =
                   [| { SnippetEntry.Snippet = "echo '4'"
                        SnippetEntry.Tooltip = "4 tooltip"
                        SnippetEntry.Group = "group4" } |]
-                  |> Snippet.addSnippets tmp.GetSnippetPath
+                  |> Store.addSnippets tmp.GetSnippetPath
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return snippets" ()
 
@@ -939,7 +941,7 @@ module addAndRemoveSnippets =
                   let path = Path.Combine(tmp.Path, "not-found.json")
 
                   [ "echo '1'" ]
-                  |> Snippet.removeSnippets (fun () -> tmp.Path, path)
+                  |> Store.removeSnippets (fun () -> tmp.Path, path)
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return Ok" ()
 
@@ -951,7 +953,7 @@ module addAndRemoveSnippets =
                   use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
 
                   [ "echo '2'" ]
-                  |> Snippet.removeSnippets tmp.GetSnippetPath
+                  |> Store.removeSnippets tmp.GetSnippetPath
                   |> Expect.wantError "should return Error"
                   |> Expect.equal
                       "should return Error entry"
@@ -966,7 +968,7 @@ module addAndRemoveSnippets =
                       )
 
                   [ "echo '1'"; "echo '3'"; "echo '3'" ]
-                  |> Snippet.removeSnippets tmp.GetSnippetPath
+                  |> Store.removeSnippets tmp.GetSnippetPath
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return snippets" ()
 

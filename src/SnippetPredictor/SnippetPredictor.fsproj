@@ -21,9 +21,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Snippet.fsi" />
-    <Compile Include="Snippet.fs" />
-    <Compile Include="Library.fs" />
+    <Compile Include="Debug.fs" Condition=" '$(Configuration)' == 'Debug' " />
+    <Compile Include="Data.fs" />
+    <Compile Include="Config.fsi" />
+    <Compile Include="Config.fs" />
+    <Compile Include="Suggestion.fsi" />
+    <Compile Include="Suggestion.fs" />
+    <Compile Include="Store.fsi" />
+    <Compile Include="Store.fs" />
+    <Compile Include="Predictor.fs" />
+    <Compile Include="Cmdlet.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,168 +1,16 @@
 ﻿namespace SnippetPredictor
 
-open System
-open System.IO
-open System.Text.Json
-open System.Text.Json.Serialization
-open System.Text.RegularExpressions
-
-#if DEBUG
-[<AutoOpen>]
-module Debug =
-    open System.Runtime.CompilerServices
-    open System.Runtime.InteropServices
-
-    let lockObj = new obj ()
-
-    [<Literal>]
-    let logPath = "./debug.log"
-
-    [<AbstractClass; Sealed>]
-    type Logger =
-        static member LogFile
-            (
-                res,
-                [<Optional; DefaultParameterValue(""); CallerMemberName>] caller: string,
-                [<CallerFilePath; Optional; DefaultParameterValue("")>] path: string,
-                [<CallerLineNumber; Optional; DefaultParameterValue(0)>] line: int
-            ) =
-
-            // NOTE: lock to avoid another process error when dotnet test.
-            lock lockObj (fun () ->
-                use sw = new StreamWriter(logPath, true)
-
-                res
-                |> List.iter (
-                    fprintfn
-                        sw
-                        "[%s] %s at %d %s <%A>"
-                        (DateTimeOffset.Now.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz"))
-                        path
-                        line
-                        caller
-                ))
-#endif
-
-module Nullable =
-    let dispose (d: 'a | null when 'a :> IDisposable) =
-        d
-        |> function
-            | null -> ()
-            | p -> (p :> IDisposable).Dispose()
-
-// NOTE: A static let generates unreachable code, so this module is used instead for coverage.
-module Group =
-    [<Literal>]
-    let pattern = "^[A-Za-z0-9]+$"
-
-    let regex = Regex(pattern)
-
-type GroupJsonConverter() =
-    inherit JsonConverter<string>()
-
-    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
-        reader.GetString()
-        |> function
-            | null -> "" // NOTE: unreachable when JsonIgnoreCondition.WhenWritingNull is used.
-            | value when Group.regex.IsMatch(value) -> value
-            | value -> JsonException(sprintf "Invalid characters in group: %s" value) |> raise
-
-    override _.Write(writer: Utf8JsonWriter, value: string, options: JsonSerializerOptions) =
-        value |> writer.WriteStringValue
-
-type SnippetEntry =
-    { Snippet: string
-      Tooltip: string
-      [<JsonConverter(typeof<GroupJsonConverter>)>]
-      [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
-      Group: string | null }
-
-type SearchCaseSensitiveJsonConverter() =
-    inherit JsonConverter<bool>()
-
-    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, options: JsonSerializerOptions) =
-        if reader.TokenType = JsonTokenType.Null then
-            false
-        else
-            reader.GetBoolean()
-
-    override _.Write(writer: Utf8JsonWriter, value: bool, options: JsonSerializerOptions) =
-        value |> writer.WriteBooleanValue
-
-type SnippetConfig =
-    { [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
-      SearchCaseSensitive: bool
-      Snippets: SnippetEntry array | null }
-
-module Snippet =
+module Suggestion =
+    open System
     open System.Collections
-    open System.Management.Automation
+    open System.IO
     open System.Management.Automation.Subsystem.Prediction
+    open System.Text.RegularExpressions
     open System.Threading
-    open System.Text.Encodings.Web
 
-    [<Literal>]
-    let name = "Snippet"
+    open Config
 
-    [<Literal>]
-    let snippetFilesName = ".snippet-predictor.json"
-
-    [<Literal>]
-    let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
-
-    let readSnippetFile (path: string) =
-        task {
-            // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
-            use fs =
-                new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
-
-            use sr = new StreamReader(fs)
-            return! sr.ReadToEndAsync()
-        }
-
-    let makeEntry (snippet: string) (tooltip: string) =
-        { Snippet = $"'{snippet}'"
-          Tooltip = tooltip
-          Group = null }
-
-    [<RequireQualifiedAccess>]
-    [<NoEquality>]
-    [<NoComparison>]
-    type ConfigState =
-        | Empty
-        | Valid of SnippetConfig
-        | Invalid of SnippetEntry
-
-    let jsonOptions =
-        JsonSerializerOptions(
-            AllowTrailingCommas = true,
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            PropertyNameCaseInsensitive = true,
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            WriteIndented = true
-        )
-
-    let parseSnippets (json: string) =
-        try
-            json.Trim()
-            |> function
-                | json when String.length json = 0 -> ConfigState.Empty
-                | json ->
-                    JsonSerializer.Deserialize<SnippetConfig>(json, jsonOptions)
-                    |> function
-                        | null ->
-                            makeEntry $"{snippetFilesName} is null or invalid format." ""
-                            |> ConfigState.Invalid
-                        | snippets -> ConfigState.Valid snippets
-        with e ->
-            makeEntry $"An error occurred while parsing {snippetFilesName}" e.Message
-            |> ConfigState.Invalid
-
-    let parseSnippetFile (path: string) =
-        task {
-            let! json = readSnippetFile path
-            return parseSnippets json
-        }
+    let getSnippetPath = Config.getSnippetPath
 
     module CaseSensitivity =
         [<Literal>]
@@ -377,7 +225,7 @@ module Snippet =
 
         let rec startFileWatchingEvent (directory: string) =
             disposed.IfNotDisposed(fun () ->
-                let w = __.CreateWatcher(directory, snippetFilesName)
+                let w = __.CreateWatcher(directory, Config.snippetFilesName)
 
                 w.EnableRaisingEvents <- true
                 w.IncludeSubdirectories <- false
@@ -511,95 +359,3 @@ module Snippet =
                     exchangeAndDisposeWatcher null
                     refreshCts.Dispose()
                     semaphore.Dispose()
-
-    let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
-        let snippetDirectory =
-            // NOTE: Split branches to narrow the type (string | null)
-            match getEnvironmentVariable environmentVariable with
-            | null -> getUserProfilePath ()
-            | path when String.length path = 0 -> getUserProfilePath ()
-            | path -> path
-
-        snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
-
-    let getSnippetPath () =
-        getSnippetPathWith Environment.GetEnvironmentVariable
-        <| fun () -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-
-    let toError (e: SnippetEntry) =
-        if String.IsNullOrEmpty e.Tooltip then
-            e.Snippet
-        else
-            $"{e.Snippet}: {e.Tooltip}"
-        |> Error
-
-    let loadConfig (getSnippetPath: unit -> string * string) =
-        let snippetPath = getSnippetPath () |> snd
-
-        if snippetPath |> (File.Exists >> not) then
-            ConfigState.Empty
-        else
-            snippetPath |> parseSnippetFile |> _.Result
-
-    let makeErrorRecord (e: string) =
-        new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
-
-    let makeSnippetEntry (snippet: string) (tooltip: string) (group: string | null) =
-        { Snippet = snippet
-          Tooltip = tooltip
-          Group = group }
-
-    let storeConfig getSnippetPath (config: SnippetConfig) =
-        let json = JsonSerializer.Serialize(config, jsonOptions)
-        let snippetPath = getSnippetPath () |> snd
-
-        try
-            File.WriteAllText(snippetPath, json)
-            Ok()
-        with e ->
-            e.Message |> Error
-
-    let loadSnippets getSnippetPath =
-        loadConfig getSnippetPath
-        |> function
-            | ConfigState.Empty -> Array.empty |> Ok
-            | ConfigState.Valid snippets ->
-                snippets
-                |> _.Snippets
-                |> function
-                    | null -> Array.empty |> Ok
-                    | snps -> snps |> Ok
-            | ConfigState.Invalid e -> e |> toError
-
-    let addSnippets getSnippetPath (snippets: SnippetEntry seq) =
-        loadConfig getSnippetPath
-        |> function
-            | ConfigState.Empty ->
-                { SearchCaseSensitive = false
-                  Snippets = Array.ofSeq snippets }
-                |> storeConfig getSnippetPath
-            | ConfigState.Valid config ->
-                let newSnippets =
-                    config.Snippets
-                    |> function
-                        | null -> Array.ofSeq snippets
-                        | snps -> Array.append snps <| Array.ofSeq snippets
-
-                { config with Snippets = newSnippets } |> storeConfig getSnippetPath
-            | ConfigState.Invalid e -> e |> toError
-
-    let removeSnippets getSnippetPath (snippets: string seq) =
-        loadConfig getSnippetPath
-        |> function
-            | ConfigState.Empty -> Ok()
-            | ConfigState.Valid config ->
-                let newSnippets =
-                    config.Snippets
-                    |> function
-                        | null -> Array.empty
-                        | snps ->
-                            let removals = set snippets
-                            snps |> Array.filter (_.Snippet >> removals.Contains >> not)
-
-                { config with Snippets = newSnippets } |> storeConfig getSnippetPath
-            | ConfigState.Invalid e -> e |> toError
