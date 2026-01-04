@@ -1,6 +1,7 @@
 ﻿namespace SnippetPredictor
 
 module File =
+    open System
     open System.IO
     open System.Text.Json
     open System.Text.Encodings.Web
@@ -64,6 +65,20 @@ module File =
             let! json = readSnippetFile path
             return parseSnippets json
         }
+
+    let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
+        let snippetDirectory =
+            // NOTE: Split branches to narrow the type (string | null)
+            match getEnvironmentVariable environmentVariable with
+            | null -> getUserProfilePath ()
+            | path when String.length path = 0 -> getUserProfilePath ()
+            | path -> path
+
+        snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
+
+    let getSnippetPath () =
+        getSnippetPathWith Environment.GetEnvironmentVariable
+        <| fun () -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 
     let storeConfig getSnippetPath (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)

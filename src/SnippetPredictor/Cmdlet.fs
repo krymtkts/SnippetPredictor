@@ -9,13 +9,13 @@ type GetSnippetCommand() =
     inherit Cmdlet()
 
     abstract member GetSnippetPath: unit -> string * string
-    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+    default __.GetSnippetPath() = Store.getSnippetPath ()
 
     override __.EndProcessing() =
-        Snippet.loadSnippets __.GetSnippetPath
+        Store.loadSnippets __.GetSnippetPath
         |> function
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
-            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
+            | Error e -> e |> Store.makeErrorRecord |> __.WriteError
 
 [<Cmdlet(VerbsCommon.Add, Snippet.name)>]
 type AddSnippetCommand() =
@@ -44,17 +44,17 @@ type AddSnippetCommand() =
     member val Group: string | null = null with get, set
 
     abstract member GetSnippetPath: unit -> string * string
-    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+    default __.GetSnippetPath() = File.getSnippetPath ()
 
     override __.ProcessRecord() =
-        Snippet.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
+        Store.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.addSnippets __.GetSnippetPath
+        |> Store.addSnippets __.GetSnippetPath
         |> function
             | Ok() -> ()
-            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
+            | Error e -> e |> Store.makeErrorRecord |> __.WriteError
 
 [<Cmdlet(VerbsCommon.Remove, Snippet.name)>]
 type RemoveSnippetCommand() =
@@ -70,13 +70,13 @@ type RemoveSnippetCommand() =
     member val Snippet = "" with get, set
 
     abstract member GetSnippetPath: unit -> string * string
-    default __.GetSnippetPath() = Snippet.getSnippetPath ()
+    default __.GetSnippetPath() = File.getSnippetPath ()
 
     override __.ProcessRecord() = __.Snippet |> snippets.Add
 
     override __.EndProcessing() =
         snippets
-        |> Snippet.removeSnippets __.GetSnippetPath
+        |> Store.removeSnippets __.GetSnippetPath
         |> function
             | Ok() -> ()
-            | Error e -> e |> Snippet.makeErrorRecord |> __.WriteError
+            | Error e -> e |> Store.makeErrorRecord |> __.WriteError

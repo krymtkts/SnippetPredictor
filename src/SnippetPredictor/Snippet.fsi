@@ -29,19 +29,4 @@ module Snippet =
 
         member load: getSnippetPath: (unit -> string * string) -> unit
 
-    val getSnippetPathWith:
-        getEnvironmentVariable: (string -> string | null) -> getUserProfilePath: (unit -> string) -> string * string
-
-    val getSnippetPath: unit -> string * string
-
-    val loadConfig: getSnippetPath: (unit -> string * string) -> File.ConfigState
-
-    val makeErrorRecord: e: string -> System.Management.Automation.ErrorRecord
-
-    val makeSnippetEntry: snippet: string -> tooltip: string -> group: string | null -> SnippetEntry
-
-    val loadSnippets: getSnippetPath: (unit -> string * string) -> Result<SnippetEntry array, string>
-
-    val addSnippets: getSnippetPath: (unit -> string * string) -> snippets: SnippetEntry seq -> Result<unit, string>
-
-    val removeSnippets: getSnippetPath: (unit -> string * string) -> snippets: string seq -> Result<unit, string>
+    val getSnippetPath: (unit -> string * string)

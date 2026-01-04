@@ -20,4 +20,9 @@ module File =
 
     val parseSnippetFile: path: string -> Task<ConfigState>
 
+    val getSnippetPathWith:
+        getEnvironmentVariable: (string -> string | null) -> getUserProfilePath: (unit -> string) -> string * string
+
+    val getSnippetPath: unit -> string * string
+
     val storeConfig: (unit -> 'a * string) -> SnippetConfig -> Result<unit, string>

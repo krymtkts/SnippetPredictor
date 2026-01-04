@@ -1,18 +1,19 @@
 ﻿namespace SnippetPredictor
 
-open System
-open System.IO
-open System.Text.RegularExpressions
-
 module Snippet =
+    open System
+    open System.Collections
+    open System.IO
+    open System.Management.Automation.Subsystem.Prediction
+    open System.Text.RegularExpressions
+    open System.Threading
+
+    open File
+
     [<Literal>]
     let name = "Snippet"
 
-    open System.Collections
-    open System.Management.Automation
-    open System.Management.Automation.Subsystem.Prediction
-    open System.Threading
-    open File
+    let getSnippetPath = File.getSnippetPath
 
     module CaseSensitivity =
         [<Literal>]
@@ -361,85 +362,3 @@ module Snippet =
                     exchangeAndDisposeWatcher null
                     refreshCts.Dispose()
                     semaphore.Dispose()
-
-    let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
-        let snippetDirectory =
-            // NOTE: Split branches to narrow the type (string | null)
-            match getEnvironmentVariable environmentVariable with
-            | null -> getUserProfilePath ()
-            | path when String.length path = 0 -> getUserProfilePath ()
-            | path -> path
-
-        snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
-
-    let getSnippetPath () =
-        getSnippetPathWith Environment.GetEnvironmentVariable
-        <| fun () -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-
-    let toError (e: SnippetEntry) =
-        if String.IsNullOrEmpty e.Tooltip then
-            e.Snippet
-        else
-            $"{e.Snippet}: {e.Tooltip}"
-        |> Error
-
-    let loadConfig (getSnippetPath: unit -> string * string) =
-        let snippetPath = getSnippetPath () |> snd
-
-        if snippetPath |> (File.Exists >> not) then
-            ConfigState.Empty
-        else
-            snippetPath |> parseSnippetFile |> _.Result
-
-    let makeErrorRecord (e: string) =
-        new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
-
-    let makeSnippetEntry (snippet: string) (tooltip: string) (group: string | null) =
-        { Snippet = snippet
-          Tooltip = tooltip
-          Group = group }
-
-    let loadSnippets getSnippetPath =
-        loadConfig getSnippetPath
-        |> function
-            | ConfigState.Empty -> Array.empty |> Ok
-            | ConfigState.Valid snippets ->
-                snippets
-                |> _.Snippets
-                |> function
-                    | null -> Array.empty |> Ok
-                    | snps -> snps |> Ok
-            | ConfigState.Invalid e -> e |> toError
-
-    let addSnippets getSnippetPath (snippets: SnippetEntry seq) =
-        loadConfig getSnippetPath
-        |> function
-            | ConfigState.Empty ->
-                { SearchCaseSensitive = false
-                  Snippets = Array.ofSeq snippets }
-                |> storeConfig getSnippetPath
-            | ConfigState.Valid config ->
-                let newSnippets =
-                    config.Snippets
-                    |> function
-                        | null -> Array.ofSeq snippets
-                        | snps -> Array.append snps <| Array.ofSeq snippets
-
-                { config with Snippets = newSnippets } |> storeConfig getSnippetPath
-            | ConfigState.Invalid e -> e |> toError
-
-    let removeSnippets getSnippetPath (snippets: string seq) =
-        loadConfig getSnippetPath
-        |> function
-            | ConfigState.Empty -> Ok()
-            | ConfigState.Valid config ->
-                let newSnippets =
-                    config.Snippets
-                    |> function
-                        | null -> Array.empty
-                        | snps ->
-                            let removals = set snippets
-                            snps |> Array.filter (_.Snippet >> removals.Contains >> not)
-
-                { config with Snippets = newSnippets } |> storeConfig getSnippetPath
-            | ConfigState.Invalid e -> e |> toError

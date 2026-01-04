@@ -27,6 +27,8 @@
     <Compile Include="File.fs" />
     <Compile Include="Snippet.fsi" />
     <Compile Include="Snippet.fs" />
+    <Compile Include="Store.fsi" />
+    <Compile Include="Store.fs" />
     <Compile Include="Predictor.fs" />
     <Compile Include="Cmdlet.fs" />
   </ItemGroup>
