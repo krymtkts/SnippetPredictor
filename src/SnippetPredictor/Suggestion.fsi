@@ -1,6 +1,6 @@
 namespace SnippetPredictor
 
-module Snippet =
+module Suggestion =
     [<Literal>]
     val name: string = "Snippet"
 

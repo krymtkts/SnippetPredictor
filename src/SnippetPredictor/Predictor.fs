@@ -11,12 +11,12 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
-    let name = Snippet.name
+    let name = Suggestion.name
 
     [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
 
-    let cache = new Snippet.Cache()
+    let cache = new Suggestion.Cache()
 
     do cache.load getSnippetPath
 
@@ -59,7 +59,7 @@ type Init() =
 
     interface IModuleAssemblyInitializer with
         member __.OnImport() =
-            let p = new SnippetPredictor(identifier, Snippet.getSnippetPath)
+            let p = new SnippetPredictor(identifier, Suggestion.getSnippetPath)
             SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, p)
             predictor <- p
 

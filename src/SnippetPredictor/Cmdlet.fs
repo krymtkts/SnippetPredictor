@@ -3,7 +3,7 @@
 open System.Collections.Generic
 open System.Management.Automation
 
-[<Cmdlet(VerbsCommon.Get, Snippet.name)>]
+[<Cmdlet(VerbsCommon.Get, Suggestion.name)>]
 [<OutputType(typeof<SnippetEntry>)>]
 type GetSnippetCommand() =
     inherit Cmdlet()
@@ -17,7 +17,7 @@ type GetSnippetCommand() =
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Store.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Add, Snippet.name)>]
+[<Cmdlet(VerbsCommon.Add, Suggestion.name)>]
 type AddSnippetCommand() =
     inherit Cmdlet()
 
@@ -56,7 +56,7 @@ type AddSnippetCommand() =
             | Ok() -> ()
             | Error e -> e |> Store.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Remove, Snippet.name)>]
+[<Cmdlet(VerbsCommon.Remove, Suggestion.name)>]
 type RemoveSnippetCommand() =
     inherit Cmdlet()
 

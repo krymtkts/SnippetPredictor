@@ -1,6 +1,6 @@
 ﻿namespace SnippetPredictor
 
-module Snippet =
+module Suggestion =
     open System
     open System.Collections
     open System.IO

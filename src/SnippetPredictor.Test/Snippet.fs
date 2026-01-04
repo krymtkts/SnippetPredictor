@@ -32,7 +32,7 @@ let tests_Disposal =
         [
 
           test "when not disposed" {
-              let flag = Snippet.Disposal.Flag()
+              let flag = Suggestion.Disposal.Flag()
               let mutable called = false
               flag.IfDisposed(fun () -> failtest "should not call the function disposed handler")
               flag.IfNotDisposed(fun () -> called <- true)
@@ -40,7 +40,7 @@ let tests_Disposal =
           }
 
           test "when disposed" {
-              let flag = Snippet.Disposal.Flag()
+              let flag = Suggestion.Disposal.Flag()
               let mutable called = false
               flag.TryMarkDisposed() |> ignore
               flag.IfDisposed(fun () -> called <- true)
@@ -265,7 +265,7 @@ module getPredictiveSuggestions =
 
     [<Tests>]
     let tests_getPredictiveSuggestions =
-        let cache = new Snippet.Cache()
+        let cache = new Suggestion.Cache()
         cache.load (fun () -> "./", "./.snippet-predictor-valid.json")
 
         let expected1 =
@@ -393,7 +393,7 @@ module getPredictiveSuggestions =
 
     [<Tests>]
     let tests_Dispose =
-        let cache = new Snippet.Cache()
+        let cache = new Suggestion.Cache()
 
         testList
             "Cache.Dispose"
@@ -431,7 +431,7 @@ module CacheDisposeBehavior =
                 false)
 
     type CacheForTest(createWatcher: string * string -> FileSystemWatcher, onRefresh: string -> unit) =
-        inherit Snippet.Cache()
+        inherit Suggestion.Cache()
 
         override _.CreateWatcher(directory: string, filter: string) = createWatcher (directory, filter)
 
@@ -586,7 +586,7 @@ module CacheDisposeBehavior =
 
     [<Tests>]
     let tests_ChangedIsDebounced =
-        let testWithRelease (w: TestWatcher) (cache: Snippet.Cache) (filePath: string) (test: unit -> unit) =
+        let testWithRelease (w: TestWatcher) (cache: Suggestion.Cache) (filePath: string) (test: unit -> unit) =
             try
                 test ()
             finally
@@ -598,7 +598,7 @@ module CacheDisposeBehavior =
 
         let testTriggerAndRelease
             (w: TestWatcher)
-            (cache: Snippet.Cache)
+            (cache: Suggestion.Cache)
             (predicate: unit -> bool)
             (tmpDirPath: string)
             (fileName: string)

@@ -328,7 +328,7 @@ module SnippetPredictorInitialization =
         SubsystemManager.GetAllSubsystemInfo()
         |> Seq.filter (fun x -> x.Kind = SubsystemKind.CommandPredictor)
         |> Seq.collect _.Implementations
-        |> Seq.filter (fun x -> x.Name = Snippet.name)
+        |> Seq.filter (fun x -> x.Name = Suggestion.name)
         |> Seq.tryHead
 
     [<Tests>]
