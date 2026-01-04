@@ -10,9 +10,6 @@ module Suggestion =
 
     open Config
 
-    [<Literal>]
-    let name = "Snippet"
-
     let getSnippetPath = Config.getSnippetPath
 
     module CaseSensitivity =

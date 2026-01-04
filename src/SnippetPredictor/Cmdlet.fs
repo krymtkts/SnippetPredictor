@@ -3,7 +3,7 @@
 open System.Collections.Generic
 open System.Management.Automation
 
-[<Cmdlet(VerbsCommon.Get, Suggestion.name)>]
+[<Cmdlet(VerbsCommon.Get, Noun.snippet)>]
 [<OutputType(typeof<SnippetEntry>)>]
 type GetSnippetCommand() =
     inherit Cmdlet()
@@ -17,7 +17,7 @@ type GetSnippetCommand() =
             | Ok snippets -> snippets |> Seq.iter __.WriteObject
             | Error e -> e |> Store.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Add, Suggestion.name)>]
+[<Cmdlet(VerbsCommon.Add, Noun.snippet)>]
 type AddSnippetCommand() =
     inherit Cmdlet()
 
@@ -44,7 +44,7 @@ type AddSnippetCommand() =
     member val Group: string | null = null with get, set
 
     abstract member GetSnippetPath: unit -> string * string
-    default __.GetSnippetPath() = Config.getSnippetPath ()
+    default __.GetSnippetPath() = Store.getSnippetPath ()
 
     override __.ProcessRecord() =
         Store.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
@@ -56,7 +56,7 @@ type AddSnippetCommand() =
             | Ok() -> ()
             | Error e -> e |> Store.makeErrorRecord |> __.WriteError
 
-[<Cmdlet(VerbsCommon.Remove, Suggestion.name)>]
+[<Cmdlet(VerbsCommon.Remove, Noun.snippet)>]
 type RemoveSnippetCommand() =
     inherit Cmdlet()
 
@@ -70,7 +70,7 @@ type RemoveSnippetCommand() =
     member val Snippet = "" with get, set
 
     abstract member GetSnippetPath: unit -> string * string
-    default __.GetSnippetPath() = Config.getSnippetPath ()
+    default __.GetSnippetPath() = Store.getSnippetPath ()
 
     override __.ProcessRecord() = __.Snippet |> snippets.Add
 

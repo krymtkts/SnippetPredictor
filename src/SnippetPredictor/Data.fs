@@ -5,6 +5,10 @@ open System.Text.Json
 open System.Text.Json.Serialization
 open System.Text.RegularExpressions
 
+module Noun =
+    [<Literal>]
+    let snippet = "Snippet"
+
 module Nullable =
     let dispose (d: 'a | null when 'a :> IDisposable) =
         d

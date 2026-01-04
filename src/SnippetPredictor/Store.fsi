@@ -1,9 +1,6 @@
 namespace SnippetPredictor
 
 module Store =
-    [<Literal>]
-    val name: string = "Snippet"
-
     val getSnippetPath: (unit -> string * string)
 
     val loadConfig: getSnippetPath: (unit -> string * string) -> Config.ConfigState

@@ -1,8 +1,6 @@
 namespace SnippetPredictor
 
 module Suggestion =
-    [<Literal>]
-    val name: string = "Snippet"
 
 #if DEBUG
     module Disposal =

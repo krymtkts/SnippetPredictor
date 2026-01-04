@@ -11,9 +11,6 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
     let id = Guid.Parse(guid)
 
     [<Literal>]
-    let name = Suggestion.name
-
-    [<Literal>]
     let description = "A predictor that suggests a snippet based on the input."
 
     let cache = new Suggestion.Cache()
@@ -22,7 +19,7 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
 
     interface ICommandPredictor with
         member __.Id = id
-        member __.Name = name
+        member __.Name = Noun.snippet
         member __.Description: string = description
         member __.FunctionsToDefine: Dictionary<string, string> = Dictionary<string, string>()
 

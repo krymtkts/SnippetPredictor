@@ -7,9 +7,6 @@ module Store =
 
     open Config
 
-    [<Literal>]
-    let name = "Snippet"
-
     let getSnippetPath = Config.getSnippetPath
 
     let toError (e: SnippetEntry) =
