@@ -5,12 +5,12 @@ module Store =
     open System.IO
     open System.Management.Automation
 
-    open File
+    open Config
 
     [<Literal>]
     let name = "Snippet"
 
-    let getSnippetPath = File.getSnippetPath
+    let getSnippetPath = Config.getSnippetPath
 
     let toError (e: SnippetEntry) =
         if String.IsNullOrEmpty e.Tooltip then

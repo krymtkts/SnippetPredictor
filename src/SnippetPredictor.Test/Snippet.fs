@@ -55,12 +55,12 @@ let tests_Disposal =
 let tests_parseSnippets =
     let expectValid =
         function
-        | File.ConfigState.Valid entry -> entry
+        | Config.ConfigState.Valid entry -> entry
         | _ -> failtest "Expected ConfigState.Valid but got a different state"
 
     let expectInvalid =
         function
-        | File.ConfigState.Invalid entry -> entry
+        | Config.ConfigState.Invalid entry -> entry
         | _ -> failtest "Expected ConfigState.Invalid but got a different state"
 
     testList
@@ -69,14 +69,14 @@ let tests_parseSnippets =
 
           test "when JSON is empty string" {
               ""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> _.IsEmpty
               |> Expect.equal "should return ConfigState.Empty" true
           }
 
           test "when JSON is null" {
               "null"
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -87,7 +87,7 @@ let tests_parseSnippets =
 
           test "when JSON is empty" {
               "{}"
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -97,7 +97,7 @@ let tests_parseSnippets =
 
           test "when JSON is broken" {
               "{"
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -110,7 +110,7 @@ let tests_parseSnippets =
 
           test "when JSON has null snippets" {
               """{"snippets":null}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -120,7 +120,7 @@ let tests_parseSnippets =
 
           test "when JSON has empty snippets" {
               """{"snippets":[]}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -130,7 +130,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippets without group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -143,7 +143,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippets" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -161,7 +161,7 @@ let tests_parseSnippets =
         {"snippet": "echo 'example'", "tooltip": "example tooltip"},
     ]
 }"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -174,7 +174,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippet that has null group" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return ConfigState.Valid"
@@ -187,7 +187,7 @@ let tests_parseSnippets =
 
           test "when JSON has snippet that has group with disallowed characters" {
               """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectInvalid
               |> Expect.equal
                   "should return ConfigState.Invalid"
@@ -198,7 +198,7 @@ let tests_parseSnippets =
 
           test "when JSON has search case sensitive set to true" {
               """{"searchCaseSensitive": true, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return SearchCaseSensitive"
@@ -210,7 +210,7 @@ let tests_parseSnippets =
           }
           test "when JSON has search case sensitive set to null" {
               """{"searchCaseSensitive": null, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> File.parseSnippets
+              |> Config.parseSnippets
               |> expectValid
               |> Expect.equal
                   "should return SearchCaseSensitive"
@@ -234,7 +234,7 @@ module getSnippet =
             [
 
               test "when env var is set" {
-                  File.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
+                  Config.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
                   |> Expect.equal
                       "should return the path based on env var."
                       (".", $".{PathSeparator}.snippet-predictor.json")
@@ -243,7 +243,7 @@ module getSnippet =
               test "when env var is null" {
                   let userProfile = "/Users/username"
 
-                  File.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
+                  Config.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
                   |> Expect.equal
                       "should return the default path"
                       (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
@@ -252,7 +252,7 @@ module getSnippet =
               test "when env var is empty" {
                   let userProfile = "/Users/username"
 
-                  File.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
+                  Config.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
                   |> Expect.equal
                       "should return the default path"
                       (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")

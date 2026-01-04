@@ -44,7 +44,7 @@ type AddSnippetCommand() =
     member val Group: string | null = null with get, set
 
     abstract member GetSnippetPath: unit -> string * string
-    default __.GetSnippetPath() = File.getSnippetPath ()
+    default __.GetSnippetPath() = Config.getSnippetPath ()
 
     override __.ProcessRecord() =
         Store.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
@@ -70,7 +70,7 @@ type RemoveSnippetCommand() =
     member val Snippet = "" with get, set
 
     abstract member GetSnippetPath: unit -> string * string
-    default __.GetSnippetPath() = File.getSnippetPath ()
+    default __.GetSnippetPath() = Config.getSnippetPath ()
 
     override __.ProcessRecord() = __.Snippet |> snippets.Add
 

@@ -8,12 +8,12 @@ module Suggestion =
     open System.Text.RegularExpressions
     open System.Threading
 
-    open File
+    open Config
 
     [<Literal>]
     let name = "Snippet"
 
-    let getSnippetPath = File.getSnippetPath
+    let getSnippetPath = Config.getSnippetPath
 
     module CaseSensitivity =
         [<Literal>]
@@ -228,7 +228,7 @@ module Suggestion =
 
         let rec startFileWatchingEvent (directory: string) =
             disposed.IfNotDisposed(fun () ->
-                let w = __.CreateWatcher(directory, File.snippetFilesName)
+                let w = __.CreateWatcher(directory, Config.snippetFilesName)
 
                 w.EnableRaisingEvents <- true
                 w.IncludeSubdirectories <- false

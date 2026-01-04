@@ -1,6 +1,6 @@
 ﻿namespace SnippetPredictor
 
-module File =
+module Config =
     open System
     open System.IO
     open System.Text.Json

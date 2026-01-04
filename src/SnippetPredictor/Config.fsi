@@ -1,6 +1,6 @@
 namespace SnippetPredictor
 
-module File =
+module Config =
     open System.Threading.Tasks
 
     [<Literal>]

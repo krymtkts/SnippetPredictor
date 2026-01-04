@@ -6,7 +6,7 @@ module Store =
 
     val getSnippetPath: (unit -> string * string)
 
-    val loadConfig: getSnippetPath: (unit -> string * string) -> File.ConfigState
+    val loadConfig: getSnippetPath: (unit -> string * string) -> Config.ConfigState
 
     val makeErrorRecord: e: string -> System.Management.Automation.ErrorRecord
 
