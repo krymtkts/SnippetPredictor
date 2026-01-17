@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- NOTE: F# dependencies. -->
-    <PackageVersion Include="FSharp.Core" Version="10.0.101" />
+    <PackageVersion Include="FSharp.Core" Version="10.0.102" />
     <!-- NOTE: Analyzer dependencies. -->
     <PackageVersion Include="Ionide.Analyzers" Version="0.14.10" />
     <!-- NOTE: Test dependencies. -->
