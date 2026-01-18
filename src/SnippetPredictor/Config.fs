@@ -77,9 +77,11 @@ module Config =
 
         snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
 
+    let getUserProfilePath () =
+        Environment.GetFolderPath Environment.SpecialFolder.UserProfile
+
     let getSnippetPath () =
-        getSnippetPathWith Environment.GetEnvironmentVariable
-        <| fun () -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+        getSnippetPathWith Environment.GetEnvironmentVariable getUserProfilePath
 
     let storeConfig getSnippetPath (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)
