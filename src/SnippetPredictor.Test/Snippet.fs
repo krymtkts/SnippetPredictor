@@ -223,6 +223,8 @@ let tests_parseSnippets =
 
           ]
 
+#if DEBUG
+
 module getSnippet =
 
     let PathSeparator = Path.DirectorySeparatorChar
@@ -259,6 +261,7 @@ module getSnippet =
               }
 
               ]
+#endif
 
 module getPredictiveSuggestions =
     open System.Management.Automation.Subsystem.Prediction
