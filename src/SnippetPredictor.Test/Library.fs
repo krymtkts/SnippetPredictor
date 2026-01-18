@@ -56,7 +56,7 @@ let assertErrorRecord (expected: ErrorRecord) (e: ErrorRecord) =
     && e.TargetObject = expected.TargetObject
 
 module Cmdlets =
-    type AddSnippetCommandForTest(getSnippetPath: (unit -> string * string) option) =
+    type AddSnippetCommandForTest(getSnippetPath: (unit -> string) option) =
         inherit AddSnippetCommand()
 
         override __.GetSnippetPath() =
@@ -291,7 +291,7 @@ module Cmdlets =
 
               test "run successfully" {
                   use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
-                  use _ = new EnvironmentVariable(tmp.GetSnippetPath() |> fst)
+                  use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
 
                   let cmdlet = AddSnippetCommandForTest(None)
                   cmdlet.Snippet <- "Add-Snippet 'echo test'"

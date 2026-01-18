@@ -8,7 +8,7 @@ open System.Management.Automation
 type GetSnippetCommand() =
     inherit Cmdlet()
 
-    abstract member GetSnippetPath: unit -> string * string
+    abstract member GetSnippetPath: unit -> string
     default __.GetSnippetPath() = Store.getSnippetPath ()
 
     override __.EndProcessing() =
@@ -43,7 +43,7 @@ type AddSnippetCommand() =
     [<ValidatePattern(Group.pattern)>]
     member val Group: string | null = null with get, set
 
-    abstract member GetSnippetPath: unit -> string * string
+    abstract member GetSnippetPath: unit -> string
     default __.GetSnippetPath() = Store.getSnippetPath ()
 
     override __.ProcessRecord() =
@@ -69,7 +69,7 @@ type RemoveSnippetCommand() =
                 HelpMessage = "The text of the snippet to remove")>]
     member val Snippet = "" with get, set
 
-    abstract member GetSnippetPath: unit -> string * string
+    abstract member GetSnippetPath: unit -> string
     default __.GetSnippetPath() = Store.getSnippetPath ()
 
     override __.ProcessRecord() = __.Snippet |> snippets.Add

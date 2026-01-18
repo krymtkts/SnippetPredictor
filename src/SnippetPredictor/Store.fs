@@ -7,7 +7,7 @@ module Store =
 
     open Config
 
-    let getSnippetPath = Config.getSnippetPath
+    let getSnippetPath = Config.getSnippetPath >> snd
 
     let toError (e: SnippetEntry) =
         if String.IsNullOrEmpty e.Tooltip then
@@ -16,8 +16,8 @@ module Store =
             $"{e.Snippet}: {e.Tooltip}"
         |> Error
 
-    let loadConfig (getSnippetPath: unit -> string * string) =
-        let snippetPath = getSnippetPath () |> snd
+    let loadConfig (getSnippetPath: unit -> string) =
+        let snippetPath = getSnippetPath ()
 
         if snippetPath |> (File.Exists >> not) then
             ConfigState.Empty
@@ -44,7 +44,7 @@ module Store =
                     | snps -> snps |> Ok
             | ConfigState.Invalid e -> e |> toError
 
-    let addSnippets getSnippetPath (snippets: SnippetEntry seq) =
+    let addSnippets (getSnippetPath: (unit -> string)) (snippets: SnippetEntry seq) =
         loadConfig getSnippetPath
         |> function
             | ConfigState.Empty ->
@@ -61,7 +61,7 @@ module Store =
                 { config with Snippets = newSnippets } |> storeConfig getSnippetPath
             | ConfigState.Invalid e -> e |> toError
 
-    let removeSnippets getSnippetPath (snippets: string seq) =
+    let removeSnippets (getSnippetPath: (unit -> string)) (snippets: string seq) =
         loadConfig getSnippetPath
         |> function
             | ConfigState.Empty -> Ok()

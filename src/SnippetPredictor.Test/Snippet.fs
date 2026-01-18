@@ -735,13 +735,13 @@ let tests_loadSnippets =
         [
 
           test "when snippet file is not found" {
-              Store.loadSnippets (fun () -> "./", "./not-found.json")
+              Store.loadSnippets (fun () -> "./not-found.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.isEmpty "should return Empty"
           }
 
           test "when snippet file is invalid" {
-              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-invalid.json")
+              Store.loadSnippets (fun () -> "./.snippet-predictor-invalid.json")
               |> Expect.wantError "should return Error"
               |> Expect.equal
                   "should return Error entry"
@@ -749,13 +749,13 @@ let tests_loadSnippets =
           }
 
           test "when snippet file is valid and null" {
-              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-null.json")
+              Store.loadSnippets (fun () -> "./.snippet-predictor-null.json")
               |> Expect.wantError "should return Error"
               |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
           }
 
           test "when snippet file is valid and snippets is null" {
-              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-snippet-null.json")
+              Store.loadSnippets (fun () -> "./.snippet-predictor-snippet-null.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.isEmpty "should return Empty"
           }
@@ -776,7 +776,7 @@ let tests_loadSnippets =
 
                      |]
 
-              Store.loadSnippets (fun () -> "./", "./.snippet-predictor-valid.json")
+              Store.loadSnippets (fun () -> "./.snippet-predictor-valid.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.equal "should return snippets" expected
           }
@@ -800,7 +800,7 @@ module addAndRemoveSnippets =
                   [ { SnippetEntry.Snippet = "echo '1'"
                       SnippetEntry.Tooltip = "1 tooltip"
                       SnippetEntry.Group = null } ]
-                  |> Store.addSnippets (fun () -> tmpDir, path)
+                  |> Store.addSnippets (fun () -> path)
                   |> Expect.wantError "should return Error"
                   |> Expect.equal "should return Error" $"Could not find a part of the path '{path}'."
               }
@@ -812,7 +812,7 @@ module addAndRemoveSnippets =
                   [ { SnippetEntry.Snippet = "echo '1'"
                       SnippetEntry.Tooltip = "1 tooltip"
                       SnippetEntry.Group = null } ]
-                  |> Store.addSnippets (fun () -> tmp.Path, path)
+                  |> Store.addSnippets (fun () -> path)
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return Ok" ()
 
@@ -941,7 +941,7 @@ module addAndRemoveSnippets =
                   let path = Path.Combine(tmp.Path, "not-found.json")
 
                   [ "echo '1'" ]
-                  |> Store.removeSnippets (fun () -> tmp.Path, path)
+                  |> Store.removeSnippets (fun () -> path)
                   |> Expect.wantOk "should return Ok"
                   |> Expect.equal "should return Ok" ()
 

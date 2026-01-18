@@ -83,9 +83,9 @@ module Config =
     let getSnippetPath () =
         getSnippetPathWith Environment.GetEnvironmentVariable getUserProfilePath
 
-    let storeConfig getSnippetPath (config: SnippetConfig) =
+    let storeConfig (getSnippetPath: unit -> string) (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)
-        let snippetPath = getSnippetPath () |> snd
+        let snippetPath = getSnippetPath ()
 
         try
             File.WriteAllText(snippetPath, json)

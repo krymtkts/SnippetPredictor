@@ -27,4 +27,4 @@ module Config =
 
     val getSnippetPath: unit -> string * string
 
-    val storeConfig: (unit -> 'a * string) -> SnippetConfig -> Result<unit, string>
+    val storeConfig: getSnippetPath: (unit -> string) -> SnippetConfig -> Result<unit, string>
