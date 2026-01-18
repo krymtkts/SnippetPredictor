@@ -49,7 +49,6 @@ let tests_Disposal =
           }
 
           ]
-#endif
 
 [<Tests>]
 let tests_parseSnippets =
@@ -222,8 +221,6 @@ let tests_parseSnippets =
           }
 
           ]
-
-#if DEBUG
 
 module getSnippet =
 

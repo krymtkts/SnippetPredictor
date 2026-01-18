@@ -15,8 +15,9 @@ module Config =
         | Valid of config: SnippetConfig
         | Invalid of errorEntry: ErrorEntry
 
-    // TODO: currently visible for testing.
+#if DEBUG
     val parseSnippets: json: string -> ConfigState
+#endif
 
     val parseSnippetFile: path: string -> Task<ConfigState>
 
