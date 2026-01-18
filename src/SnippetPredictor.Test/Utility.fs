@@ -24,7 +24,9 @@ type TempFile(fileName: string, content: string) =
     interface IDisposable with
         member __.Dispose() = (directory :> IDisposable).Dispose()
 
-    member __.GetSnippetPath() = directory.Path, path
+    member __.GetSnippetDirectoryPath() = directory.Path
+
+    member __.GetSnippetPath() = path
 
     member __.GetSnippetContent() =
         File.ReadAllText(path) |> normalizeNewlines

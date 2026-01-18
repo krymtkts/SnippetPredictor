@@ -56,7 +56,7 @@ let assertErrorRecord (expected: ErrorRecord) (e: ErrorRecord) =
     && e.TargetObject = expected.TargetObject
 
 module Cmdlets =
-    type AddSnippetCommandForTest(getSnippetPath: (unit -> string * string) option) =
+    type AddSnippetCommandForTest(getSnippetPath: (unit -> string) option) =
         inherit AddSnippetCommand()
 
         override __.GetSnippetPath() =
@@ -290,21 +290,34 @@ module Cmdlets =
             [
 
               test "run successfully" {
-                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
-                  use _ = new EnvironmentVariable(tmp.GetSnippetPath() |> fst)
+                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
+                  use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
 
+                  let snippet = "Add-Snippet 'echo test'"
                   let cmdlet = AddSnippetCommandForTest(None)
-                  cmdlet.Snippet <- "Add-Snippet 'echo test'"
+                  cmdlet.Snippet <- snippet
                   cmdlet.Tooltip <- "add snippet"
                   cmdlet.Group <- "test"
                   cmdlet.Test() |> ignore
 
                   let cmdlet = GetSnippetCommandForTest(None)
                   cmdlet.Test() |> ignore
+                  cmdlet.Runtime.Errors |> Expect.isEmpty "get should have no error"
+                  cmdlet.Runtime.Output |> Expect.hasLength "should have one snippet" 1
+                  let actual = cmdlet.Runtime.Output |> List.head :?> SnippetEntry
+
+                  actual.Snippet |> Expect.equal "should have correct snippet" snippet
+                  actual.Tooltip |> Expect.equal "should have correct tooltip" "add snippet"
+                  actual.Group |> Expect.equal "should have correct group" "test"
 
                   let cmdlet = RemoveSnippetCommandForTest(None)
-                  cmdlet.Snippet <- "Remove-Snippet"
+                  cmdlet.Snippet <- snippet
                   cmdlet.Test() |> ignore
+
+                  let cmdlet = GetSnippetCommandForTest(None)
+                  cmdlet.Test() |> ignore
+                  cmdlet.Runtime.Errors |> Expect.isEmpty "get should have no error"
+                  cmdlet.Runtime.Output |> Expect.hasLength "should have no snippet" 0
               }
 
               ]

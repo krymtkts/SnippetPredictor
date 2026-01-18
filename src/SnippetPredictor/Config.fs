@@ -22,18 +22,19 @@ module Config =
             return! sr.ReadToEndAsync()
         }
 
-    let makeEntry (snippet: string) (tooltip: string) =
-        { Snippet = $"'{snippet}'"
-          Tooltip = tooltip
+    let makeErrorEntry (errorMessage: string) (errorDetail: string) : ErrorEntry =
+        { Snippet = $"'{errorMessage}'" // NOTE: Wrap in quotes to avoid errors if the error message is executed.
+          Tooltip = errorDetail
           Group = null }
+
 
     [<RequireQualifiedAccess>]
     [<NoEquality>]
     [<NoComparison>]
     type ConfigState =
         | Empty
-        | Valid of SnippetConfig
-        | Invalid of SnippetEntry
+        | Valid of config: SnippetConfig
+        | Invalid of errorEntry: ErrorEntry
 
     let jsonOptions =
         JsonSerializerOptions(
@@ -53,11 +54,11 @@ module Config =
                     JsonSerializer.Deserialize<SnippetConfig>(json, jsonOptions)
                     |> function
                         | null ->
-                            makeEntry $"{snippetFilesName} is null or invalid format." ""
+                            makeErrorEntry $"{snippetFilesName} is null or invalid format." ""
                             |> ConfigState.Invalid
                         | snippets -> ConfigState.Valid snippets
         with e ->
-            makeEntry $"An error occurred while parsing {snippetFilesName}" e.Message
+            makeErrorEntry $"An error occurred while parsing {snippetFilesName}" e.Message
             |> ConfigState.Invalid
 
     let parseSnippetFile (path: string) =
@@ -76,13 +77,15 @@ module Config =
 
         snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
 
-    let getSnippetPath () =
-        getSnippetPathWith Environment.GetEnvironmentVariable
-        <| fun () -> Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+    let getUserProfilePath () =
+        Environment.GetFolderPath Environment.SpecialFolder.UserProfile
 
-    let storeConfig getSnippetPath (config: SnippetConfig) =
+    let getSnippetPath () =
+        getSnippetPathWith Environment.GetEnvironmentVariable getUserProfilePath
+
+    let storeConfig (getSnippetPath: unit -> string) (config: SnippetConfig) =
         let json = JsonSerializer.Serialize(config, jsonOptions)
-        let snippetPath = getSnippetPath () |> snd
+        let snippetPath = getSnippetPath ()
 
         try
             File.WriteAllText(snippetPath, json)
