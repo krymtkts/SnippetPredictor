@@ -12,8 +12,8 @@ module Config =
     [<RequireQualifiedAccess; NoEquality; NoComparison>]
     type ConfigState =
         | Empty
-        | Valid of SnippetConfig
-        | Invalid of SnippetEntry
+        | Valid of config: SnippetConfig
+        | Invalid of errorEntry: SnippetEntry
 
     // TODO: currently visible for testing.
     val parseSnippets: json: string -> ConfigState
