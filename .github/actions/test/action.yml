@@ -19,6 +19,12 @@ runs:
         Set-PSResourceRepository PSGallery -Trusted
         Install-PSResource Psake,Pester,PSScriptAnalyzer -Quiet -Reinstall -Scope CurrentUser
         Install-PSResource Microsoft.PowerShell.PlatyPS -Prerelease -Quiet -Reinstall -Scope CurrentUser
+    - name: Test release build
+      # NOTE: test release build to ensure no error caused by compilation conditions.
+      shell: pwsh
+      run: |
+        Invoke-Psake -taskList Build -parameters @{'Stage'='Release'}
+        if (-not $psake.build_success) { exit 1 }
     - name: Execute All Tests
       shell: pwsh
       run: |
