@@ -13,7 +13,7 @@ module Config =
     type ConfigState =
         | Empty
         | Valid of config: SnippetConfig
-        | Invalid of errorEntry: SnippetEntry
+        | Invalid of errorEntry: ErrorEntry
 
     // TODO: currently visible for testing.
     val parseSnippets: json: string -> ConfigState

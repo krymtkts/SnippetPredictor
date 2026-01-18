@@ -43,6 +43,8 @@ type SnippetEntry =
       [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
       Group: string | null }
 
+type ErrorEntry = SnippetEntry
+
 type SearchCaseSensitiveJsonConverter() =
     inherit JsonConverter<bool>()
 

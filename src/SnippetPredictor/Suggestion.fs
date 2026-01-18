@@ -122,7 +122,7 @@ module Suggestion =
                                     | null -> ()
                                     | g when g |> groups.ContainsKey -> ()
                                     | g -> groups.TryAdd(g, ()) |> ignore)
-                            | ConfigState.Invalid record -> record |> snippets.Enqueue
+                            | ConfigState.Invalid errorEntry -> errorEntry |> snippets.Enqueue
 #if DEBUG
                         Logger.LogFile [ "Refreshed snippets." ]
 #endif
