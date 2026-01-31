@@ -7,7 +7,7 @@
     <!-- NOTE: F# dependencies. -->
     <PackageVersion Include="FSharp.Core" Version="10.0.102" />
     <!-- NOTE: Analyzer dependencies. -->
-    <PackageVersion Include="Ionide.Analyzers" Version="0.14.10" />
+    <PackageVersion Include="Ionide.Analyzers" Version="0.14.11" />
     <!-- NOTE: Test dependencies. -->
     <PackageVersion Include="Expecto" Version="11.0.0-alpha8" />
     <PackageVersion Include="YoloDev.Expecto.TestSdk" Version="0.15.5" />
