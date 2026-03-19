@@ -10,14 +10,14 @@
       "rollForward": false
     },
     "coverlet.console": {
-      "version": "8.0.0",
+      "version": "8.0.1",
       "commands": [
         "coverlet"
       ],
       "rollForward": false
     },
     "dotnet-reportgenerator-globaltool": {
-      "version": "5.5.3",
+      "version": "5.5.4",
       "commands": [
         "reportgenerator"
       ],
