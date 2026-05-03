@@ -400,13 +400,17 @@ module SnippetPredictor =
 
                   let client = PredictionClient("test", PredictionClientKind.Terminal)
 
-                  let result =
+                  let suggestionEntries =
                       predictor.GetSuggestion(client, PredictionContext.Create(":group Ex"), CancellationToken.None)
+                      |> _.SuggestionEntries
+                      |> Option.ofObj
+                      |> Expect.wantSome "should provide suggestions for matching input"
 
-                  result.SuggestionEntries
+
+                  suggestionEntries
                   |> Expect.isNonEmpty "should provide suggestions for matching input"
 
-                  result.SuggestionEntries
+                  suggestionEntries
                   |> Expect.all "should provide suggestions for matching input" (fun entry ->
                       entry.SuggestionText = "echo 'example'"
                       && entry.ToolTip = "[group]example  tooltip")
@@ -428,13 +432,16 @@ module SnippetPredictor =
 
                   let client = PredictionClient("test", PredictionClientKind.Terminal)
 
-                  let result =
+                  let suggestionEntries =
                       predictor.GetSuggestion(client, PredictionContext.Create("ex"), CancellationToken.None)
+                      |> _.SuggestionEntries
+                      |> Option.ofObj
+                      |> Expect.wantSome "should provide suggestions for matching input"
 
-                  result.SuggestionEntries
+                  suggestionEntries
                   |> Expect.isNonEmpty "should provide suggestions for matching input"
 
-                  result.SuggestionEntries
+                  suggestionEntries
                   |> Expect.all "should provide suggestions for matching input" (fun entry ->
                       entry.SuggestionText = "echo 'example'"
                       && entry.ToolTip = "[group]example  tooltip")
@@ -452,6 +459,8 @@ module SnippetPredictor =
                   let predictor = predictorForTest :> ICommandPredictor
 
                   predictor.FunctionsToDefine
+                  |> Option.ofObj
+                  |> Expect.wantSome "should have functions to define"
                   |> Expect.isEmpty "should not have functions to define"
 
                   let client = PredictionClient("test", PredictionClientKind.Terminal)
@@ -472,6 +481,8 @@ module SnippetPredictor =
                   let predictor = predictorForTest :> ICommandPredictor
 
                   predictor.FunctionsToDefine
+                  |> Option.ofObj
+                  |> Expect.wantSome "should have functions to define"
                   |> Expect.isEmpty "should not have functions to define"
 
                   let client = PredictionClient("", PredictionClientKind.Terminal)
