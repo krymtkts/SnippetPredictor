@@ -3,6 +3,12 @@ module SnippetPredictorTest.Utility
 open System
 open System.IO
 
+// Resolve test data from the source directory so test execution doesn't depend on the runner's working directory.
+let testAssetDirectory = __SOURCE_DIRECTORY__
+
+let testAssetPath (fileName: string) =
+    Path.Combine(testAssetDirectory, fileName)
+
 let normalizeNewlines (s: string) = s.Replace("\r\n", "\n")
 
 type TempDirectory(directory: string) =

@@ -391,7 +391,7 @@ module SnippetPredictor =
 
               test "GetSuggestion" {
                   use predictorForTest =
-                      new SnippetPredictorForTest("./.snippet-predictor-valid.json")
+                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
                   let predictor = predictorForTest :> ICommandPredictor
 
@@ -423,7 +423,7 @@ module SnippetPredictor =
 
               test "GetSuggestion with case sensitivity" {
                   use predictorForTest =
-                      new SnippetPredictorForTest("./.snippet-predictor-valid-case-sensitive.json")
+                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid-case-sensitive.json")
 
                   let predictor = predictorForTest :> ICommandPredictor
 
@@ -454,7 +454,7 @@ module SnippetPredictor =
 
               test "for coverage" {
                   use predictorForTest =
-                      new SnippetPredictorForTest("./.snippet-predictor-valid.json")
+                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
                   let predictor = predictorForTest :> ICommandPredictor
 
@@ -476,7 +476,7 @@ module SnippetPredictor =
 
               test "snippet file is not found" {
                   use predictorForTest =
-                      new SnippetPredictorForTest("./.snippet-predictor-not-found.json")
+                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-not-found.json")
 
                   let predictor = predictorForTest :> ICommandPredictor
 
