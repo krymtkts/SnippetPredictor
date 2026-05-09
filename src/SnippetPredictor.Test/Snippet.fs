@@ -266,7 +266,7 @@ module getPredictiveSuggestions =
     [<Tests>]
     let tests_getPredictiveSuggestions =
         let cache = new Suggestion.Cache()
-        cache.load (fun () -> "./", "./.snippet-predictor-valid.json")
+        cache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-valid.json")
 
         let expected1 =
             { SnippetEntry.Snippet = "echo 'example'"
@@ -741,7 +741,7 @@ let tests_loadSnippets =
           }
 
           test "when snippet file is invalid" {
-              Store.loadSnippets (fun () -> "./.snippet-predictor-invalid.json")
+              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-invalid.json")
               |> Expect.wantError "should return Error"
               |> Expect.equal
                   "should return Error entry"
@@ -749,13 +749,13 @@ let tests_loadSnippets =
           }
 
           test "when snippet file is valid and null" {
-              Store.loadSnippets (fun () -> "./.snippet-predictor-null.json")
+              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-null.json")
               |> Expect.wantError "should return Error"
               |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
           }
 
           test "when snippet file is valid and snippets is null" {
-              Store.loadSnippets (fun () -> "./.snippet-predictor-snippet-null.json")
+              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-snippet-null.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.isEmpty "should return Empty"
           }
@@ -776,7 +776,7 @@ let tests_loadSnippets =
 
                      |]
 
-              Store.loadSnippets (fun () -> "./.snippet-predictor-valid.json")
+              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-valid.json")
               |> Expect.wantOk "should return Ok"
               |> Expect.equal "should return snippets" expected
           }

@@ -6,15 +6,12 @@
     <EnableExpectoTestingPlatformIntegration>true</EnableExpectoTestingPlatformIntegration>
     <OutputType>Exe</OutputType>
     <GenerateProgramFile>false</GenerateProgramFile>
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-
-    <!-- NOTE: For output to console. -->
-    <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Expecto" />
     <PackageReference Include="YoloDev.Expecto.TestSdk" />
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <!-- NOTE: for IModuleAssemblyCleanup.OnRemove to work correctly. -->
     <PackageReference Include="Microsoft.Management.Infrastructure" />
   </ItemGroup>

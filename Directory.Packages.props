@@ -11,6 +11,9 @@
     <!-- NOTE: Test dependencies. -->
     <PackageVersion Include="Expecto" Version="11.0.0-alpha9" />
     <PackageVersion Include="YoloDev.Expecto.TestSdk" Version="0.15.6" />
+    <!-- NOTE: Keep HangDump on 1.9.1 to match YoloDev.Expecto.TestSdk's MTP v1 line. -->
+    <!-- NOTE: Updating HangDump alone could skew the Microsoft.Testing.Platform package set. -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="1.9.1" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.2.24" />
     <PackageVersion Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
   </ItemGroup>
