@@ -6,10 +6,6 @@
     <EnableExpectoTestingPlatformIntegration>true</EnableExpectoTestingPlatformIntegration>
     <OutputType>Exe</OutputType>
     <GenerateProgramFile>false</GenerateProgramFile>
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-
-    <!-- NOTE: For output to console. -->
-    <TestingPlatformCaptureOutput>false</TestingPlatformCaptureOutput>
   </PropertyGroup>
 
   <ItemGroup>
