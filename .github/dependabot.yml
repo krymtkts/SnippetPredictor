@@ -49,6 +49,9 @@ updates:
         update-types:
           - "version-update:semver-major"
           - "version-update:semver-minor"
+      - dependency-name: "Microsoft.Testing.Extensions.HangDump"
+        update-types:
+          - "version-update:semver-major"
       - dependency-name: "FSharp.Core"
         update-types:
           - "version-update:semver-major"
