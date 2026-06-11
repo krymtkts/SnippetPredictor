@@ -31,7 +31,7 @@ runs:
         Invoke-PSLResource Invoke-Psake '-taskList','TestAll' | Tee-Object -Variable result
         if (-not $result[-1].Success) { exit 1 }
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v6
+      uses: codecov/codecov-action@v7
       if: runner.os == 'Linux'
       with:
         files: ./coverage.cobertura.xml
