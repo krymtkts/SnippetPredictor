@@ -12,7 +12,7 @@
     RootModule = 'SnippetPredictor.dll'
 
     # Version number of this module.
-    ModuleVersion = '0.5.0'
+    ModuleVersion = '0.6.0'
 
     # Supported PSEditions
     CompatiblePSEditions = @(
@@ -115,6 +115,12 @@
             # ReleaseNotes of this module
 
             ReleaseNotes = @'
+## [0.6.0] - 2026-06-27
+
+### Fixed
+
+- Refine the regular expression pattern to support leading whitespace in snippet input.
+
 ## [0.5.0] - 2025-12-30
 
 ### Added
@@ -144,16 +150,6 @@
 ### Fixed
 
 - Fix `Get-Snippet` to return a single `SnippetEntry` instead of an array.
-
-## [0.3.0] - 2025-04-12
-
-### Added
-
-- Add `SearchCaseSensitive` option to `SnippetConfig` for configurable case sensitivity.
-
-### Changed
-
-- Update documentation to describe case-sensitive search configuration.
 
 Full CHANGELOG: https://github.com/krymtkts/SnippetPredictor/blob/main/CHANGELOG.md
 '@
