@@ -113,7 +113,50 @@
             # IconUri = ''
 
             # ReleaseNotes of this module
-            # ReleaseNotes = ''
+
+            ReleaseNotes = @'
+## [0.5.0] - 2025-12-30
+
+### Added
+
+- Add a debounce mechanism for snippet refresh to optimize file change handling.
+
+### Changed
+
+- Update help documentation.
+
+### Fixed
+
+- Fix a potential group serialization error by returning an empty string instead of null.
+
+## [0.4.0] - 2025-05-10
+
+### Added
+
+- Add group ID suggestions for empty input in snippet search.
+
+### Changed
+
+- Add predictor lifecycle management to manage resources more reliably.
+- Refine cmdlet documentation.
+- Add project metadata for description and copyright information.
+
+### Fixed
+
+- Fix `Get-Snippet` to return a single `SnippetEntry` instead of an array.
+
+## [0.3.0] - 2025-04-12
+
+### Added
+
+- Add `SearchCaseSensitive` option to `SnippetConfig` for configurable case sensitivity.
+
+### Changed
+
+- Update documentation to describe case-sensitive search configuration.
+
+Full CHANGELOG: https://github.com/krymtkts/SnippetPredictor/blob/main/CHANGELOG.md
+'@
 
             # Prerelease string of this module
             # Prerelease = ''
