@@ -13,19 +13,10 @@ runs:
       uses: actions/setup-dotnet@v5
       with:
         global-json-file: ./global.json
-    - name: Prepare PSResourceRepository
-      shell: pwsh
-      # NOTE: This is a workaround for PSResourceGet failing to load the repository store, which causes the following error:
-      # Cannot retrieve the dynamic parameters for the cmdlet. Loading
-      # repository store failed: Could not find a part of the path
-      # '/home/runner/.local/share/PSResourceGet/PSResourceRepository.xml'.
-      run: |
-        Get-PSResourceRepository -Name PSGallery
-        Set-PSResourceRepository -Name PSGallery -Trusted -ApiVersion V2
     - name: Install modules from PSGallery
       shell: pwsh
       run: |
-        Install-PSResource pslrm -Prerelease -Quiet -Reinstall -Scope CurrentUser
+        ./scripts/Initialize-PSResourceRepository.ps1 -InstallPslrm
         Restore-PSLResource
     - name: Test release build
       # NOTE: test release build to ensure no error caused by compilation conditions.
