@@ -137,7 +137,7 @@ jobs:
           }
 
           $secureApiKey = ConvertTo-SecureString -String $env:POWERSHELL_GALLERY_API_KEY -AsPlainText -Force
-          Invoke-PSLResource Invoke-Psake '-taskList','Release','-parameters',@{'DryRun'=$false; 'ApiKey'=$secureApiKey} | Tee-Object -Variable result
+          Invoke-PSLResource Invoke-Psake '-taskList','Release','-parameters',@{'Stage'='Release'; 'DryRun'=$false; 'ApiKey'=$secureApiKey} | Tee-Object -Variable result
           if (-not $result[-1].Success) { exit 1 }
 
   github-release:
