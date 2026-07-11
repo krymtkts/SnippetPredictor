@@ -9,7 +9,7 @@ Properties {
     $ModuleSrcPath = Resolve-Path "./src/${ModuleName}/"
     $ModuleSrcProject = Resolve-Path "$ModuleSrcPath/*.fsproj"
     $ModuleVersion = ($ModuleSrcProject | Select-Xml '//Version/text()').Node.Value
-    $ModulePublishPath = Resolve-Path "./publish/${ModuleName}/"
+    $ModulePublishPath = Join-Path $PSScriptRoot "publish/${ModuleName}/"
     $ChangelogPath = Join-Path $PSScriptRoot 'CHANGELOG.md'
     $FullChangelogUrl = "https://github.com/krymtkts/${ModuleName}/blob/main/CHANGELOG.md"
     $ModuleManifest = Get-Item -LiteralPath (Join-Path $ModuleSrcPath "$ModuleName.psd1")
