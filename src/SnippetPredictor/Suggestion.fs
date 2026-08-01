@@ -288,6 +288,11 @@ module Suggestion =
                 else
                     None)
 
+        let chooseCompletionTexts pred =
+            snippets
+            |> Seq.choose (fun x -> if pred x then Some x.Snippet else None)
+            |> Seq.toArray
+
         [<Literal>]
         let Snp = "snp"
 
@@ -346,6 +351,15 @@ module Suggestion =
                 pred |> chooseSnippets |> Seq.append groupIds
             | NoPrefix input -> _.Snippet.Contains(input, comparisonType) |> chooseSnippets
             |> Linq.Enumerable.ToList
+
+        member __.getCompletionTexts(input: string) =
+            let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
+
+            match input with
+            | Prefix(Snp, input) ->
+                (fun (snippet: SnippetEntry) -> snippet.Snippet.Contains(input, comparisonType))
+                |> chooseCompletionTexts
+            | _ -> Array.empty
 
         interface IDisposable with
             member __.Dispose() =
