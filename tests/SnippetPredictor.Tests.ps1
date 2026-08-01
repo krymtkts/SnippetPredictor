@@ -10,6 +10,33 @@ Describe 'SnippetPredictor' {
             $m = Get-Module 'SnippetPredictor'
             ($m.ExportedCmdlets).Values | Select-Object -ExpandProperty Name | Should -Eq $Expected
         }
+        It 'Given the SnippetPredictor module, it should have <Expected> functions' -TestCases @(
+            @{ Expected = @('Enable-SnippetPredictorKeyHandler', 'New-SnippetPredictorKeyHandler') }
+        ) {
+            $m = Get-Module 'SnippetPredictor'
+            ($m.ExportedFunctions).Values | Select-Object -ExpandProperty Name | Should -Eq $Expected
+        }
+        It 'Given <Fallback>, New-SnippetPredictorKeyHandler should return a scriptblock' -TestCases @(
+            @{ Fallback = 'TabCompleteNext' }
+            @{ Fallback = 'TabCompletePrevious' }
+        ) {
+            New-SnippetPredictorKeyHandler -Fallback $Fallback | Should -BeOfType ([scriptblock])
+        }
+        It 'Given <Fallback>, New-SnippetPredictorKeyHandler should return the fixed scriptblock' -TestCases @(
+            @{ Fallback = 'TabCompleteNext' }
+            @{ Fallback = 'TabCompletePrevious' }
+        ) {
+            $first = New-SnippetPredictorKeyHandler -Fallback $Fallback
+            $second = New-SnippetPredictorKeyHandler -Fallback $Fallback
+
+            [object]::ReferenceEquals($first, $second) | Should -BeTrue
+        }
+        It 'Given different fallbacks, New-SnippetPredictorKeyHandler should return different scriptblocks' {
+            $next = New-SnippetPredictorKeyHandler -Fallback TabCompleteNext
+            $previous = New-SnippetPredictorKeyHandler -Fallback TabCompletePrevious
+
+            [object]::ReferenceEquals($next, $previous) | Should -BeFalse
+        }
     }
     BeforeAll {
         $originalConfigPath = $env:SNIPPET_PREDICTOR_CONFIG
