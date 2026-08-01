@@ -1,14 +1,11 @@
 $script:SnippetPredictorKeyHandlerSession = $null
+$script:SnippetPredictorPredictionKeyHandlerSession = $null
 
 function Invoke-SnippetPredictorKeyHandler {
     [CmdletBinding()]
     param(
-        $Key,
-        $Arg,
         [ValidateSet(-1, 1)]
-        [int] $Direction,
-        [ValidateSet('TabCompleteNext', 'TabCompletePrevious')]
-        [string] $Fallback
+        [int] $Direction
     )
 
     $line = $null
@@ -41,7 +38,7 @@ function Invoke-SnippetPredictorKeyHandler {
             Index = $nextIndex
             LastReplacement = $nextReplacement
         }
-        return
+        return $true
     }
 
     [string[]] $completions = $isCursorAtEnd ? [SnippetPredictor.Integration]::GetCompletionTexts($line) : $null
@@ -61,43 +58,128 @@ function Invoke-SnippetPredictorKeyHandler {
             Index = $index
             LastReplacement = $replacement
         }
-        return
+        return $true
     }
 
     $script:SnippetPredictorKeyHandlerSession = $null
+    return $false
+}
 
-    switch ($Fallback) {
-        'TabCompletePrevious' {
-            [Microsoft.PowerShell.PSConsoleReadLine]::TabCompletePrevious($Key, $Arg)
-            return
-        }
-        'TabCompleteNext' {
-            [Microsoft.PowerShell.PSConsoleReadLine]::TabCompleteNext($Key, $Arg)
-            return
-        }
+function Invoke-SnippetPredictorPredictionKeyHandler {
+    [CmdletBinding()]
+    param(
+        $Key,
+        $Arg,
+        [ValidateSet(-1, 1)]
+        [int] $Direction
+    )
+
+    $line = $null
+    $cursor = 0
+    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState(
+        [ref] $line,
+        [ref] $cursor
+    )
+
+    $session = $script:SnippetPredictorPredictionKeyHandlerSession
+    $isCursorAtEnd = $cursor -eq $line.Length
+    $isContinuation = (
+        $isCursorAtEnd -and
+        $null -ne $session -and
+        $line -eq $session.LastReplacement
+    )
+    [string[]] $completions = if ($isCursorAtEnd -and -not $isContinuation) {
+        [SnippetPredictor.Integration]::GetCompletionTexts($line)
     }
+
+    if ($isContinuation -or $completions.Count -gt 0) {
+        if ($Direction -lt 0) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::PreviousSuggestion($Key, $Arg)
+        }
+        else {
+            [Microsoft.PowerShell.PSConsoleReadLine]::NextSuggestion($Key, $Arg)
+        }
+
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState(
+            [ref] $line,
+            [ref] $cursor
+        )
+        $script:SnippetPredictorPredictionKeyHandlerSession = [pscustomobject]@{
+            LastReplacement = $line
+        }
+        return $true
+    }
+
+    $script:SnippetPredictorPredictionKeyHandlerSession = $null
+    return $false
+}
+
+$script:SnippetPredictorTabCompleteNextComposableHandler = {
+    param($key, $arg)
+
+    Invoke-SnippetPredictorKeyHandler -Direction 1
+}
+
+$script:SnippetPredictorTabCompletePreviousComposableHandler = {
+    param($key, $arg)
+
+    Invoke-SnippetPredictorKeyHandler -Direction -1
+}
+
+$script:SnippetPredictorNextSuggestionComposableHandler = {
+    param($key, $arg)
+
+    Invoke-SnippetPredictorPredictionKeyHandler -Key $key -Arg $arg -Direction 1
+}
+
+$script:SnippetPredictorPreviousSuggestionComposableHandler = {
+    param($key, $arg)
+
+    Invoke-SnippetPredictorPredictionKeyHandler -Key $key -Arg $arg -Direction -1
 }
 
 $script:SnippetPredictorTabCompleteNextHandler = {
     param($key, $arg)
 
-    Invoke-SnippetPredictorKeyHandler -Key $key -Arg $arg -Direction 1 -Fallback TabCompleteNext
+    if (-not (& $script:SnippetPredictorTabCompleteNextComposableHandler $key $arg)) {
+        [Microsoft.PowerShell.PSConsoleReadLine]::TabCompleteNext($key, $arg)
+    }
 }
 
 $script:SnippetPredictorTabCompletePreviousHandler = {
     param($key, $arg)
 
-    Invoke-SnippetPredictorKeyHandler -Key $key -Arg $arg -Direction -1 -Fallback TabCompletePrevious
+    if (-not (& $script:SnippetPredictorTabCompletePreviousComposableHandler $key $arg)) {
+        [Microsoft.PowerShell.PSConsoleReadLine]::TabCompletePrevious($key, $arg)
+    }
 }
 
 function New-SnippetPredictorKeyHandler {
     [CmdletBinding()]
     param(
-        [ValidateSet('TabCompleteNext', 'TabCompletePrevious')]
-        [string] $Fallback = 'TabCompleteNext'
+        [ValidateSet(
+            'TabCompleteNext',
+            'TabCompletePrevious',
+            'NextSuggestion',
+            'PreviousSuggestion'
+        )]
+        [string] $Action = 'TabCompleteNext'
     )
 
-    $Fallback -eq 'TabCompletePrevious' ? $script:SnippetPredictorTabCompletePreviousHandler : $script:SnippetPredictorTabCompleteNextHandler
+    switch ($Action) {
+        'TabCompletePrevious' {
+            $script:SnippetPredictorTabCompletePreviousComposableHandler
+        }
+        'NextSuggestion' {
+            $script:SnippetPredictorNextSuggestionComposableHandler
+        }
+        'PreviousSuggestion' {
+            $script:SnippetPredictorPreviousSuggestionComposableHandler
+        }
+        default {
+            $script:SnippetPredictorTabCompleteNextComposableHandler
+        }
+    }
 }
 
 function Enable-SnippetPredictorKeyHandler {
@@ -109,13 +191,8 @@ function Enable-SnippetPredictorKeyHandler {
 
     $script:SnippetPredictorKeyHandlerSession = $null
 
-    Set-PSReadLineKeyHandler -Chord $NextChord -ScriptBlock (
-        New-SnippetPredictorKeyHandler -Fallback TabCompleteNext
-    )
-
-    Set-PSReadLineKeyHandler -Chord $PreviousChord -ScriptBlock (
-        New-SnippetPredictorKeyHandler -Fallback TabCompletePrevious
-    )
+    Set-PSReadLineKeyHandler -Chord $NextChord -ScriptBlock $script:SnippetPredictorTabCompleteNextHandler
+    Set-PSReadLineKeyHandler -Chord $PreviousChord -ScriptBlock $script:SnippetPredictorTabCompletePreviousHandler
 }
 
 Export-ModuleMember -Function @(
