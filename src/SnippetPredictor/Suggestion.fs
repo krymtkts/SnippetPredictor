@@ -30,6 +30,12 @@ module Suggestion =
             | CaseSensitivity.sensitive -> StringComparison.Ordinal
             | _ -> StringComparison.OrdinalIgnoreCase
 
+    [<Literal>]
+    let Snp = "snp"
+
+    [<Literal>]
+    let Tip = "tip"
+
     module Disposal =
         [<Literal>]
         let disposed = 1
@@ -54,6 +60,7 @@ module Suggestion =
         let mutable caseSensitive = CaseSensitivity.insensitive
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
+        let mutable completionIdentifiers = [| $":{Snp}" |]
         let semaphore = new SemaphoreSlim(1, 1)
         let refreshCts = new CancellationTokenSource()
         let mutable watcher: FileSystemWatcher | null = null
@@ -81,6 +88,15 @@ module Suggestion =
                 true
             else
                 false
+
+        let updateCompletionIdentifiers () =
+            groups.Keys
+            |> Seq.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
+            |> Seq.map (fun groupId -> $":{groupId}")
+            |> Seq.append [ $":{Snp}" ]
+            |> Seq.toArray
+            |> fun identifiers -> Interlocked.Exchange(&completionIdentifiers, identifiers)
+            |> ignore
 
         let startRefreshTask (path: string) =
             let cancellationToken = refreshCts.Token
@@ -120,9 +136,13 @@ module Suggestion =
 
                                     match s.Group with
                                     | null -> ()
+                                    | Snp
+                                    | Tip -> ()
                                     | g when g |> groups.ContainsKey -> ()
                                     | g -> groups.TryAdd(g, ()) |> ignore)
                             | ConfigState.Invalid errorEntry -> errorEntry |> snippets.Enqueue
+
+                        updateCompletionIdentifiers ()
 #if DEBUG
                         Logger.LogFile [ "Refreshed snippets." ]
 #endif
@@ -293,11 +313,12 @@ module Suggestion =
             |> Seq.choose (fun x -> if pred x then Some x.Snippet else None)
             |> Seq.toArray
 
-        [<Literal>]
-        let Snp = "snp"
+        let completionIdentifierPattern = Regex("^\\s*:([a-zA-Z0-9]*)$")
 
-        [<Literal>]
-        let Tip = "tip"
+        let (|CompletionIdentifier|_|) (value: string) =
+            let m = completionIdentifierPattern.Match(value)
+
+            if m.Success then Some m.Groups[1].Value else None
 
         let basicGroupIds = [| Snp; Tip |]
 
@@ -309,6 +330,12 @@ module Suggestion =
                     ($":{groupId}", "") |> PredictiveSuggestion |> Some
                 else
                     None)
+
+        let chooseCompletionGroupIds input =
+            let prefix = $":{input}"
+
+            Volatile.Read(&completionIdentifiers)
+            |> Array.filter (fun identifier -> identifier.StartsWith(prefix, StringComparison.Ordinal))
 
         abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
 
@@ -359,6 +386,12 @@ module Suggestion =
             | Prefix(Snp, input) ->
                 (fun (snippet: SnippetEntry) -> snippet.Snippet.Contains(input, comparisonType))
                 |> chooseCompletionTexts
+            | Prefix(Tip, _) -> Array.empty
+            | Prefix(groupId, input) when groups.ContainsKey groupId ->
+                (fun (snippet: SnippetEntry) ->
+                    snippet.Group = groupId && snippet.Snippet.Contains(input, comparisonType))
+                |> chooseCompletionTexts
+            | CompletionIdentifier groupId -> chooseCompletionGroupIds groupId
             | _ -> Array.empty
 
         interface IDisposable with

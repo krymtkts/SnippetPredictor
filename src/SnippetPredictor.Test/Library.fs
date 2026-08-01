@@ -474,7 +474,13 @@ module SnippetPredictor =
                   |> Expect.isEmpty "should exclude tooltip completion"
 
                   predictor.GetCompletionTexts(":group Echo")
-                  |> Expect.isEmpty "should exclude group completion"
+                  |> Expect.equal "should provide matching group completion texts" [| "echo 'example'" |]
+
+                  predictor.GetCompletionTexts(":g")
+                  |> Expect.equal "should provide matching group identifiers" [| ":gr"; ":group" |]
+
+                  predictor.GetCompletionTexts("x :")
+                  |> Expect.isEmpty "should exclude a non-whitespace prefix"
               }
 
               test "for coverage" {

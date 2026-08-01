@@ -1,0 +1,11 @@
+{
+  "SearchCaseSensitive": false,
+  "Snippets": [
+    { "Snippet": "Write-Output group", "Tooltip": "group", "Group": "group" },
+    { "Snippet": "Write-Output gr", "Tooltip": "gr", "Group": "gr" },
+    { "Snippet": "Write-Output Group", "Tooltip": "Group", "Group": "Group" },
+    { "Snippet": "Write-Output snp", "Tooltip": "snp", "Group": "snp" },
+    { "Snippet": "Write-Output tip", "Tooltip": "tip", "Group": "tip" },
+    { "Snippet": "Write-Output plain", "Tooltip": "plain" }
+  ]
+}
