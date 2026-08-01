@@ -7,6 +7,10 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in Tab and Shift+Tab handlers for cycling `:snp` completion candidates. Provide composable handlers for custom completion and prediction ListView bindings.
+
 ## [0.6.0] - 2026-06-27
 
 ### Fixed

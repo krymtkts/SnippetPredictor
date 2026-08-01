@@ -62,12 +62,26 @@ Set-PSReadLineOption -PredictionViewStyle ListView
 
 [^2]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#using-other-predictor-plug-ins)
 
+Optionally enable the SnippetPredictor key handlers:
+
+```powershell
+Enable-SnippetPredictorKeyHandler
+```
+
+The command binds Tab and Shift+Tab to cycle through `:snp` completion candidates.
+Unsupported Tab input falls back to standard PSReadLine completion.
+The prediction ListView keeps the standard PSReadLine UpArrow and DownArrow navigation.
+The command overwrites the selected Tab bindings in the current PowerShell session.
+Use `New-SnippetPredictorKeyHandler` to compose custom completion or prediction bindings.
+
 ## Cmdlet help
 
 Refer to the following documents for detailed cmdlet help:
 
 - [`Add-Snippet.md`](./docs/SnippetPredictor/Add-Snippet.md)
+- [`Enable-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md)
 - [`Get-Snippet.md`](./docs/SnippetPredictor/Get-Snippet.md)
+- [`New-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md)
 - [`Remove-Snippet.md`](./docs/SnippetPredictor/Remove-Snippet.md)
 
 ## Usage
