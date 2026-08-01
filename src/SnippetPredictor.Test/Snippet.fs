@@ -392,6 +392,45 @@ module getPredictiveSuggestions =
               ]
 
     [<Tests>]
+    let tests_getCompletionTexts =
+        let cache = new Suggestion.Cache()
+        cache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-valid.json")
+
+        testList
+            "getCompletionTexts"
+            [
+
+              test "when snippet symbol is set and matched" {
+                  cache.getCompletionTexts "    :snp      Echo    "
+                  |> Expect.equal "should return matching snippet text" [| "echo 'example'" |]
+              }
+
+              test "when snippet symbol is set without search input" {
+                  cache.getCompletionTexts ":snp"
+                  |> Expect.equal
+                      "should return all snippet texts"
+                      [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
+              }
+
+              test "when snippet symbol is set and not matched" {
+                  cache.getCompletionTexts ":snp missing" |> Expect.isEmpty "should return empty"
+              }
+
+              test "when snippet symbol is not set" {
+                  cache.getCompletionTexts "Echo" |> Expect.isEmpty "should return empty"
+              }
+
+              test "when tooltip symbol is set" {
+                  cache.getCompletionTexts ":tip example" |> Expect.isEmpty "should return empty"
+              }
+
+              test "when group symbol is set" {
+                  cache.getCompletionTexts ":group Echo" |> Expect.isEmpty "should return empty"
+              }
+
+              ]
+
+    [<Tests>]
     let tests_Dispose =
         let cache = new Suggestion.Cache()
 

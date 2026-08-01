@@ -363,10 +363,16 @@ module SnippetPredictorInitialization =
                   predictor.Id |> Expect.equal "Id"
                   <| Guid.Parse("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1")
 
+                  Integration.getCompletionTexts ":unsupported"
+                  |> Expect.isEmpty "should use the registered predictor integration"
+
                   (subsystem :> IModuleAssemblyCleanup).OnRemove(createMockModule ())
 
                   let predictor = getSnippetPredictorSubsystem ()
                   predictor |> Expect.isNone "should remove Snippet predictor"
+
+                  Integration.getCompletionTexts ":snp Echo"
+                  |> Expect.isEmpty "should clear the predictor integration"
               }
 
               ]
@@ -450,6 +456,25 @@ module SnippetPredictor =
                   |> _.SuggestionEntries
                   |> Expect.isNull "should not provide suggestions when no match is found"
 
+              }
+
+              test "GetCompletionTexts" {
+                  use predictor =
+                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+
+                  Async.Sleep(1000) |> Async.RunSynchronously
+
+                  predictor.GetCompletionTexts("    :snp Echo    ")
+                  |> Expect.equal "should provide matching completion texts" [| "echo 'example'" |]
+
+                  predictor.GetCompletionTexts("ls -")
+                  |> Expect.isEmpty "should exclude ordinary command completion"
+
+                  predictor.GetCompletionTexts(":tip example")
+                  |> Expect.isEmpty "should exclude tooltip completion"
+
+                  predictor.GetCompletionTexts(":group Echo")
+                  |> Expect.isEmpty "should exclude group completion"
               }
 
               test "for coverage" {

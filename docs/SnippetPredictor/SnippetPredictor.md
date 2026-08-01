@@ -36,9 +36,17 @@ The default value is `false`.
 
 Add snippets with tooltip to the snippet configuration.
 
+### [Enable-SnippetPredictorKeyHandler](Enable-SnippetPredictorKeyHandler.md)
+
+Register opt-in PSReadLine key handlers for SnippetPredictor.
+
 ### [Get-Snippet](Get-Snippet.md)
 
 Retrieve a saved snippet.
+
+### [New-SnippetPredictorKeyHandler](New-SnippetPredictorKeyHandler.md)
+
+Return a composable SnippetPredictor key handler.
 
 ### [Remove-Snippet](Remove-Snippet.md)
 

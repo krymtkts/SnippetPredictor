@@ -25,6 +25,8 @@ module Suggestion =
             input: string ->
                 System.Collections.Generic.List<System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion>
 
+        member getCompletionTexts: input: string -> string array
+
         member load: getSnippetPath: (unit -> string * string) -> unit
 
     val getSnippetPath: (unit -> string * string)

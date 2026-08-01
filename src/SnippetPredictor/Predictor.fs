@@ -17,6 +17,8 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
 
     do cache.load getSnippetPath
 
+    member __.GetCompletionTexts(input: string) = cache.getCompletionTexts input
+
     interface ICommandPredictor with
         member __.Id = id
         member __.Name = Noun.snippet
@@ -48,6 +50,19 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
     interface IDisposable with
         member __.Dispose() = (cache :> IDisposable).Dispose()
 
+module Integration =
+    let mutable private current: SnippetPredictor option = None
+
+    let internal setPredictor (predictor: SnippetPredictor) = current <- Some predictor
+
+    let internal clearPredictor () = current <- None
+
+    [<CompiledName("GetCompletionTexts")>]
+    let getCompletionTexts (input: string) =
+        current
+        |> Option.map (fun predictor -> predictor.GetCompletionTexts input)
+        |> Option.defaultValue Array.empty
+
 type Init() =
     [<Literal>]
     let identifier = "f6dbcf05-2f90-4c47-b40e-6a4cec337cc1"
@@ -58,9 +73,11 @@ type Init() =
         member __.OnImport() =
             let p = new SnippetPredictor(identifier, Suggestion.getSnippetPath)
             SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, p)
+            Integration.setPredictor p
             predictor <- p
 
     interface IModuleAssemblyCleanup with
         member __.OnRemove(psModuleInfo: PSModuleInfo) =
             SubsystemManager.UnregisterSubsystem(SubsystemKind.CommandPredictor, Guid(identifier))
+            Integration.clearPredictor ()
             predictor |> Nullable.dispose
