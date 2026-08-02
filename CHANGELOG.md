@@ -10,6 +10,7 @@ This project uses prerelease versions such as 0.1.0-alpha.
 ### Added
 
 - Add opt-in Tab and Shift+Tab handlers for cycling `:snp` completion candidates. Provide composable handlers for custom completion and prediction ListView bindings.
+- Add identifier and group-scoped snippet completion to the opt-in key handlers. Complete `:snp` and group identifiers from `:` or partial input. Complete matching snippets after an exact identifier.
 
 ## [0.6.0] - 2026-06-27
 
