@@ -163,6 +163,87 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
   </command:command>
   <command:command>
     <command:details>
+      <command:name>Disable-SnippetPredictorKeyHandler</command:name>
+      <maml:description>
+        <maml:para>Removes PSReadLine key handlers registered by SnippetPredictor.</maml:para>
+      </maml:description>
+      <command:verb>Disable</command:verb>
+      <command:noun>SnippetPredictorKeyHandler</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>Removes the PSReadLine completion bindings registered by `Enable-SnippetPredictorKeyHandler`.
+The command checks ownership before cleanup and leaves user-owned bindings unchanged.
+It preserves a binding that the user replaced after enabling the handlers.
+
+For the default chords, the command restores the SnippetPredictor baseline bindings.
+The command assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
+The command removes other chords.
+
+The command doesn't restore a custom binding that `Enable-SnippetPredictorKeyHandler` overwrote.
+PSReadLine doesn't expose the original script block required to restore an arbitrary custom action.
+
+Removing the SnippetPredictor module performs the same cleanup automatically.
+Calling this command more than once is safe.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Disable-SnippetPredictorKeyHandler</maml:name>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters />
+    <command:inputTypes />
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>System.Object</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>No output.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>The binding state applies to the current PowerShell session.
+This command doesn't manage handlers returned by `New-SnippetPredictorKeyHandler`.
+User code controls bindings that use those handlers.</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- Example 1 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Disable-SnippetPredictorKeyHandler
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Removes the current SnippetPredictor completion bindings.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Disable-SnippetPredictorKeyHandler.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Enable-SnippetPredictorKeyHandler</maml:linkText>
+        <maml:uri>Enable-SnippetPredictorKeyHandler.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>New-SnippetPredictorKeyHandler</maml:linkText>
+        <maml:uri>New-SnippetPredictorKeyHandler.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>SnippetPredictor.md</maml:linkText>
+        <maml:uri>SnippetPredictor.md</maml:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+  <command:command>
+    <command:details>
       <command:name>Enable-SnippetPredictorKeyHandler</command:name>
       <maml:description>
         <maml:para>Registers opt-in PSReadLine key handlers for SnippetPredictor.</maml:para>
@@ -190,6 +271,10 @@ The command doesn't change the prediction ListView bindings.
 Use the standard PSReadLine UpArrow and DownArrow bindings to navigate the ListView.
 
 The command overwrites existing bindings for the selected chords.
+It doesn't preserve an arbitrary custom action for later restoration.
+Enabling the handlers again first cleans up bindings from the previous call.
+Use `Disable-SnippetPredictorKeyHandler` to remove the registered bindings explicitly.
+Removing the SnippetPredictor module performs the same cleanup automatically.
 The bindings apply to the current PowerShell session.</maml:para>
     </maml:description>
     <command:syntax>
@@ -251,7 +336,10 @@ The bindings apply to the current PowerShell session.</maml:para>
         <maml:para>The command doesn't change the PSReadLine prediction source or view style.
 Identifier matching is case-sensitive.
 Snippet matching follows the `SearchCaseSensitive` configuration value.
-Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.</maml:para>
+Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.
+During cleanup, the command assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
+The command removes other registered chords.
+A binding replaced by the user after this command runs isn't changed during cleanup.</maml:para>
       </maml:alert>
     </maml:alertSet>
     <command:examples>
@@ -268,11 +356,28 @@ Type `:` and press Tab to cycle through `:snp` and configured group identifiers.
         <dev:code />
         <dev:remarks />
       </command:example>
+      <command:example>
+        <maml:title>--------- Example 2 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Enable-SnippetPredictorKeyHandler -NextChord Ctrl+j -PreviousChord Ctrl+k
+Disable-SnippetPredictorKeyHandler
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Registers custom completion chords and then removes them.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
     </command:examples>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
         <maml:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Disable-SnippetPredictorKeyHandler</maml:linkText>
+        <maml:uri>Disable-SnippetPredictorKeyHandler.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>New-SnippetPredictorKeyHandler</maml:linkText>
@@ -369,7 +474,9 @@ The next Tab or Shift+Tab starts a new completion lookup.
 
 The caller must consume the Boolean result and decide which fallback action to invoke.
 Do not register the returned script block directly with `Set-PSReadLineKeyHandler`.
-`Enable-SnippetPredictorKeyHandler` doesn't register the prediction navigation actions.</maml:para>
+`Enable-SnippetPredictorKeyHandler` doesn't register the prediction navigation actions.
+`Disable-SnippetPredictorKeyHandler` doesn't manage bindings registered by user code.
+The caller controls bindings that use a returned script block.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem>
@@ -448,6 +555,10 @@ $handler = New-SnippetPredictorKeyHandler -Action NextSuggestion
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
         <maml:uri>https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Disable-SnippetPredictorKeyHandler</maml:linkText>
+        <maml:uri>Disable-SnippetPredictorKeyHandler.md</maml:uri>
       </maml:navigationLink>
       <maml:navigationLink>
         <maml:linkText>Enable-SnippetPredictorKeyHandler</maml:linkText>
