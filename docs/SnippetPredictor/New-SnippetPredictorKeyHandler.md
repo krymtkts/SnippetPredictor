@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 08-01-2026
+ms.date: 08-02-2026
 PlatyPS schema version: 2024-05-01
 title: New-SnippetPredictorKeyHandler
 ---
@@ -42,6 +42,8 @@ The next Tab or Shift+Tab starts a new completion lookup.
 The caller must consume the Boolean result and decide which fallback action to invoke.
 Do not register the returned script block directly with `Set-PSReadLineKeyHandler`.
 `Enable-SnippetPredictorKeyHandler` doesn't register the prediction navigation actions.
+`Disable-SnippetPredictorKeyHandler` doesn't manage bindings registered by user code.
+The caller controls bindings that use a returned script block.
 
 ## EXAMPLES
 
@@ -105,5 +107,6 @@ Snippet matching follows the `SearchCaseSensitive` configuration value.
 
 ## RELATED LINKS
 
+- [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
 - [Enable-SnippetPredictorKeyHandler](Enable-SnippetPredictorKeyHandler.md)
 - [SnippetPredictor.md](SnippetPredictor.md)
