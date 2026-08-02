@@ -11,7 +11,7 @@ Describe 'SnippetPredictor' {
             ($m.ExportedCmdlets).Values | Select-Object -ExpandProperty Name | Should -Eq $Expected
         }
         It 'Given the SnippetPredictor module, it should have <Expected> functions' -TestCases @(
-            @{ Expected = @('Enable-SnippetPredictorKeyHandler', 'New-SnippetPredictorKeyHandler') }
+            @{ Expected = @('Disable-SnippetPredictorKeyHandler', 'Enable-SnippetPredictorKeyHandler', 'New-SnippetPredictorKeyHandler') }
         ) {
             $m = Get-Module 'SnippetPredictor'
             ($m.ExportedFunctions).Values | Select-Object -ExpandProperty Name | Should -Eq $Expected
@@ -92,10 +92,10 @@ Describe 'SnippetPredictor' {
                 }
             }
         }
-        It 'Enable-SnippetPredictorKeyHandler should register completion bindings' {
+        It 'Enable and Disable should register and remove custom completion bindings' {
             $bindings = [ordered]@{
-                'Ctrl+Alt+Shift+F21' = 'CustomAction'
-                'Ctrl+Alt+Shift+F22' = 'CustomAction'
+                'Ctrl+Alt+Shift+F21' = 'SnippetPredictorTabCompleteNext'
+                'Ctrl+Alt+Shift+F22' = 'SnippetPredictorTabCompletePrevious'
             }
             $unboundChords = @()
 
@@ -113,8 +113,15 @@ Describe 'SnippetPredictor' {
                 foreach ($entry in $bindings.GetEnumerator()) {
                     (Get-PSReadLineKeyHandler -Chord $entry.Key).Function | Should -Be $entry.Value
                 }
+
+                Disable-SnippetPredictorKeyHandler
+
+                foreach ($chord in $bindings.Keys) {
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                }
             }
             finally {
+                Disable-SnippetPredictorKeyHandler -ErrorAction SilentlyContinue
                 if ($unboundChords.Count -gt 0) {
                     Remove-PSReadLineKeyHandler -Chord $unboundChords -ErrorAction SilentlyContinue
                 }
@@ -127,6 +134,175 @@ Describe 'SnippetPredictor' {
             $parameters.Keys | Should -Contain 'PreviousChord'
             $parameters.Keys | Should -Not -Contain 'NextSuggestionChord'
             $parameters.Keys | Should -Not -Contain 'PreviousSuggestionChord'
+        }
+        It 'Disable-SnippetPredictorKeyHandler should be idempotent' {
+            {
+                Disable-SnippetPredictorKeyHandler
+                Disable-SnippetPredictorKeyHandler
+            } | Should -Not -Throw
+        }
+        It 'Enable-SnippetPredictorKeyHandler should reject the same chord' {
+            $chord = 'Ctrl+Alt+Shift+F23'
+
+            try {
+                Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+
+                {
+                    Enable-SnippetPredictorKeyHandler -NextChord $chord -PreviousChord $chord
+                } | Should -Throw
+
+                Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            }
+            finally {
+                Disable-SnippetPredictorKeyHandler -ErrorAction SilentlyContinue
+                Remove-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should replace its previous custom bindings' {
+            $firstChords = @('Ctrl+Alt+Shift+F24', 'Ctrl+Alt+Shift+D1')
+            $secondChords = @('Ctrl+Alt+Shift+D2', 'Ctrl+Alt+Shift+D3')
+            $allChords = $firstChords + $secondChords
+
+            try {
+                foreach ($chord in $allChords) {
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                }
+
+                Enable-SnippetPredictorKeyHandler -NextChord $firstChords[0] -PreviousChord $firstChords[1]
+                Enable-SnippetPredictorKeyHandler -NextChord $secondChords[0] -PreviousChord $secondChords[1]
+
+                foreach ($chord in $firstChords) {
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                }
+
+                (Get-PSReadLineKeyHandler -Chord $secondChords[0]).Function | Should -Be 'SnippetPredictorTabCompleteNext'
+                (Get-PSReadLineKeyHandler -Chord $secondChords[1]).Function | Should -Be 'SnippetPredictorTabCompletePrevious'
+            }
+            finally {
+                Disable-SnippetPredictorKeyHandler -ErrorAction SilentlyContinue
+                Remove-PSReadLineKeyHandler -Chord $allChords -ErrorAction SilentlyContinue
+            }
+        }
+        It 'Disable-SnippetPredictorKeyHandler should preserve a later user binding' {
+            $nextChord = 'Ctrl+Alt+Shift+D4'
+            $previousChord = 'Ctrl+Alt+Shift+D5'
+            $chords = @($nextChord, $previousChord)
+
+            try {
+                foreach ($chord in $chords) {
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                }
+
+                Enable-SnippetPredictorKeyHandler -NextChord $nextChord -PreviousChord $previousChord
+                Set-PSReadLineKeyHandler -Chord $nextChord -ScriptBlock { } -BriefDescription UserOwnedAction
+
+                Disable-SnippetPredictorKeyHandler
+
+                (Get-PSReadLineKeyHandler -Chord $nextChord).Function | Should -Be 'UserOwnedAction'
+                Get-PSReadLineKeyHandler -Chord $previousChord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+            }
+            finally {
+                Disable-SnippetPredictorKeyHandler -ErrorAction SilentlyContinue
+                Remove-PSReadLineKeyHandler -Chord $chords -ErrorAction SilentlyContinue
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should rollback a partial registration' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler {
+                    if ($Chord -eq 'Ctrl+Alt+Shift+F31') {
+                        throw 'registration failure'
+                    }
+                }
+                Mock Get-PSReadLineKeyHandler {
+                    [pscustomobject]@{ Function = 'SnippetPredictorTabCompleteNext' }
+                } -ParameterFilter { $Chord -eq 'Ctrl+Alt+Shift+F30' }
+                Mock Remove-PSReadLineKeyHandler
+
+                {
+                    Enable-SnippetPredictorKeyHandler `
+                        -NextChord 'Ctrl+Alt+Shift+F30' `
+                        -PreviousChord 'Ctrl+Alt+Shift+F31'
+                } | Should -Throw
+
+                Should -Invoke Remove-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -eq 'Ctrl+Alt+Shift+F30'
+                }
+                $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should retain a binding when rollback fails' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler {
+                    if ($Chord -eq 'Ctrl+Alt+Shift+D9') {
+                        throw 'registration failure'
+                    }
+                }
+                Mock Get-PSReadLineKeyHandler {
+                    [pscustomobject]@{ Function = 'SnippetPredictorTabCompleteNext' }
+                } -ParameterFilter { $Chord -eq 'Ctrl+Alt+Shift+D8' }
+                Mock Remove-PSReadLineKeyHandler { throw 'rollback failure' }
+                Mock Write-Error
+
+                {
+                    Enable-SnippetPredictorKeyHandler `
+                        -NextChord 'Ctrl+Alt+Shift+D8' `
+                        -PreviousChord 'Ctrl+Alt+Shift+D9'
+                } | Should -Throw -ExpectedMessage 'registration failure'
+
+                $script:SnippetPredictorKeyHandlerBindings.Chord | Should -Be 'Ctrl+Alt+Shift+D8'
+                Should -Invoke Write-Error -Times 1 -Exactly
+            }
+        }
+        It 'Disable-SnippetPredictorKeyHandler should restore baseline completion bindings' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineKeyHandler {
+                    $function = $Chord -ceq 'Tab' ? 'SnippetPredictorTabCompleteNext' : 'SnippetPredictorTabCompletePrevious'
+                    [pscustomobject]@{ Function = $function }
+                }
+                Mock Remove-PSReadLineKeyHandler
+
+                Enable-SnippetPredictorKeyHandler
+                Disable-SnippetPredictorKeyHandler
+
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq 'Tab' -and $Function -eq 'TabCompleteNext'
+                }
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq 'Shift+Tab' -and $Function -eq 'TabCompletePrevious'
+                }
+                Should -Not -Invoke Remove-PSReadLineKeyHandler
+                $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
+            }
+        }
+        It 'Removing the module should clean up custom completion bindings' {
+            $modulePath = (Get-Module SnippetPredictor).Path
+            $chords = @('Ctrl+Alt+Shift+D6', 'Ctrl+Alt+Shift+D7')
+
+            try {
+                foreach ($chord in $chords) {
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                }
+
+                Enable-SnippetPredictorKeyHandler -NextChord $chords[0] -PreviousChord $chords[1]
+                Remove-Module SnippetPredictor -Force
+
+                foreach ($chord in $chords) {
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                }
+            }
+            finally {
+                Remove-PSReadLineKeyHandler -Chord $chords -ErrorAction SilentlyContinue
+                if (-not (Get-Module SnippetPredictor)) {
+                    Import-Module $modulePath -Global
+                }
+            }
         }
     }
     BeforeAll {
