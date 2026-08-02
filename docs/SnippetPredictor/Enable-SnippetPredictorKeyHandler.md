@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 08-01-2026
+ms.date: 08-02-2026
 PlatyPS schema version: 2024-05-01
 title: Enable-SnippetPredictorKeyHandler
 ---
@@ -47,6 +47,10 @@ The command doesn't change the prediction ListView bindings.
 Use the standard PSReadLine UpArrow and DownArrow bindings to navigate the ListView.
 
 The command overwrites existing bindings for the selected chords.
+It doesn't preserve an arbitrary custom action for later restoration.
+Enabling the handlers again first cleans up bindings from the previous call.
+Use `Disable-SnippetPredictorKeyHandler` to remove the registered bindings explicitly.
+Removing the SnippetPredictor module performs the same cleanup automatically.
 The bindings apply to the current PowerShell session.
 
 ## EXAMPLES
@@ -59,6 +63,15 @@ Enable-SnippetPredictorKeyHandler
 
 Registers the default Tab and Shift+Tab completion bindings.
 Type `:` and press Tab to cycle through `:snp` and configured group identifiers.
+
+### Example 2
+
+```powershell
+Enable-SnippetPredictorKeyHandler -NextChord Ctrl+j -PreviousChord Ctrl+k
+Disable-SnippetPredictorKeyHandler
+```
+
+Registers custom completion chords and then removes them.
 
 ## PARAMETERS
 
@@ -123,8 +136,12 @@ The command doesn't change the PSReadLine prediction source or view style.
 Identifier matching is case-sensitive.
 Snippet matching follows the `SearchCaseSensitive` configuration value.
 Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.
+During cleanup, the command assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
+The command removes other registered chords.
+A binding replaced by the user after this command runs isn't changed during cleanup.
 
 ## RELATED LINKS
 
+- [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
 - [New-SnippetPredictorKeyHandler](New-SnippetPredictorKeyHandler.md)
 - [SnippetPredictor.md](SnippetPredictor.md)

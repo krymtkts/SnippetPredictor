@@ -5,7 +5,7 @@ HelpInfoUri: "https://github.com/krymtkts/SnippetPredictor/blob/main/docs/Snippe
 Locale: en-US
 Module Guid: 46275f69-83fc-4a16-89b5-fd0e750c6358
 Module Name: SnippetPredictor
-ms.date: 02-22-2025
+ms.date: 08-02-2026
 PlatyPS schema version: 2024-05-01
 title: SnippetPredictor Module
 ---
@@ -30,6 +30,8 @@ Use `Enable-SnippetPredictorKeyHandler` to bind Tab and Shift+Tab completion.
 The handlers complete `:snp` and configured group identifiers from `:` or a partial identifier.
 They complete matching snippets after an exact `:snp` or group identifier.
 The `:tip` identifier isn't included in key handler completion.
+Use `Disable-SnippetPredictorKeyHandler` to remove bindings registered by the enable command.
+Removing the module performs the same cleanup automatically.
 
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
@@ -40,6 +42,10 @@ The default value is `false`.
 ### [Add-Snippet](Add-Snippet.md)
 
 Add snippets with tooltip to the snippet configuration.
+
+### [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
+
+Remove PSReadLine key handlers registered by SnippetPredictor.
 
 ### [Enable-SnippetPredictorKeyHandler](Enable-SnippetPredictorKeyHandler.md)
 

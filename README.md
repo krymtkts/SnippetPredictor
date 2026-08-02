@@ -77,14 +77,21 @@ Completion requires the cursor at the end of the line.
 Every character before the identifier must be whitespace.
 Unsupported Tab input falls back to standard PSReadLine completion.
 The prediction ListView keeps the standard PSReadLine UpArrow and DownArrow navigation.
-The command overwrites the selected Tab bindings in the current PowerShell session.
+The command overwrites the selected chord bindings in the current PowerShell session.
+Use `Disable-SnippetPredictorKeyHandler` to clean up bindings registered by the enable command.
+Cleanup restores `TabCompleteNext` and `TabCompletePrevious` for the default chords.
+Cleanup removes SnippetPredictor-owned bindings from custom chords.
+It leaves bindings replaced later by the user unchanged.
+Removing the SnippetPredictor module performs the same cleanup automatically.
 Use `New-SnippetPredictorKeyHandler` to compose custom completion or prediction bindings.
+Bindings created with those composable handlers remain under the caller's control.
 
 ## Cmdlet help
 
 Refer to the following documents for detailed cmdlet help:
 
 - [`Add-Snippet.md`](./docs/SnippetPredictor/Add-Snippet.md)
+- [`Disable-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/Disable-SnippetPredictorKeyHandler.md)
 - [`Enable-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md)
 - [`Get-Snippet.md`](./docs/SnippetPredictor/Get-Snippet.md)
 - [`New-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md)
