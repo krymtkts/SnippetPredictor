@@ -11,6 +11,7 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 - Add opt-in Tab and Shift+Tab handlers for cycling `:snp` completion candidates. Provide composable handlers for custom completion and prediction ListView bindings.
 - Add identifier and group-scoped snippet completion to the opt-in key handlers. Complete `:snp` and group identifiers from `:` or partial input. Complete matching snippets after an exact identifier.
+- Add lifecycle cleanup for the opt-in PSReadLine key handlers. Provide `Disable-SnippetPredictorKeyHandler` for explicit cleanup. Clean up registered bindings automatically on module removal.
 
 ## [0.6.0] - 2026-06-27
 
