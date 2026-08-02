@@ -53,10 +53,15 @@ function Invoke-SnippetPredictorKeyHandler {
             $replacement
         )
 
-        $script:SnippetPredictorKeyHandlerSession = [pscustomobject]@{
-            Matches = $completions
-            Index = $index
-            LastReplacement = $replacement
+        $script:SnippetPredictorKeyHandlerSession = if ($completions.Count -gt 1) {
+            [pscustomobject]@{
+                Matches = $completions
+                Index = $index
+                LastReplacement = $replacement
+            }
+        }
+        else {
+            $null
         }
         return $true
     }

@@ -32,6 +32,13 @@ The script block returns `$true` when SnippetPredictor handles the current input
 It returns `$false` when the input is outside the supported scope.
 In that case, it doesn't invoke fallback completion.
 
+The Tab completion actions complete `:snp` and configured group identifiers.
+They accept `:` or a partial identifier.
+They complete snippets after an exact `:snp` or group identifier.
+The `:tip` identifier isn't included.
+For one candidate, the handler ends the candidate session.
+The next Tab or Shift+Tab starts a new completion lookup.
+
 The caller must consume the Boolean result and decide which fallback action to invoke.
 Do not register the returned script block directly with `Set-PSReadLineKeyHandler`.
 `Enable-SnippetPredictorKeyHandler` doesn't register the prediction navigation actions.
@@ -91,6 +98,10 @@ The script block returns whether SnippetPredictor handled the input.
 
 The returned script block belongs to the SnippetPredictor script module.
 It shares the module's handler state.
+Tab completion requires the cursor at the end of the line.
+Every character before the identifier must be whitespace.
+Identifier matching is case-sensitive.
+Snippet matching follows the `SearchCaseSensitive` configuration value.
 
 ## RELATED LINKS
 

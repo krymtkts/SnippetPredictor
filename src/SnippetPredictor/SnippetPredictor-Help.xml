@@ -171,8 +171,20 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
       <command:noun>SnippetPredictorKeyHandler</command:noun>
     </command:details>
     <maml:description>
-      <maml:para>Registers PSReadLine key handlers that complete `:snp` input with Tab and Shift+Tab.
-Unsupported Tab input delegates to standard PSReadLine completion.
+      <maml:para>Registers PSReadLine key handlers that complete SnippetPredictor input with Tab and Shift+Tab.
+
+For `:` or a partial identifier, the handlers complete `:snp` and matching group identifiers.
+The `:tip` identifier isn't included.
+For an exact `:snp` or group identifier, the handlers complete matching snippets.
+
+Repeated Tab or Shift+Tab cycles through matching candidates.
+For one candidate, the next Tab or Shift+Tab starts a new lookup using the replaced input.
+For example, press Tab twice after `:sn`.
+The first press completes `:snp`; the second starts snippet completion.
+
+The handlers require the cursor at the end of the line.
+Every character before the identifier must be whitespace.
+Unsupported input delegates to standard PSReadLine completion.
 
 The command doesn't change the prediction ListView bindings.
 Use the standard PSReadLine UpArrow and DownArrow bindings to navigate the ListView.
@@ -205,7 +217,7 @@ The bindings apply to the current PowerShell session.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
         <maml:name>NextChord</maml:name>
         <maml:description>
-          <maml:para>Specifies the chord that selects the next snippet completion.</maml:para>
+          <maml:para>Specifies the chord that selects the next identifier or snippet completion.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -215,7 +227,7 @@ The bindings apply to the current PowerShell session.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
         <maml:name>PreviousChord</maml:name>
         <maml:description>
-          <maml:para>Specifies the chord that selects the previous snippet completion.</maml:para>
+          <maml:para>Specifies the chord that selects the previous identifier or snippet completion.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
@@ -236,7 +248,10 @@ The bindings apply to the current PowerShell session.</maml:para>
     </command:returnValues>
     <maml:alertSet>
       <maml:alert>
-        <maml:para>The command doesn't change the PSReadLine prediction source or view style.</maml:para>
+        <maml:para>The command doesn't change the PSReadLine prediction source or view style.
+Identifier matching is case-sensitive.
+Snippet matching follows the `SearchCaseSensitive` configuration value.
+Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.</maml:para>
       </maml:alert>
     </maml:alertSet>
     <command:examples>
@@ -247,7 +262,8 @@ The bindings apply to the current PowerShell session.</maml:para>
 Enable-SnippetPredictorKeyHandler
 ```</maml:para>
           <maml:para>&#x80;</maml:para>
-          <maml:para>Registers the default Tab and Shift+Tab completion bindings.</maml:para>
+          <maml:para>Registers the default Tab and Shift+Tab completion bindings.
+Type `:` and press Tab to cycle through `:snp` and configured group identifiers.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
@@ -344,6 +360,13 @@ The script block returns `$true` when SnippetPredictor handles the current input
 It returns `$false` when the input is outside the supported scope.
 In that case, it doesn't invoke fallback completion.
 
+The Tab completion actions complete `:snp` and configured group identifiers.
+They accept `:` or a partial identifier.
+They complete snippets after an exact `:snp` or group identifier.
+The `:tip` identifier isn't included.
+For one candidate, the handler ends the candidate session.
+The next Tab or Shift+Tab starts a new completion lookup.
+
 The caller must consume the Boolean result and decide which fallback action to invoke.
 Do not register the returned script block directly with `Set-PSReadLineKeyHandler`.
 `Enable-SnippetPredictorKeyHandler` doesn't register the prediction navigation actions.</maml:para>
@@ -400,7 +423,11 @@ The script block returns whether SnippetPredictor handled the input.</maml:para>
     <maml:alertSet>
       <maml:alert>
         <maml:para>The returned script block belongs to the SnippetPredictor script module.
-It shares the module's handler state.</maml:para>
+It shares the module's handler state.
+Tab completion requires the cursor at the end of the line.
+Every character before the identifier must be whitespace.
+Identifier matching is case-sensitive.
+Snippet matching follows the `SearchCaseSensitive` configuration value.</maml:para>
       </maml:alert>
     </maml:alertSet>
     <command:examples>

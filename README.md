@@ -68,7 +68,13 @@ Optionally enable the SnippetPredictor key handlers:
 Enable-SnippetPredictorKeyHandler
 ```
 
-The command binds Tab and Shift+Tab to cycle through `:snp` completion candidates.
+The command binds Tab and Shift+Tab to SnippetPredictor completion.
+Type `:` or a partial identifier to complete `:snp` and configured group identifiers.
+After an exact `:snp` or group identifier, use the bindings to complete matching snippets.
+Repeated key presses select the next or previous matching candidate.
+The `:tip` identifier isn't included in key handler completion.
+Completion requires the cursor at the end of the line.
+Every character before the identifier must be whitespace.
 Unsupported Tab input falls back to standard PSReadLine completion.
 The prediction ListView keeps the standard PSReadLine UpArrow and DownArrow navigation.
 The command overwrites the selected Tab bindings in the current PowerShell session.
@@ -115,7 +121,7 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
 - Use `:{group} {input}` to search for `{input}` in the `Snippet` field for snippets in a specified `Group`.
   - Allowed characters for the `Group` field: `^[a-zA-Z0-9]+$`.
     (Group names must consist of alphanumeric characters.)
-  - Typing `:` or a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
+  - Typing a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.

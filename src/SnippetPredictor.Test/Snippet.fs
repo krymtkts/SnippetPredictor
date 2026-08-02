@@ -395,6 +395,9 @@ module getPredictiveSuggestions =
     let tests_getCompletionTexts =
         let cache = new Suggestion.Cache()
         cache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-valid.json")
+        let completionCache = new Suggestion.Cache()
+
+        completionCache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-completion.json")
 
         testList
             "getCompletionTexts"
@@ -424,8 +427,92 @@ module getPredictiveSuggestions =
                   cache.getCompletionTexts ":tip example" |> Expect.isEmpty "should return empty"
               }
 
-              test "when group symbol is set" {
-                  cache.getCompletionTexts ":group Echo" |> Expect.isEmpty "should return empty"
+              test "when group symbol is set and matched" {
+                  cache.getCompletionTexts ":group Echo"
+                  |> Expect.equal "should return matching group snippet text" [| "echo 'example'" |]
+              }
+
+              test "when group symbol is set and not matched" {
+                  cache.getCompletionTexts ":group missing"
+                  |> Expect.isEmpty "should return empty"
+              }
+
+              test "when identifier is empty" {
+                  completionCache.getCompletionTexts ":"
+                  |> Expect.equal
+                      "should return snippet and sorted group identifiers"
+                      [| ":snp"; ":Group"; ":gr"; ":group" |]
+              }
+
+              test "when identifier has leading whitespace" {
+                  completionCache.getCompletionTexts "    :g"
+                  |> Expect.equal "should return matching group identifiers" [| ":gr"; ":group" |]
+              }
+
+              test "when identifier is partially matched" {
+                  completionCache.getCompletionTexts ":gro"
+                  |> Expect.equal "should return the matching group identifier" [| ":group" |]
+              }
+
+              test "when snippet identifier is partially matched" {
+                  completionCache.getCompletionTexts ":sn"
+                  |> Expect.equal "should return the snippet identifier" [| ":snp" |]
+              }
+
+              test "when identifier differs by case" {
+                  completionCache.getCompletionTexts ":G"
+                  |> Expect.equal "should match identifiers by ordinal comparison" [| ":Group" |]
+
+                  completionCache.getCompletionTexts ":SN"
+                  |> Expect.isEmpty "should distinguish identifier case"
+              }
+
+              test "when reserved identifiers are partially matched" {
+                  completionCache.getCompletionTexts ":s"
+                  |> Expect.equal "should not duplicate the reserved snippet identifier" [| ":snp" |]
+
+                  completionCache.getCompletionTexts ":t"
+                  |> Expect.isEmpty "should exclude the tooltip identifier"
+              }
+
+              test "when reserved identifiers are predicted" {
+                  completionCache.getPredictiveSuggestions ":s"
+                  |> Seq.map _.SuggestionText
+                  |> Seq.toArray
+                  |> Expect.equal "should not duplicate the reserved snippet identifier" [| ":snp" |]
+
+                  completionCache.getPredictiveSuggestions ":t"
+                  |> Seq.map _.SuggestionText
+                  |> Seq.toArray
+                  |> Expect.equal "should not duplicate the reserved tooltip identifier" [| ":tip" |]
+              }
+
+              test "when exact group is also another group prefix" {
+                  completionCache.getCompletionTexts ":gr"
+                  |> Expect.equal "should prefer exact group completion" [| "Write-Output gr" |]
+              }
+
+              test "when exact group differs by case" {
+                  completionCache.getCompletionTexts ":Group"
+                  |> Expect.equal "should return the exact case-sensitive group" [| "Write-Output Group" |]
+              }
+
+              test "when group snippet search differs by case" {
+                  completionCache.getCompletionTexts ":group GROUP"
+                  |> Expect.equal "should use snippet search case sensitivity" [| "Write-Output group" |]
+              }
+
+              test "when identifier has a non-whitespace prefix" {
+                  completionCache.getCompletionTexts "x    :"
+                  |> Expect.isEmpty "should exclude a non-whitespace prefix"
+
+                  completionCache.getCompletionTexts "Get-Item :"
+                  |> Expect.isEmpty "should exclude ordinary command input"
+              }
+
+              test "when partial identifier has trailing whitespace" {
+                  completionCache.getCompletionTexts ":gro "
+                  |> Expect.isEmpty "should not complete an unregistered group"
               }
 
               ]
@@ -687,6 +774,40 @@ module CacheDisposeBehavior =
                       System.Threading.Thread.Sleep 400
                       refreshCalls |> Expect.equal "should still be one refresh" 1)
 
+              }
+
+              test "Changed refreshes completion identifiers" {
+                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                  let fileName = ".snippet-predictor.json"
+                  let filePath = Path.Combine(tmpDir.Path, fileName)
+
+                  File.WriteAllText(filePath, """{"Snippets":[{"Snippet":"old","Tooltip":"old","Group":"old"}]}""")
+
+                  let mutable watcher: TestWatcher option = None
+
+                  let cache =
+                      new CacheForTest(
+                          (fun _ ->
+                              let w = new TestWatcher(tmpDir.Path, fileName)
+                              watcher <- Some w
+                              w),
+                          ignore
+                      )
+
+                  cache.load (fun () -> tmpDir.Path, filePath)
+
+                  waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":old" |])
+                  |> Expect.isTrue "should load initial completion identifiers"
+
+                  let w = watcher |> Expect.wantSome "watcher should be created"
+
+                  testWithRelease w cache filePath (fun () ->
+                      File.WriteAllText(filePath, """{"Snippets":[{"Snippet":"new","Tooltip":"new","Group":"new"}]}""")
+
+                      w.TriggerChanged(tmpDir.Path, fileName)
+
+                      waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":new" |])
+                      |> Expect.isTrue "should refresh completion identifiers")
               }
 
               test "Debounced callback swallows ObjectDisposedException" {

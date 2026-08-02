@@ -28,8 +28,20 @@ Enable-SnippetPredictorKeyHandler [[-NextChord] <string>] [[-PreviousChord] <str
 
 ## DESCRIPTION
 
-Registers PSReadLine key handlers that complete `:snp` input with Tab and Shift+Tab.
-Unsupported Tab input delegates to standard PSReadLine completion.
+Registers PSReadLine key handlers that complete SnippetPredictor input with Tab and Shift+Tab.
+
+For `:` or a partial identifier, the handlers complete `:snp` and matching group identifiers.
+The `:tip` identifier isn't included.
+For an exact `:snp` or group identifier, the handlers complete matching snippets.
+
+Repeated Tab or Shift+Tab cycles through matching candidates.
+For one candidate, the next Tab or Shift+Tab starts a new lookup using the replaced input.
+For example, press Tab twice after `:sn`.
+The first press completes `:snp`; the second starts snippet completion.
+
+The handlers require the cursor at the end of the line.
+Every character before the identifier must be whitespace.
+Unsupported input delegates to standard PSReadLine completion.
 
 The command doesn't change the prediction ListView bindings.
 Use the standard PSReadLine UpArrow and DownArrow bindings to navigate the ListView.
@@ -46,12 +58,13 @@ Enable-SnippetPredictorKeyHandler
 ```
 
 Registers the default Tab and Shift+Tab completion bindings.
+Type `:` and press Tab to cycle through `:snp` and configured group identifiers.
 
 ## PARAMETERS
 
 ### -NextChord
 
-Specifies the chord that selects the next snippet completion.
+Specifies the chord that selects the next identifier or snippet completion.
 
 ```yaml
 Type: System.String
@@ -72,7 +85,7 @@ HelpMessage: ""
 
 ### -PreviousChord
 
-Specifies the chord that selects the previous snippet completion.
+Specifies the chord that selects the previous identifier or snippet completion.
 
 ```yaml
 Type: System.String
@@ -107,6 +120,9 @@ No output.
 ## NOTES
 
 The command doesn't change the PSReadLine prediction source or view style.
+Identifier matching is case-sensitive.
+Snippet matching follows the `SearchCaseSensitive` configuration value.
+Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.
 
 ## RELATED LINKS
 
