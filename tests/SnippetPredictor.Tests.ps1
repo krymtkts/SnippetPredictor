@@ -92,6 +92,9 @@ Describe 'SnippetPredictor' {
                 }
             }
         }
+        # NOTE: Use function keys for real PSReadLine bindings. Enum-style D0-D9 chord names
+        # fall back to ConsoleKey parsing with KeyChar '\0'. On non-Windows, PSKeyInfo
+        # normalizes '\0' to "@", so D0-D9 alias one binding; F1-F24 remain distinct.
         It 'Enable and Disable should register and remove custom completion bindings' {
             $bindings = [ordered]@{
                 'Ctrl+Alt+Shift+F21' = 'SnippetPredictorTabCompleteNext'
@@ -117,7 +120,9 @@ Describe 'SnippetPredictor' {
                 Disable-SnippetPredictorKeyHandler
 
                 foreach ($chord in $bindings.Keys) {
-                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue |
+                        Where-Object Function -CLike 'SnippetPredictorTabComplete*' |
+                        Should -BeNullOrEmpty
                 }
             }
             finally {
@@ -159,8 +164,8 @@ Describe 'SnippetPredictor' {
             }
         }
         It 'Enable-SnippetPredictorKeyHandler should replace its previous custom bindings' {
-            $firstChords = @('Ctrl+Alt+Shift+F24', 'Ctrl+Alt+Shift+D1')
-            $secondChords = @('Ctrl+Alt+Shift+D2', 'Ctrl+Alt+Shift+D3')
+            $firstChords = @('Ctrl+Alt+Shift+F17', 'Ctrl+Alt+Shift+F18')
+            $secondChords = @('Ctrl+Alt+Shift+F19', 'Ctrl+Alt+Shift+F20')
             $allChords = $firstChords + $secondChords
 
             try {
@@ -172,7 +177,9 @@ Describe 'SnippetPredictor' {
                 Enable-SnippetPredictorKeyHandler -NextChord $secondChords[0] -PreviousChord $secondChords[1]
 
                 foreach ($chord in $firstChords) {
-                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue |
+                        Where-Object Function -CLike 'SnippetPredictorTabComplete*' |
+                        Should -BeNullOrEmpty
                 }
 
                 (Get-PSReadLineKeyHandler -Chord $secondChords[0]).Function | Should -Be 'SnippetPredictorTabCompleteNext'
@@ -184,8 +191,8 @@ Describe 'SnippetPredictor' {
             }
         }
         It 'Disable-SnippetPredictorKeyHandler should preserve a later user binding' {
-            $nextChord = 'Ctrl+Alt+Shift+D4'
-            $previousChord = 'Ctrl+Alt+Shift+D5'
+            $nextChord = 'Ctrl+Alt+Shift+F15'
+            $previousChord = 'Ctrl+Alt+Shift+F16'
             $chords = @($nextChord, $previousChord)
 
             try {
@@ -199,7 +206,9 @@ Describe 'SnippetPredictor' {
                 Disable-SnippetPredictorKeyHandler
 
                 (Get-PSReadLineKeyHandler -Chord $nextChord).Function | Should -Be 'UserOwnedAction'
-                Get-PSReadLineKeyHandler -Chord $previousChord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                Get-PSReadLineKeyHandler -Chord $previousChord -ErrorAction SilentlyContinue |
+                    Where-Object Function -CLike 'SnippetPredictorTabComplete*' |
+                    Should -BeNullOrEmpty
             }
             finally {
                 Disable-SnippetPredictorKeyHandler -ErrorAction SilentlyContinue
@@ -283,7 +292,7 @@ Describe 'SnippetPredictor' {
         }
         It 'Removing the module should clean up custom completion bindings' {
             $modulePath = (Get-Module SnippetPredictor).Path
-            $chords = @('Ctrl+Alt+Shift+D6', 'Ctrl+Alt+Shift+D7')
+            $chords = @('Ctrl+Alt+Shift+F13', 'Ctrl+Alt+Shift+F14')
 
             try {
                 foreach ($chord in $chords) {
@@ -294,7 +303,9 @@ Describe 'SnippetPredictor' {
                 Remove-Module SnippetPredictor -Force
 
                 foreach ($chord in $chords) {
-                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue |
+                        Where-Object Function -CLike 'SnippetPredictorTabComplete*' |
+                        Should -BeNullOrEmpty
                 }
             }
             finally {
