@@ -26,10 +26,11 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
     (Group names must consist of alphanumeric characters.)
   - Typing a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
-Use `Enable-SnippetPredictorKeyHandler` to bind Tab and Shift+Tab completion.
+Use `Enable-SnippetPredictorKeyHandler` to register completion bindings.
+By default, it binds Tab and Shift+Tab.
 The handlers complete `:snp` and configured group identifiers from `:` or a partial identifier.
 They complete matching snippets after an exact `:snp` or group identifier.
-The `:tip` identifier isn't included in key handler completion.
+The `:tip` identifier isn't included in this completion.
 Use `Disable-SnippetPredictorKeyHandler` to remove bindings registered by the enable command.
 Removing the module performs the same cleanup automatically.
 
@@ -45,11 +46,11 @@ Add snippets with tooltip to the snippet configuration.
 
 ### [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
 
-Remove PSReadLine key handlers registered by SnippetPredictor.
+Remove PSReadLine key bindings registered by SnippetPredictor.
 
 ### [Enable-SnippetPredictorKeyHandler](Enable-SnippetPredictorKeyHandler.md)
 
-Register opt-in PSReadLine key handlers for SnippetPredictor.
+Register opt-in PSReadLine key bindings for SnippetPredictor.
 
 ### [Get-Snippet](Get-Snippet.md)
 
@@ -57,7 +58,7 @@ Retrieve a saved snippet.
 
 ### [New-SnippetPredictorKeyHandler](New-SnippetPredictorKeyHandler.md)
 
-Return a composable SnippetPredictor key handler.
+Return a composable SnippetPredictor key handler for custom key bindings.
 
 ### [Remove-Snippet](Remove-Snippet.md)
 

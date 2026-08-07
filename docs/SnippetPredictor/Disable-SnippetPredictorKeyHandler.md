@@ -13,7 +13,7 @@ title: Disable-SnippetPredictorKeyHandler
 
 ## SYNOPSIS
 
-Removes PSReadLine key handlers registered by SnippetPredictor.
+Removes PSReadLine key bindings registered by SnippetPredictor.
 
 ## SYNTAX
 
@@ -31,9 +31,9 @@ Removes the PSReadLine completion bindings registered by `Enable-SnippetPredicto
 The command checks ownership before cleanup and leaves user-owned bindings unchanged.
 It preserves a binding that the user replaced after enabling the handlers.
 
-For the default chords, the command restores the SnippetPredictor baseline bindings.
-The command assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
-The command removes other chords.
+For the enable command's default chords, the command restores the completion bindings.
+It assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
+The command removes bindings for custom chords.
 
 The command doesn't restore a custom binding that `Enable-SnippetPredictorKeyHandler` overwrote.
 PSReadLine doesn't expose the original script block required to restore an arbitrary custom action.
@@ -69,8 +69,9 @@ No output.
 ## NOTES
 
 The binding state applies to the current PowerShell session.
-This command doesn't manage handlers returned by `New-SnippetPredictorKeyHandler`.
-User code controls bindings that use those handlers.
+This command doesn't manage key bindings created by user code.
+This includes bindings that use handlers returned by `New-SnippetPredictorKeyHandler`.
+User code controls those bindings.
 
 ## RELATED LINKS
 
