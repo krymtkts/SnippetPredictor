@@ -107,6 +107,6 @@ Snippet matching follows the `SearchCaseSensitive` configuration value.
 
 ## RELATED LINKS
 
-- [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
-- [Enable-SnippetPredictorKeyHandler](Enable-SnippetPredictorKeyHandler.md)
-- [SnippetPredictor.md](SnippetPredictor.md)
+- [Disable-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Disable-SnippetPredictorKeyHandler.md)
+- [Enable-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md)
+- [SnippetPredictor.md](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md)

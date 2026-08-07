@@ -74,6 +74,6 @@ User code controls bindings that use those handlers.
 
 ## RELATED LINKS
 
-- [Enable-SnippetPredictorKeyHandler](Enable-SnippetPredictorKeyHandler.md)
-- [New-SnippetPredictorKeyHandler](New-SnippetPredictorKeyHandler.md)
-- [SnippetPredictor.md](SnippetPredictor.md)
+- [Enable-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md)
+- [New-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md)
+- [SnippetPredictor.md](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md)

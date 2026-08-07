@@ -142,6 +142,6 @@ A binding replaced by the user after this command runs isn't changed during clea
 
 ## RELATED LINKS
 
-- [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
-- [New-SnippetPredictorKeyHandler](New-SnippetPredictorKeyHandler.md)
-- [SnippetPredictor.md](SnippetPredictor.md)
+- [Disable-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Disable-SnippetPredictorKeyHandler.md)
+- [New-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md)
+- [SnippetPredictor.md](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md)
