@@ -62,29 +62,33 @@ Set-PSReadLineOption -PredictionViewStyle ListView
 
 [^2]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#using-other-predictor-plug-ins)
 
-Optionally enable the SnippetPredictor key handlers:
+Optionally enable the SnippetPredictor key bindings:
 
 ```powershell
 Enable-SnippetPredictorKeyHandler
 ```
 
-The command binds Tab and Shift+Tab to SnippetPredictor completion.
+The command binds Tab and Shift+Tab to SnippetPredictor completion handlers.
 Type `:` or a partial identifier to complete `:snp` and configured group identifiers.
 After an exact `:snp` or group identifier, use the bindings to complete matching snippets.
 Repeated key presses select the next or previous matching candidate.
-The `:tip` identifier isn't included in key handler completion.
+The `:tip` identifier isn't included in this completion.
+
 Completion requires the cursor at the end of the line.
 Every character before the identifier must be whitespace.
 Unsupported Tab input falls back to standard PSReadLine completion.
 The prediction ListView keeps the standard PSReadLine UpArrow and DownArrow navigation.
-The command overwrites the selected chord bindings in the current PowerShell session.
+
+The command overwrites existing key bindings for the selected chords.
+The changes apply to the current PowerShell session.
 Use `Disable-SnippetPredictorKeyHandler` to clean up bindings registered by the enable command.
 Cleanup restores `TabCompleteNext` and `TabCompletePrevious` for the default chords.
 Cleanup removes SnippetPredictor-owned bindings from custom chords.
 It leaves bindings replaced later by the user unchanged.
 Removing the SnippetPredictor module performs the same cleanup automatically.
-Use `New-SnippetPredictorKeyHandler` to compose custom completion or prediction bindings.
-Bindings created with those composable handlers remain under the caller's control.
+
+Use `New-SnippetPredictorKeyHandler` to compose custom completion or prediction handlers.
+Key bindings that use those composable handlers remain under the caller's control.
 
 ## Cmdlet help
 

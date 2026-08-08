@@ -13,7 +13,7 @@ title: Enable-SnippetPredictorKeyHandler
 
 ## SYNOPSIS
 
-Registers opt-in PSReadLine key handlers for SnippetPredictor.
+Registers opt-in PSReadLine key bindings for SnippetPredictor.
 
 ## SYNTAX
 
@@ -28,7 +28,8 @@ Enable-SnippetPredictorKeyHandler [[-NextChord] <string>] [[-PreviousChord] <str
 
 ## DESCRIPTION
 
-Registers PSReadLine key handlers that complete SnippetPredictor input with Tab and Shift+Tab.
+Registers PSReadLine key bindings that invoke SnippetPredictor completion handlers.
+A chord is the key or sequence of keys assigned to a handler.
 
 For `:` or a partial identifier, the handlers complete `:snp` and matching group identifiers.
 The `:tip` identifier isn't included.
@@ -61,7 +62,7 @@ The bindings apply to the current PowerShell session.
 Enable-SnippetPredictorKeyHandler
 ```
 
-Registers the default Tab and Shift+Tab completion bindings.
+Registers completion bindings for the default Tab and Shift+Tab chords.
 Type `:` and press Tab to cycle through `:snp` and configured group identifiers.
 
 ### Example 2
@@ -71,13 +72,13 @@ Enable-SnippetPredictorKeyHandler -NextChord Ctrl+j -PreviousChord Ctrl+k
 Disable-SnippetPredictorKeyHandler
 ```
 
-Registers custom completion chords and then removes them.
+Registers and then removes completion bindings for custom chords.
 
 ## PARAMETERS
 
 ### -NextChord
 
-Specifies the chord that selects the next identifier or snippet completion.
+Specifies the key or sequence of keys to bind to the next completion handler.
 
 ```yaml
 Type: System.String
@@ -98,7 +99,7 @@ HelpMessage: ""
 
 ### -PreviousChord
 
-Specifies the chord that selects the previous identifier or snippet completion.
+Specifies the key or sequence of keys to bind to the previous completion handler.
 
 ```yaml
 Type: System.String
@@ -137,11 +138,11 @@ Identifier matching is case-sensitive.
 Snippet matching follows the `SearchCaseSensitive` configuration value.
 Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.
 During cleanup, the command assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
-The command removes other registered chords.
+The command removes bindings for other registered chords.
 A binding replaced by the user after this command runs isn't changed during cleanup.
 
 ## RELATED LINKS
 
-- [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
-- [New-SnippetPredictorKeyHandler](New-SnippetPredictorKeyHandler.md)
-- [SnippetPredictor.md](SnippetPredictor.md)
+- [Disable-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Disable-SnippetPredictorKeyHandler.md)
+- [New-SnippetPredictorKeyHandler](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md)
+- [SnippetPredictor.md](https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/SnippetPredictor.md)
