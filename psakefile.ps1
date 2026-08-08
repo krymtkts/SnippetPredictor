@@ -119,9 +119,22 @@ Task E2ETest -Depends Import {
     }
 }
 
-Task ExternalHelp -Depends Import {
+# NOTE: Run after exported command syntax or parameter metadata changes, then review the generated Markdown diff.
+Task UpdateMarkdownHelp -Depends Build {
+    # NOTE: Exclude stale MAML before import so old descriptions cannot flow back into the Markdown source.
+    $externalHelpPath = Join-Path $ModulePublishPath "${ModuleName}-Help.xml"
+    if (Test-Path -LiteralPath $externalHelpPath) {
+        Remove-Item -LiteralPath $externalHelpPath -Force
+    }
+    Import-Module $ModulePublishPath -Global
+
     $help = Get-ValidMarkdownCommentHelp
     $help.FilePath | Update-MarkdownCommandHelp -NoBackup
+}
+
+# NOTE: Run after reviewing Markdown help to regenerate MAML without modifying the Markdown source.
+Task ExternalHelp {
+    $help = Get-ValidMarkdownCommentHelp
     $help.FilePath | Import-MarkdownCommandHelp | Export-MamlCommandHelp -OutputFolder ./src/ -Force | Out-Null
 }
 

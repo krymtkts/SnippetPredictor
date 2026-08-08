@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 08-02-2026
+ms.date: 08-08-2026
 PlatyPS schema version: 2024-05-01
 title: New-SnippetPredictorKeyHandler
 ---
