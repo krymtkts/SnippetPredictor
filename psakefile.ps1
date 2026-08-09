@@ -207,7 +207,9 @@ Task Release -Depends TestAll {
     }
 
     $m = Get-Module $ModuleName
-    if ($m.Version -ne $ModuleVersion) {
+    # NOTE: Binary modules can expose a four-part assembly version.
+    # Compare the three-part module version used by this project.
+    if ($m.Version.ToString(3) -ne $ModuleVersion) {
         throw "Version inconsistency between project and module. $($m.Version), $ModuleVersion"
     }
     $p = Get-ChildItem "${ModulePublishPath}/*.psd1"
