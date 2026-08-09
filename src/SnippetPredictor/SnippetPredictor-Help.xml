@@ -552,6 +552,44 @@ $handler = New-SnippetPredictorKeyHandler -Action NextSuggestion
         <dev:code />
         <dev:remarks />
       </command:example>
+      <command:example>
+        <maml:title>--------- Example 2 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+$snippetHandler = New-SnippetPredictorKeyHandler -Action TabCompleteNext
+$userAction = {
+    param($key, $arg)</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>[Microsoft.PowerShell.PSConsoleReadLine]::Insert((Get-Date -Format 'yyyy-MM-dd'))
+}
+$composedHandler = {
+    param($key, $arg)</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>if (-not (&amp; $snippetHandler $key $arg)) {
+        &amp; $userAction $key $arg
+    }
+}.GetNewClosure()</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Set-PSReadLineKeyHandler `
+    -Chord Ctrl+Alt+d `
+    -ScriptBlock $composedHandler `
+    -BriefDescription 'SnippetPredictorOrUserAction' `
+    -Description 'Complete SnippetPredictor input or run the user action'
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Registers a caller-owned key binding for the composed handler.
+The composed handler first tries SnippetPredictor completion.
+When the input isn't supported, it invokes the user action.
+The user action inserts the current date into the command line.
+The wrapper forwards the PSReadLine key and argument to the SnippetPredictor handler.
+When completion isn't supported, it forwards them to the user action.
+It uses `GetNewClosure()` to keep both script blocks accessible after registration.
+`Set-PSReadLineKeyHandler` replaces any existing `Ctrl+Alt+d` binding.
+The caller removes or replaces that binding.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
     </command:examples>
     <command:relatedLinks>
       <maml:navigationLink>
