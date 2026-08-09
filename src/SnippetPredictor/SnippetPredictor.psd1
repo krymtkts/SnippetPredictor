@@ -125,6 +125,14 @@
             # ReleaseNotes of this module
 
             ReleaseNotes = @'
+## [0.7.0] - 2026-08-09
+
+### Added
+
+- Add `Enable-SnippetPredictorKeyHandler` to register opt-in key bindings. The default Tab and Shift+Tab bindings cycle through `:snp` completion candidates. Provide composable handlers for custom completion and prediction ListView bindings.
+- Add identifier and group-scoped snippet completion to the opt-in key bindings. Complete `:snp` and group identifiers from `:` or partial input. Complete matching snippets after an exact identifier.
+- Add lifecycle cleanup for the opt-in PSReadLine key bindings. Provide `Disable-SnippetPredictorKeyHandler` for explicit cleanup. Clean up registered bindings automatically on module removal.
+
 ## [0.6.0] - 2026-06-27
 
 ### Fixed
@@ -144,22 +152,6 @@
 ### Fixed
 
 - Fix a potential group serialization error by returning an empty string instead of null.
-
-## [0.4.0] - 2025-05-10
-
-### Added
-
-- Add group ID suggestions for empty input in snippet search.
-
-### Changed
-
-- Add predictor lifecycle management to manage resources more reliably.
-- Refine cmdlet documentation.
-- Add project metadata for description and copyright information.
-
-### Fixed
-
-- Fix `Get-Snippet` to return a single `SnippetEntry` instead of an array.
 
 Full CHANGELOG: https://github.com/krymtkts/SnippetPredictor/blob/main/CHANGELOG.md
 '@
