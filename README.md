@@ -89,6 +89,7 @@ Removing the SnippetPredictor module performs the same cleanup automatically.
 
 Use `New-SnippetPredictorKeyHandler` to compose custom completion or prediction handlers.
 Key bindings that use those composable handlers remain under the caller's control.
+See [New-SnippetPredictorKeyHandler](./docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md#example-2) for a tested custom action composition example.
 
 ## Cmdlet help
 

@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 08-08-2026
+ms.date: 08-09-2026
 PlatyPS schema version: 2024-05-01
 title: New-SnippetPredictorKeyHandler
 ---
@@ -54,6 +54,40 @@ $handler = New-SnippetPredictorKeyHandler -Action NextSuggestion
 ```
 
 Returns the fixed handler for selecting the next prediction.
+
+### Example 2
+
+```powershell
+$snippetHandler = New-SnippetPredictorKeyHandler -Action TabCompleteNext
+$userAction = {
+    param($key, $arg)
+
+    [Microsoft.PowerShell.PSConsoleReadLine]::Insert((Get-Date -Format 'yyyy-MM-dd'))
+}
+$composedHandler = {
+    param($key, $arg)
+
+    if (-not (& $snippetHandler $key $arg)) {
+        & $userAction $key $arg
+    }
+}.GetNewClosure()
+
+Set-PSReadLineKeyHandler `
+    -Chord Ctrl+Alt+d `
+    -ScriptBlock $composedHandler `
+    -BriefDescription 'SnippetPredictorOrUserAction' `
+    -Description 'Complete SnippetPredictor input or run the user action'
+```
+
+Registers a caller-owned key binding for the composed handler.
+The composed handler first tries SnippetPredictor completion.
+When the input isn't supported, it invokes the user action.
+The user action inserts the current date into the command line.
+The wrapper forwards the PSReadLine key and argument to the SnippetPredictor handler.
+When completion isn't supported, it forwards them to the user action.
+It uses `GetNewClosure()` to keep both script blocks accessible after registration.
+`Set-PSReadLineKeyHandler` replaces any existing `Ctrl+Alt+d` binding.
+The caller removes or replaces that binding.
 
 ## PARAMETERS
 

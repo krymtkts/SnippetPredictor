@@ -92,6 +92,84 @@ Describe 'SnippetPredictor' {
                 }
             }
         }
+        It 'New-SnippetPredictorKeyHandler help should contain an executable composition example' {
+            $chord = 'Ctrl+Alt+d'
+            $existing = Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue
+            $existing | Should -BeNullOrEmpty
+            if ($existing) {
+                return
+            }
+
+            $registered = $false
+            try {
+                $helpPath = Join-Path $PSScriptRoot '../docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md'
+                $help = Import-MarkdownCommandHelp -Path $helpPath
+                $examples = @($help.Examples | Where-Object Title -CEQ 'Example 2')
+                $examples.Count | Should -Be 1
+
+                $codeBlock = [regex]::Match(
+                    $examples[0].Remarks,
+                    '(?ms)^```powershell\r?\n(?<Code>.*?)\r?\n```'
+                )
+                $codeBlock.Success | Should -BeTrue
+
+                $tokens = $null
+                $parseErrors = $null
+                [System.Management.Automation.Language.Parser]::ParseInput(
+                    $codeBlock.Groups['Code'].Value,
+                    [ref] $tokens,
+                    [ref] $parseErrors
+                ) | Out-Null
+                $parseErrors | Should -BeNullOrEmpty
+
+                . ([scriptblock]::Create($codeBlock.Groups['Code'].Value))
+                $registered = $true
+
+                $binding = Get-PSReadLineKeyHandler -Chord $chord
+                $binding.Key | Should -Be $chord
+                $binding.Function | Should -Be 'SnippetPredictorOrUserAction'
+                $binding.Description | Should -Be 'Complete SnippetPredictor input or run the user action'
+
+                $snippetCalls = [System.Collections.Generic.List[object[]]]::new()
+                $userActionCalls = [System.Collections.Generic.List[object[]]]::new()
+                $handlerVariables = $composedHandler.Module.SessionState.PSVariable
+                $handlerVariables.Set('userAction', {
+                        param($key, $arg)
+
+                        $userActionCalls.Add(@($key, $arg))
+                    }.GetNewClosure())
+                $handlerVariables.Set('snippetHandler', {
+                        param($key, $arg)
+
+                        $true
+                    })
+
+                & $composedHandler 'handled-key' 'handled-arg'
+                $userActionCalls.Count | Should -Be 0
+
+                $handlerVariables.Set('snippetHandler', {
+                        param($key, $arg)
+
+                        $snippetCalls.Add(@($key, $arg))
+                        $false
+                    }.GetNewClosure())
+
+                & $composedHandler 'fallback-key' 'fallback-arg'
+                $snippetCalls.Count | Should -Be 1
+                $snippetCalls[0][0] | Should -Be 'fallback-key'
+                $snippetCalls[0][1] | Should -Be 'fallback-arg'
+                $userActionCalls.Count | Should -Be 1
+                $userActionCalls[0][0] | Should -Be 'fallback-key'
+                $userActionCalls[0][1] | Should -Be 'fallback-arg'
+            }
+            finally {
+                if ($registered) {
+                    Remove-PSReadLineKeyHandler -Chord $chord
+                    Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue |
+                        Should -BeNullOrEmpty
+                }
+            }
+        }
         # NOTE: Use function keys for real PSReadLine bindings. Enum-style D0-D9 chord names
         # fall back to ConsoleKey parsing with KeyChar '\0'. On non-Windows, PSKeyInfo
         # normalizes '\0' to "@", so D0-D9 alias one binding; F1-F24 remain distinct.
