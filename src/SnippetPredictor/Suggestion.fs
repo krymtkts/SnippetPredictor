@@ -58,6 +58,7 @@ module Suggestion =
     type Cache() as __ =
 
         let mutable caseSensitive = CaseSensitivity.insensitive
+        let mutable hasValidConfiguration = false
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let mutable completionIdentifiers = [| $":{Snp}" |]
@@ -113,6 +114,7 @@ module Suggestion =
 #endif
 
                         let! result = parseSnippetFile path
+                        Volatile.Write(&hasValidConfiguration, false)
                         snippets.Clear()
                         groups.Clear()
 
@@ -140,6 +142,8 @@ module Suggestion =
                                     | Tip -> ()
                                     | g when g |> groups.ContainsKey -> ()
                                     | g -> groups.TryAdd(g, ()) |> ignore)
+
+                                Volatile.Write(&hasValidConfiguration, true)
                             | ConfigState.Invalid errorEntry -> errorEntry |> snippets.Enqueue
 
                         updateCompletionIdentifiers ()
@@ -392,6 +396,17 @@ module Suggestion =
                 |> chooseCompletionTexts
             | CompletionIdentifier groupId -> chooseCompletionGroupIds groupId
             | _ -> Array.empty
+
+        member __.getExactIdentifierSnippetTexts(input: string) =
+            if Volatile.Read(&hasValidConfiguration) then
+                match input with
+                | Prefix(Snp, input, false) when String.IsNullOrEmpty(input) -> (fun _ -> true) |> chooseCompletionTexts
+                | Prefix(Tip, _, false) -> Array.empty
+                | Prefix(groupId, input, false) when String.IsNullOrEmpty(input) && groups.ContainsKey groupId ->
+                    (fun snippet -> snippet.Group = groupId) |> chooseCompletionTexts
+                | _ -> Array.empty
+            else
+                Array.empty
 
         interface IDisposable with
             member __.Dispose() =

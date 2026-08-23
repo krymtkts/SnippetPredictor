@@ -19,6 +19,9 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
 
     member __.GetCompletionTexts(input: string) = cache.getCompletionTexts input
 
+    member __.GetExactIdentifierSnippetTexts(input: string) =
+        cache.getExactIdentifierSnippetTexts input
+
     interface ICommandPredictor with
         member __.Id = id
         member __.Name = Noun.snippet
@@ -61,6 +64,12 @@ module Integration =
     let getCompletionTexts (input: string) =
         current
         |> Option.map (fun predictor -> predictor.GetCompletionTexts input)
+        |> Option.defaultValue Array.empty
+
+    [<CompiledName("GetExactIdentifierSnippetTexts")>]
+    let getExactIdentifierSnippetTexts (input: string) =
+        current
+        |> Option.map (fun predictor -> predictor.GetExactIdentifierSnippetTexts input)
         |> Option.defaultValue Array.empty
 
 type Init() =

@@ -366,12 +366,18 @@ module SnippetPredictorInitialization =
                   Integration.getCompletionTexts ":unsupported"
                   |> Expect.isEmpty "should use the registered predictor integration"
 
+                  Integration.getExactIdentifierSnippetTexts ":unsupported"
+                  |> Expect.isEmpty "should use the registered predictor integration"
+
                   (subsystem :> IModuleAssemblyCleanup).OnRemove(createMockModule ())
 
                   let predictor = getSnippetPredictorSubsystem ()
                   predictor |> Expect.isNone "should remove Snippet predictor"
 
                   Integration.getCompletionTexts ":snp Echo"
+                  |> Expect.isEmpty "should clear the predictor integration"
+
+                  Integration.getExactIdentifierSnippetTexts ":snp"
                   |> Expect.isEmpty "should clear the predictor integration"
               }
 
@@ -481,6 +487,24 @@ module SnippetPredictor =
 
                   predictor.GetCompletionTexts("x :")
                   |> Expect.isEmpty "should exclude a non-whitespace prefix"
+              }
+
+              test "GetExactIdentifierSnippetTexts" {
+                  use predictor =
+                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+
+                  Async.Sleep(1000) |> Async.RunSynchronously
+
+                  predictor.GetExactIdentifierSnippetTexts("    :snp")
+                  |> Expect.equal
+                      "should provide all snippets for the exact snippet identifier"
+                      [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
+
+                  predictor.GetExactIdentifierSnippetTexts(":group")
+                  |> Expect.equal "should provide snippets for the exact group identifier" [| "echo 'example'" |]
+
+                  predictor.GetExactIdentifierSnippetTexts(":group Echo")
+                  |> Expect.isEmpty "should exclude snippet search input"
               }
 
               test "for coverage" {

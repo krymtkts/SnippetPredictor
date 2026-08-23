@@ -27,6 +27,8 @@ module Suggestion =
 
         member getCompletionTexts: input: string -> string array
 
+        member getExactIdentifierSnippetTexts: input: string -> string array
+
         member load: getSnippetPath: (unit -> string * string) -> unit
 
     val getSnippetPath: (unit -> string * string)

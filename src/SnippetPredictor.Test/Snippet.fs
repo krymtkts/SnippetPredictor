@@ -527,6 +527,74 @@ module getPredictiveSuggestions =
               ]
 
     [<Tests>]
+    let tests_getExactIdentifierSnippetTexts =
+        let cache = new Suggestion.Cache()
+        cache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-valid.json")
+        let completionCache = new Suggestion.Cache()
+
+        completionCache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-completion.json")
+        let invalidCache = new Suggestion.Cache()
+        invalidCache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-invalid.json")
+
+        testList
+            "getExactIdentifierSnippetTexts"
+            [
+
+              test "when snippet identifier is exact" {
+                  cache.getExactIdentifierSnippetTexts "    :snp"
+                  |> Expect.equal
+                      "should return all snippet texts"
+                      [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
+              }
+
+              test "when group identifier is exact" {
+                  cache.getExactIdentifierSnippetTexts ":group"
+                  |> Expect.equal "should return snippets in the exact group" [| "echo 'example'" |]
+              }
+
+              test "when exact group is also another group prefix" {
+                  completionCache.getExactIdentifierSnippetTexts ":gr"
+                  |> Expect.equal "should return snippets in the exact group" [| "Write-Output gr" |]
+              }
+
+              test "when identifier is partial" {
+                  completionCache.getExactIdentifierSnippetTexts ":gro"
+                  |> Expect.isEmpty "should exclude a partial identifier"
+              }
+
+              test "when tooltip identifier is exact" {
+                  completionCache.getExactIdentifierSnippetTexts ":tip"
+                  |> Expect.isEmpty "should exclude the tooltip identifier"
+              }
+
+              test "when identifier has a separator" {
+                  cache.getExactIdentifierSnippetTexts ":group "
+                  |> Expect.isEmpty "should exclude an identifier with a separator"
+              }
+
+              test "when identifier has search input" {
+                  cache.getExactIdentifierSnippetTexts ":group Echo"
+                  |> Expect.isEmpty "should exclude an identifier with search input"
+              }
+
+              test "when identifier has a non-whitespace prefix" {
+                  cache.getExactIdentifierSnippetTexts "x :group"
+                  |> Expect.isEmpty "should exclude a non-whitespace prefix"
+              }
+
+              test "when group identifier is unknown" {
+                  cache.getExactIdentifierSnippetTexts ":unknown"
+                  |> Expect.isEmpty "should exclude an unknown group"
+              }
+
+              test "when configuration is invalid" {
+                  invalidCache.getExactIdentifierSnippetTexts ":snp"
+                  |> Expect.isEmpty "should exclude the configuration error suggestion"
+              }
+
+              ]
+
+    [<Tests>]
     let tests_Dispose =
         let cache = new Suggestion.Cache()
 
