@@ -377,11 +377,20 @@ module getPredictiveSuggestions =
                     PredictiveSuggestion("Write-Host gr", "[gr]example 2") ]
 
               test "when group symbol is set and partially matched" {
-                  cache.getPredictiveSuggestions "   :gr     "
+                  cache.getPredictiveSuggestions "   :gr"
                   |> Seq.iteri (fun index actual ->
                       actual
                       |> asserter expectedGroups[index]
                       |> Expect.isTrue "should return group and matched snippets")
+              }
+
+              test "when a separator follows a partially matched group symbol" {
+                  let actual = cache.getPredictiveSuggestions "   :gr     "
+                  actual |> Expect.hasLength "should exclude matching group identifiers" 1
+
+                  actual[0]
+                  |> asserter expectedGroups[1]
+                  |> Expect.isTrue "should return only snippets in the exact group"
               }
 
               test "when group symbol is set and start non-whitespace and partially matched" {
