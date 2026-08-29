@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 08-08-2026
+ms.date: 08-29-2026
 PlatyPS schema version: 2024-05-01
 title: Enable-SnippetPredictorKeyHandler
 ---
@@ -21,6 +21,7 @@ Registers opt-in PSReadLine key bindings for SnippetPredictor.
 
 ```
 Enable-SnippetPredictorKeyHandler [[-NextChord] <string>] [[-PreviousChord] <string>]
+ [[-AcceptChord] <string>]
  [<CommonParameters>]
 ```
 
@@ -31,6 +32,7 @@ Enable-SnippetPredictorKeyHandler [[-NextChord] <string>] [[-PreviousChord] <str
 Registers PSReadLine key bindings that invoke SnippetPredictor completion handlers.
 A chord is the key or sequence of keys assigned to a handler.
 
+By default, the command binds Tab and Shift+Tab.
 For `:` or a partial identifier, the handlers complete `:snp` and matching group identifiers.
 The `:tip` identifier isn't included.
 For an exact `:snp` or group identifier, the handlers complete matching snippets.
@@ -43,6 +45,18 @@ The first press completes `:snp`; the second starts snippet completion.
 The handlers require the cursor at the end of the line.
 Every character before the identifier must be whitespace.
 Unsupported input delegates to standard PSReadLine completion.
+
+Specify `AcceptChord` to register an accept handler for a chord.
+For a partial identifier, it replaces the command line.
+It uses the first matching complete identifier.
+For a complete identifier with one matching snippet, it replaces the command line.
+It uses the matching snippet.
+For a complete identifier with more than one matching snippet, it invokes `NextSuggestion`.
+This selects the first item in the prediction ListView.
+The line stays open after each operation.
+For no matching candidate, it delegates to the standard PSReadLine `AcceptLine` action.
+Unsupported input uses the same action.
+In Vi mode, the command registers the accept handler in Insert mode.
 
 The command doesn't change the prediction ListView bindings.
 Use the standard PSReadLine UpArrow and DownArrow bindings to navigate the ListView.
@@ -68,6 +82,15 @@ Type `:` and press Tab to cycle through `:snp` and configured group identifiers.
 ### Example 2
 
 ```powershell
+Enable-SnippetPredictorKeyHandler -AcceptChord Enter
+```
+
+Registers the accept handler on Enter with the default completion bindings.
+For a partial identifier with matches, pressing Enter replaces the command line.
+
+### Example 3
+
+```powershell
 Enable-SnippetPredictorKeyHandler -NextChord Ctrl+j -PreviousChord Ctrl+k
 Disable-SnippetPredictorKeyHandler
 ```
@@ -75,6 +98,28 @@ Disable-SnippetPredictorKeyHandler
 Registers and then removes completion bindings for custom chords.
 
 ## PARAMETERS
+
+### -AcceptChord
+
+Specifies the key or sequence of keys to bind to the accept handler.
+If omitted, the command doesn't register an accept handler.
+
+```yaml
+Type: System.String
+DefaultValue: ""
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+  - Name: (All)
+    Position: 2
+    IsRequired: false
+    ValueFromPipeline: false
+    ValueFromPipelineByPropertyName: false
+    ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ""
+```
 
 ### -NextChord
 
@@ -138,6 +183,7 @@ Identifier matching is case-sensitive.
 Snippet matching follows the `SearchCaseSensitive` configuration value.
 Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.
 During cleanup, the command assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
+It assigns `AcceptLine` to Enter when Enter is a registered chord.
 The command removes bindings for other registered chords.
 A binding replaced by the user after this command runs isn't changed during cleanup.
 

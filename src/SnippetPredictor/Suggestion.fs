@@ -58,6 +58,7 @@ module Suggestion =
     type Cache() as __ =
 
         let mutable caseSensitive = CaseSensitivity.insensitive
+        let mutable hasValidConfiguration = false
         let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
         let groups = new Concurrent.ConcurrentDictionary<string, unit>()
         let mutable completionIdentifiers = [| $":{Snp}" |]
@@ -113,6 +114,7 @@ module Suggestion =
 #endif
 
                         let! result = parseSnippetFile path
+                        Volatile.Write(&hasValidConfiguration, false)
                         snippets.Clear()
                         groups.Clear()
 
@@ -140,6 +142,8 @@ module Suggestion =
                                     | Tip -> ()
                                     | g when g |> groups.ContainsKey -> ()
                                     | g -> groups.TryAdd(g, ()) |> ignore)
+
+                                Volatile.Write(&hasValidConfiguration, true)
                             | ConfigState.Invalid errorEntry -> errorEntry |> snippets.Enqueue
 
                         updateCompletionIdentifiers ()
@@ -285,18 +289,17 @@ module Suggestion =
 
         let (|Empty|_|) = String.IsNullOrWhiteSpace
 
-        let inputPattern = Regex("^\\s*:([a-zA-Z0-9]+)\\s*(.*)")
+        let inputPattern = Regex("^\\s*:([a-zA-Z0-9]+)(\\s*)(.*)")
 
         let (|Prefix|_|) (value: string) =
             // NOTE: Remove the snippet or tooltip symbol from the input.
             // NOTE: These symbols are used to exclude other predictors from suggestions.
             let m = inputPattern.Match(value)
 
-            m.Groups.Count
-            |> function
-                | 2 -> (m.Groups[1].Value, "") |> Some
-                | 3 -> (m.Groups[1].Value, m.Groups[2].Value.TrimEnd()) |> Some
-                | _ -> None
+            if m.Success then
+                (m.Groups[1].Value, m.Groups[3].Value.TrimEnd(), m.Groups[2].Length > 0) |> Some
+            else
+                None
 
         let (|NoPrefix|) (value: string) = value.Trim()
 
@@ -358,7 +361,7 @@ module Suggestion =
 
             match input with
             | Empty -> Seq.empty
-            | Prefix(groupId, input) ->
+            | Prefix(groupId, input, hasSeparator) ->
 #if DEBUG
                 Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
@@ -370,7 +373,7 @@ module Suggestion =
                     | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
 
                 let groupIds =
-                    if String.IsNullOrWhiteSpace(input) then
+                    if not hasSeparator && String.IsNullOrWhiteSpace(input) then
                         chooseGroupIds groupId
                     else
                         Seq.empty
@@ -383,16 +386,27 @@ module Suggestion =
             let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
 
             match input with
-            | Prefix(Snp, input) ->
+            | Prefix(Snp, input, _) ->
                 (fun (snippet: SnippetEntry) -> snippet.Snippet.Contains(input, comparisonType))
                 |> chooseCompletionTexts
-            | Prefix(Tip, _) -> Array.empty
-            | Prefix(groupId, input) when groups.ContainsKey groupId ->
+            | Prefix(Tip, _, _) -> Array.empty
+            | Prefix(groupId, input, _) when groups.ContainsKey groupId ->
                 (fun (snippet: SnippetEntry) ->
                     snippet.Group = groupId && snippet.Snippet.Contains(input, comparisonType))
                 |> chooseCompletionTexts
             | CompletionIdentifier groupId -> chooseCompletionGroupIds groupId
             | _ -> Array.empty
+
+        member __.getExactIdentifierSnippetTexts(input: string) =
+            if Volatile.Read(&hasValidConfiguration) then
+                match input with
+                | Prefix(Snp, input, false) when String.IsNullOrEmpty(input) -> (fun _ -> true) |> chooseCompletionTexts
+                | Prefix(Tip, _, false) -> Array.empty
+                | Prefix(groupId, input, false) when String.IsNullOrEmpty(input) && groups.ContainsKey groupId ->
+                    (fun snippet -> snippet.Group = groupId) |> chooseCompletionTexts
+                | _ -> Array.empty
+            else
+                Array.empty
 
         interface IDisposable with
             member __.Dispose() =

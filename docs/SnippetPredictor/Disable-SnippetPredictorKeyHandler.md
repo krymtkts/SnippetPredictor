@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Disable-SnippetPredictorKeyHandler.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 08-08-2026
+ms.date: 08-29-2026
 PlatyPS schema version: 2024-05-01
 title: Disable-SnippetPredictorKeyHandler
 ---
@@ -27,12 +27,12 @@ Disable-SnippetPredictorKeyHandler [<CommonParameters>]
 
 ## DESCRIPTION
 
-Removes the PSReadLine completion bindings registered by `Enable-SnippetPredictorKeyHandler`.
+Removes the PSReadLine key bindings registered by `Enable-SnippetPredictorKeyHandler`.
 The command checks ownership before cleanup and leaves user-owned bindings unchanged.
 It preserves a binding that the user replaced after enabling the handlers.
 
-For the enable command's default chords, the command restores the completion bindings.
-It assigns `TabCompleteNext` to Tab and `TabCompletePrevious` to Shift+Tab.
+For registered PSReadLine default chords, the command restores the corresponding default functions.
+It assigns `TabCompleteNext` to Tab, `TabCompletePrevious` to Shift+Tab, and `AcceptLine` to Enter.
 The command removes bindings for custom chords.
 
 The command doesn't restore a custom binding that `Enable-SnippetPredictorKeyHandler` overwrote.
@@ -49,7 +49,7 @@ Calling this command more than once is safe.
 Disable-SnippetPredictorKeyHandler
 ```
 
-Removes the current SnippetPredictor completion bindings.
+Removes the current SnippetPredictor key bindings.
 
 ## PARAMETERS
 

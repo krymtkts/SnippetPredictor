@@ -1,6 +1,11 @@
 $script:SnippetPredictorKeyHandlerSession = $null
 $script:SnippetPredictorPredictionKeyHandlerSession = $null
 $script:SnippetPredictorKeyHandlerBindings = @()
+$script:SnippetPredictorDefaultFunctionsByChord = @{
+    'Tab' = 'TabCompleteNext'
+    'Shift+Tab' = 'TabCompletePrevious'
+    'Enter' = 'AcceptLine'
+}
 
 function Invoke-SnippetPredictorKeyHandler {
     [CmdletBinding()]
@@ -120,6 +125,119 @@ function Invoke-SnippetPredictorPredictionKeyHandler {
     return $false
 }
 
+function Get-SnippetPredictorBufferState {
+    [CmdletBinding()]
+    param()
+
+    $line = $null
+    $cursor = 0
+    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState(
+        [ref] $line,
+        [ref] $cursor
+    )
+
+    [pscustomobject]@{
+        Line = $line
+        Cursor = $cursor
+    }
+}
+
+function Get-SnippetPredictorAcceptCandidates {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $Line
+    )
+
+    [string[]] $snippets = [SnippetPredictor.Integration]::GetExactIdentifierSnippetTexts($Line)
+    if ($snippets.Count -gt 0) {
+        return [pscustomobject]@{
+            IsExactIdentifier = $true
+            Texts = $snippets
+        }
+    }
+
+    [string[]] $identifiers = @(
+        [SnippetPredictor.Integration]::GetCompletionTexts($Line) |
+            Where-Object { $_ -cne $Line.Trim() }
+    )
+    [pscustomobject]@{
+        IsExactIdentifier = $false
+        Texts = $identifiers
+    }
+}
+
+function Invoke-SnippetPredictorReplace {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [int] $Start,
+        [Parameter(Mandatory)]
+        [int] $Length,
+        [Parameter(Mandatory)]
+        [string] $Replacement
+    )
+
+    [Microsoft.PowerShell.PSConsoleReadLine]::Replace(
+        $Start,
+        $Length,
+        $Replacement
+    )
+}
+
+function Invoke-SnippetPredictorNextSuggestion {
+    [CmdletBinding()]
+    param(
+        $Key,
+        $Arg
+    )
+
+    [Microsoft.PowerShell.PSConsoleReadLine]::NextSuggestion($Key, $Arg)
+}
+
+function Invoke-SnippetPredictorAcceptLine {
+    [CmdletBinding()]
+    param(
+        $Key,
+        $Arg
+    )
+
+    [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine($Key, $Arg)
+}
+
+function Invoke-SnippetPredictorAcceptKeyHandler {
+    [CmdletBinding()]
+    param(
+        $Key,
+        $Arg
+    )
+
+    $bufferState = Get-SnippetPredictorBufferState
+    $line = $bufferState.Line
+    $cursor = $bufferState.Cursor
+
+    if ($cursor -ne $line.Length) {
+        return $false
+    }
+
+    $candidates = Get-SnippetPredictorAcceptCandidates -Line $line
+
+    if ($candidates.IsExactIdentifier -and $candidates.Texts.Count -gt 1) {
+        Invoke-SnippetPredictorNextSuggestion -Key $Key -Arg $Arg
+        return $true
+    }
+
+    if ($candidates.Texts.Count -gt 0) {
+        Invoke-SnippetPredictorReplace `
+            -Start 0 `
+            -Length $line.Length `
+            -Replacement $candidates.Texts[0]
+        return $true
+    }
+
+    return $false
+}
+
 $script:SnippetPredictorTabCompleteNextComposableHandler = {
     param($key, $arg)
 
@@ -142,6 +260,14 @@ $script:SnippetPredictorPreviousSuggestionComposableHandler = {
     param($key, $arg)
 
     Invoke-SnippetPredictorPredictionKeyHandler -Key $key -Arg $arg -Direction -1
+}
+
+$script:SnippetPredictorAcceptHandler = {
+    param($key, $arg)
+
+    if (-not (Invoke-SnippetPredictorAcceptKeyHandler -Key $key -Arg $arg)) {
+        Invoke-SnippetPredictorAcceptLine -Key $key -Arg $arg
+    }
 }
 
 $script:SnippetPredictorTabCompleteNextHandler = {
@@ -184,16 +310,19 @@ function Remove-SnippetPredictorKeyHandlerBinding {
         return
     }
 
-    switch -CaseSensitive ($Binding.Chord) {
-        'Tab' {
-            Set-PSReadLineKeyHandler -Chord $Binding.Chord -Function TabCompleteNext -ErrorAction Stop
-        }
-        'Shift+Tab' {
-            Set-PSReadLineKeyHandler -Chord $Binding.Chord -Function TabCompletePrevious -ErrorAction Stop
-        }
-        default {
-            Remove-PSReadLineKeyHandler -Chord $Binding.Chord -ErrorAction Stop
-        }
+    $parameters = @{
+        Chord = $Binding.Chord
+        ErrorAction = 'Stop'
+    }
+    if ($null -ne $Binding.ViMode) {
+        $parameters.ViMode = $Binding.ViMode
+    }
+    if ($null -ne $Binding.RestoreFunction) {
+        $parameters.Function = $Binding.RestoreFunction
+        Set-PSReadLineKeyHandler @parameters
+    }
+    else {
+        Remove-PSReadLineKeyHandler @parameters
     }
 }
 
@@ -261,15 +390,26 @@ function Enable-SnippetPredictorKeyHandler {
     [CmdletBinding()]
     param(
         [string] $NextChord = 'Tab',
-        [string] $PreviousChord = 'Shift+Tab'
+        [string] $PreviousChord = 'Shift+Tab',
+        [ValidateNotNullOrWhiteSpace()]
+        [string] $AcceptChord
     )
 
-    if ($NextChord -ceq $PreviousChord) {
+    $acceptChordSpecified = $PSBoundParameters.ContainsKey('AcceptChord')
+
+    if ($NextChord -ieq $PreviousChord) {
         throw 'NextChord and PreviousChord must be different.'
+    }
+    if ($acceptChordSpecified -and ($AcceptChord -ieq $NextChord -or $AcceptChord -ieq $PreviousChord)) {
+        throw 'AcceptChord must be different from NextChord and PreviousChord.'
     }
 
     Remove-SnippetPredictorKeyHandlerBindings
     $script:SnippetPredictorKeyHandlerSession = $null
+
+    $acceptViMode = if ($acceptChordSpecified -and (Get-PSReadLineOption).EditMode.ToString() -ceq 'Vi') {
+        'Insert'
+    }
 
     $bindings = @(
         [pscustomobject]@{
@@ -277,24 +417,44 @@ function Enable-SnippetPredictorKeyHandler {
             BriefDescription = 'SnippetPredictorTabCompleteNext'
             Description = 'Complete SnippetPredictor input using the next candidate'
             ScriptBlock = $script:SnippetPredictorTabCompleteNextHandler
+            ViMode = $null
+            RestoreFunction = $script:SnippetPredictorDefaultFunctionsByChord[$NextChord]
+        }
+        if ($acceptChordSpecified) {
+            [pscustomobject]@{
+                Chord = $AcceptChord
+                BriefDescription = 'SnippetPredictorAccept'
+                Description = 'Expand or search an exact SnippetPredictor identifier'
+                ScriptBlock = $script:SnippetPredictorAcceptHandler
+                ViMode = $acceptViMode
+                RestoreFunction = $script:SnippetPredictorDefaultFunctionsByChord[$AcceptChord]
+            }
         }
         [pscustomobject]@{
             Chord = $PreviousChord
             BriefDescription = 'SnippetPredictorTabCompletePrevious'
             Description = 'Complete SnippetPredictor input using the previous candidate'
             ScriptBlock = $script:SnippetPredictorTabCompletePreviousHandler
+            ViMode = $null
+            RestoreFunction = $script:SnippetPredictorDefaultFunctionsByChord[$PreviousChord]
         }
     )
     $registeredBindings = [System.Collections.Generic.List[object]]::new()
 
     try {
         foreach ($binding in $bindings) {
-            Set-PSReadLineKeyHandler `
-                -Chord $binding.Chord `
-                -ScriptBlock $binding.ScriptBlock `
-                -BriefDescription $binding.BriefDescription `
-                -Description $binding.Description `
-                -ErrorAction Stop
+            $parameters = @{
+                Chord = $binding.Chord
+                ScriptBlock = $binding.ScriptBlock
+                BriefDescription = $binding.BriefDescription
+                Description = $binding.Description
+                ErrorAction = 'Stop'
+            }
+            if ($null -ne $binding.ViMode) {
+                $parameters.ViMode = $binding.ViMode
+            }
+
+            Set-PSReadLineKeyHandler @parameters
             $registeredBindings.Add($binding)
         }
     }

@@ -87,6 +87,22 @@ Cleanup removes SnippetPredictor-owned bindings from custom chords.
 It leaves bindings replaced later by the user unchanged.
 Removing the SnippetPredictor module performs the same cleanup automatically.
 
+By default, the command doesn't bind an accept handler.
+Specify `-AcceptChord` to bind one to a key chord:
+
+```powershell
+Enable-SnippetPredictorKeyHandler -AcceptChord Enter
+```
+
+For a partial identifier, it replaces the command line.
+It uses the first matching complete identifier.
+For a complete identifier with one matching snippet, it replaces the command line.
+It uses the matching snippet.
+For a complete identifier with more than one matching snippet, it selects a prediction.
+The prediction ListView selects the first item.
+The line stays open after each operation.
+For unsupported input or no matching candidate, it uses the standard PSReadLine `AcceptLine` action.
+
 Use `New-SnippetPredictorKeyHandler` to compose custom completion or prediction handlers.
 Key bindings that use those composable handlers remain under the caller's control.
 See [New-SnippetPredictorKeyHandler](./docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md#example-2) for a tested custom action composition example.

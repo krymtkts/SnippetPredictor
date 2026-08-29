@@ -92,6 +92,160 @@ Describe 'SnippetPredictor' {
                 }
             }
         }
+        Context 'Accept handler' {
+            It 'should replace a complete identifier with its only matching snippet without accepting the line' {
+                InModuleScope SnippetPredictor.PSReadLine {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = ':fs'; Cursor = 3 }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates {
+                        [pscustomobject]@{
+                            IsExactIdentifier = $true
+                            Texts = @('Get-ChildItem')
+                        }
+                    }
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Invoke Get-SnippetPredictorAcceptCandidates -Times 1 -Exactly -ParameterFilter {
+                        $Line -ceq ':fs'
+                    }
+                    Should -Invoke Invoke-SnippetPredictorReplace -Times 1 -Exactly -ParameterFilter {
+                        $Start -eq 0 -and
+                        $Length -eq 3 -and
+                        $Replacement -ceq 'Get-ChildItem'
+                    }
+                    Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                    Should -Not -Invoke Invoke-SnippetPredictorAcceptLine
+                }
+            }
+            It 'should select the first prediction for a complete <Identifier> with multiple matching snippets' -TestCases @(
+                @{ Identifier = ':snp' }
+                @{ Identifier = ':group' }
+            ) {
+                InModuleScope SnippetPredictor.PSReadLine -Parameters @{ Identifier = $Identifier } {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = $Identifier; Cursor = $Identifier.Length }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates {
+                        [pscustomobject]@{
+                            IsExactIdentifier = $true
+                            Texts = @('Get-ChildItem', 'Set-Location')
+                        }
+                    }
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Invoke Invoke-SnippetPredictorNextSuggestion -Times 1 -Exactly -ParameterFilter {
+                        $Key -ceq 'accept-key' -and $Arg -ceq 'accept-arg'
+                    }
+                    Should -Not -Invoke Invoke-SnippetPredictorReplace
+                    Should -Not -Invoke Invoke-SnippetPredictorAcceptLine
+                }
+            }
+            It 'should replace an incomplete identifier with its only matching identifier without accepting the line' {
+                InModuleScope SnippetPredictor.PSReadLine {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = ':sn'; Cursor = 3 }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates {
+                        [pscustomobject]@{
+                            IsExactIdentifier = $false
+                            Texts = @(':snp')
+                        }
+                    }
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Invoke Invoke-SnippetPredictorReplace -Times 1 -Exactly -ParameterFilter {
+                        $Start -eq 0 -and
+                        $Length -eq 3 -and
+                        $Replacement -ceq ':snp'
+                    }
+                    Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                    Should -Not -Invoke Invoke-SnippetPredictorAcceptLine
+                }
+            }
+            It 'should replace an incomplete identifier with the first matching identifier without accepting the line' {
+                InModuleScope SnippetPredictor.PSReadLine {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = ':s'; Cursor = 2 }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates {
+                        [pscustomobject]@{
+                            IsExactIdentifier = $false
+                            Texts = @(':shell', ':snp')
+                        }
+                    }
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Invoke Invoke-SnippetPredictorReplace -Times 1 -Exactly -ParameterFilter {
+                        $Start -eq 0 -and
+                        $Length -eq 2 -and
+                        $Replacement -ceq ':shell'
+                    }
+                    Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                    Should -Not -Invoke Invoke-SnippetPredictorAcceptLine
+                }
+            }
+            It 'should accept the line when no candidate matches' {
+                InModuleScope SnippetPredictor.PSReadLine {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = ':tip'; Cursor = 4 }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates {
+                        [pscustomobject]@{
+                            IsExactIdentifier = $false
+                            Texts = @()
+                        }
+                    }
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Invoke Invoke-SnippetPredictorAcceptLine -Times 1 -Exactly -ParameterFilter {
+                        $Key -ceq 'accept-key' -and $Arg -ceq 'accept-arg'
+                    }
+                    Should -Not -Invoke Invoke-SnippetPredictorReplace
+                    Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                }
+            }
+            It 'should accept the line when the cursor is not at the end' {
+                InModuleScope SnippetPredictor.PSReadLine {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = ':snp'; Cursor = 2 }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Not -Invoke Get-SnippetPredictorAcceptCandidates
+                    Should -Invoke Invoke-SnippetPredictorAcceptLine -Times 1 -Exactly -ParameterFilter {
+                        $Key -ceq 'accept-key' -and $Arg -ceq 'accept-arg'
+                    }
+                    Should -Not -Invoke Invoke-SnippetPredictorReplace
+                    Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                }
+            }
+        }
         It 'New-SnippetPredictorKeyHandler help should contain an executable composition example' {
             $chord = 'Ctrl+Alt+d'
             $existing = Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue
@@ -210,13 +364,85 @@ Describe 'SnippetPredictor' {
                 }
             }
         }
-        It 'Enable-SnippetPredictorKeyHandler should expose only completion chord parameters' {
+        It 'Enable-SnippetPredictorKeyHandler should expose completion and accept chord parameters' {
             $parameters = (Get-Command Enable-SnippetPredictorKeyHandler).Parameters
 
             $parameters.Keys | Should -Contain 'NextChord'
             $parameters.Keys | Should -Contain 'PreviousChord'
+            $parameters.Keys | Should -Contain 'AcceptChord'
+            $parameters.Keys | Should -Not -Contain 'EnableEnter'
             $parameters.Keys | Should -Not -Contain 'NextSuggestionChord'
             $parameters.Keys | Should -Not -Contain 'PreviousSuggestionChord'
+        }
+        It 'Enable-SnippetPredictorKeyHandler should not bind an accept chord by default' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption
+
+                Enable-SnippetPredictorKeyHandler
+
+                Should -Invoke Set-PSReadLineKeyHandler -Times 2 -Exactly
+                Should -Not -Invoke Set-PSReadLineKeyHandler -ParameterFilter {
+                    $BriefDescription -ceq 'SnippetPredictorAccept'
+                }
+                Should -Not -Invoke Get-PSReadLineOption
+                $script:SnippetPredictorKeyHandlerBindings.Count | Should -Be 2
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should bind <AcceptChord> as an accept chord' -TestCases @(
+            @{ AcceptChord = 'Enter'; RestoreFunction = 'AcceptLine' }
+            @{ AcceptChord = 'Ctrl+Alt+Shift+F12'; RestoreFunction = $null }
+        ) {
+            InModuleScope SnippetPredictor.PSReadLine -Parameters @{
+                AcceptChord = $AcceptChord
+                RestoreFunction = $RestoreFunction
+            } {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Windows' } }
+
+                Enable-SnippetPredictorKeyHandler -AcceptChord $AcceptChord
+
+                Should -Invoke Set-PSReadLineKeyHandler -Times 3 -Exactly
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq $AcceptChord -and
+                    $BriefDescription -ceq 'SnippetPredictorAccept' -and
+                    $null -eq $ViMode
+                }
+                $binding = $script:SnippetPredictorKeyHandlerBindings | Where-Object Chord -CEQ $AcceptChord
+                $binding.RestoreFunction | Should -Be $RestoreFunction
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should bind only the Vi insert mode accept chord' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+                $acceptChord = 'Ctrl+Alt+Shift+F12'
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Vi' } }
+
+                Enable-SnippetPredictorKeyHandler -AcceptChord $acceptChord
+
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq $acceptChord -and
+                    $BriefDescription -ceq 'SnippetPredictorAccept' -and
+                    $ViMode -ceq 'Insert'
+                }
+                ($script:SnippetPredictorKeyHandlerBindings | Where-Object Chord -CEQ $acceptChord).ViMode |
+                    Should -Be 'Insert'
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should reject an empty accept chord' -TestCases @(
+            @{ AcceptChord = $null }
+            @{ AcceptChord = '' }
+            @{ AcceptChord = ' ' }
+        ) {
+            {
+                Enable-SnippetPredictorKeyHandler -AcceptChord $AcceptChord
+            } | Should -Throw
         }
         It 'Disable-SnippetPredictorKeyHandler should be idempotent' {
             {
@@ -224,14 +450,16 @@ Describe 'SnippetPredictor' {
                 Disable-SnippetPredictorKeyHandler
             } | Should -Not -Throw
         }
-        It 'Enable-SnippetPredictorKeyHandler should reject the same chord' {
+        It 'Enable-SnippetPredictorKeyHandler should reject the same completion chord regardless of case' {
             $chord = 'Ctrl+Alt+Shift+F23'
 
             try {
                 Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
 
                 {
-                    Enable-SnippetPredictorKeyHandler -NextChord $chord -PreviousChord $chord
+                    Enable-SnippetPredictorKeyHandler `
+                        -NextChord $chord `
+                        -PreviousChord $chord.ToLowerInvariant()
                 } | Should -Throw
 
                 Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
@@ -239,6 +467,24 @@ Describe 'SnippetPredictor' {
             finally {
                 Disable-SnippetPredictorKeyHandler -ErrorAction SilentlyContinue
                 Remove-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should reject an accept chord matching <MatchingParameter>' -TestCases @(
+            @{ AcceptChord = 'ctrl+alt+shift+f23'; MatchingParameter = 'NextChord' }
+            @{ AcceptChord = 'shift+tab'; MatchingParameter = 'PreviousChord' }
+        ) {
+            InModuleScope SnippetPredictor.PSReadLine -Parameters @{ AcceptChord = $AcceptChord } {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler
+
+                {
+                    Enable-SnippetPredictorKeyHandler `
+                        -NextChord 'Ctrl+Alt+Shift+F23' `
+                        -AcceptChord $AcceptChord
+                } | Should -Throw
+
+                Should -Not -Invoke Set-PSReadLineKeyHandler
             }
         }
         It 'Enable-SnippetPredictorKeyHandler should replace its previous custom bindings' {
@@ -266,6 +512,39 @@ Describe 'SnippetPredictor' {
             finally {
                 Disable-SnippetPredictorKeyHandler -ErrorAction SilentlyContinue
                 Remove-PSReadLineKeyHandler -Chord $allChords -ErrorAction SilentlyContinue
+            }
+        }
+        It 'Enable-SnippetPredictorKeyHandler should replace its previous accept binding' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+                $acceptChord = 'Ctrl+Alt+Shift+F12'
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Windows' } }
+                Mock Get-PSReadLineKeyHandler {
+                    $function = if ($Chord -ceq 'Tab') {
+                        'SnippetPredictorTabCompleteNext'
+                    }
+                    elseif ($Chord -ceq $acceptChord) {
+                        'SnippetPredictorAccept'
+                    }
+                    else {
+                        'SnippetPredictorTabCompletePrevious'
+                    }
+                    [pscustomobject]@{ Function = $function }
+                }
+                Mock Remove-PSReadLineKeyHandler
+
+                Enable-SnippetPredictorKeyHandler -AcceptChord $acceptChord
+                Enable-SnippetPredictorKeyHandler -AcceptChord $acceptChord
+
+                Should -Invoke Set-PSReadLineKeyHandler -Times 2 -Exactly -ParameterFilter {
+                    $Chord -ceq $acceptChord -and $BriefDescription -ceq 'SnippetPredictorAccept'
+                }
+                Should -Invoke Remove-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq $acceptChord
+                }
+                $script:SnippetPredictorKeyHandlerBindings.Count | Should -Be 3
             }
         }
         It 'Disable-SnippetPredictorKeyHandler should preserve a later user binding' {
@@ -296,25 +575,30 @@ Describe 'SnippetPredictor' {
         It 'Enable-SnippetPredictorKeyHandler should rollback a partial registration' {
             InModuleScope SnippetPredictor.PSReadLine {
                 $script:SnippetPredictorKeyHandlerBindings = @()
+                $acceptChord = 'Ctrl+Alt+Shift+F29'
 
                 Mock Set-PSReadLineKeyHandler {
                     if ($Chord -eq 'Ctrl+Alt+Shift+F31') {
                         throw 'registration failure'
                     }
                 }
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Windows' } }
                 Mock Get-PSReadLineKeyHandler {
-                    [pscustomobject]@{ Function = 'SnippetPredictorTabCompleteNext' }
-                } -ParameterFilter { $Chord -eq 'Ctrl+Alt+Shift+F30' }
+                    $function = $Chord -ceq $acceptChord ? 'SnippetPredictorAccept' : 'SnippetPredictorTabCompleteNext'
+                    [pscustomobject]@{ Function = $function }
+                }
                 Mock Remove-PSReadLineKeyHandler
 
                 {
                     Enable-SnippetPredictorKeyHandler `
                         -NextChord 'Ctrl+Alt+Shift+F30' `
-                        -PreviousChord 'Ctrl+Alt+Shift+F31'
+                        -PreviousChord 'Ctrl+Alt+Shift+F31' `
+                        -AcceptChord $acceptChord
                 } | Should -Throw
 
+                Should -Invoke Remove-PSReadLineKeyHandler -Times 2 -Exactly
                 Should -Invoke Remove-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
-                    $Chord -eq 'Ctrl+Alt+Shift+F30'
+                    $Chord -ceq $acceptChord -and $null -eq $ViMode
                 }
                 $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
             }
@@ -344,18 +628,23 @@ Describe 'SnippetPredictor' {
                 Should -Invoke Write-Error -Times 1 -Exactly
             }
         }
-        It 'Disable-SnippetPredictorKeyHandler should restore baseline completion bindings' {
+        It 'Disable-SnippetPredictorKeyHandler should restore default chord functions' {
             InModuleScope SnippetPredictor.PSReadLine {
                 $script:SnippetPredictorKeyHandlerBindings = @()
 
                 Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Windows' } }
                 Mock Get-PSReadLineKeyHandler {
-                    $function = $Chord -ceq 'Tab' ? 'SnippetPredictorTabCompleteNext' : 'SnippetPredictorTabCompletePrevious'
+                    $function = switch ($Chord) {
+                        'Tab' { 'SnippetPredictorTabCompleteNext' }
+                        'Enter' { 'SnippetPredictorAccept' }
+                        default { 'SnippetPredictorTabCompletePrevious' }
+                    }
                     [pscustomobject]@{ Function = $function }
                 }
                 Mock Remove-PSReadLineKeyHandler
 
-                Enable-SnippetPredictorKeyHandler
+                Enable-SnippetPredictorKeyHandler -AcceptChord Enter
                 Disable-SnippetPredictorKeyHandler
 
                 Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
@@ -364,25 +653,150 @@ Describe 'SnippetPredictor' {
                 Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
                     $Chord -ceq 'Shift+Tab' -and $Function -eq 'TabCompletePrevious'
                 }
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq 'Enter' -and $Function -eq 'AcceptLine' -and $null -eq $ViMode
+                }
                 Should -Not -Invoke Remove-PSReadLineKeyHandler
                 $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
             }
         }
-        It 'Removing the module should clean up custom completion bindings' {
+        It 'Disable-SnippetPredictorKeyHandler should restore functions by chord instead of handler action' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Windows' } }
+                Mock Get-PSReadLineKeyHandler {
+                    $function = switch ($Chord) {
+                        'ENTER' { 'SnippetPredictorTabCompleteNext' }
+                        'tab' { 'SnippetPredictorAccept' }
+                        default { 'SnippetPredictorTabCompletePrevious' }
+                    }
+                    [pscustomobject]@{ Function = $function }
+                }
+                Mock Remove-PSReadLineKeyHandler
+
+                Enable-SnippetPredictorKeyHandler `
+                    -NextChord 'ENTER' `
+                    -PreviousChord 'shift+tab' `
+                    -AcceptChord 'tab'
+                Disable-SnippetPredictorKeyHandler
+
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq 'ENTER' -and $Function -ceq 'AcceptLine'
+                }
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq 'tab' -and $Function -ceq 'TabCompleteNext'
+                }
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq 'shift+tab' -and $Function -ceq 'TabCompletePrevious'
+                }
+                Should -Not -Invoke Remove-PSReadLineKeyHandler
+                $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
+            }
+        }
+        It 'Disable-SnippetPredictorKeyHandler should restore Vi insert mode Enter' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Vi' } }
+                Mock Get-PSReadLineKeyHandler {
+                    $function = switch ($Chord) {
+                        'Tab' { 'SnippetPredictorTabCompleteNext' }
+                        'Enter' { 'SnippetPredictorAccept' }
+                        default { 'SnippetPredictorTabCompletePrevious' }
+                    }
+                    [pscustomobject]@{ Function = $function }
+                }
+                Mock Remove-PSReadLineKeyHandler
+
+                Enable-SnippetPredictorKeyHandler -AcceptChord Enter
+                Disable-SnippetPredictorKeyHandler
+
+                Should -Invoke Set-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq 'Enter' -and $Function -eq 'AcceptLine' -and $ViMode -ceq 'Insert'
+                }
+                $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
+            }
+        }
+        It 'Disable-SnippetPredictorKeyHandler should remove only the Vi insert mode custom accept chord' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+                $acceptChord = 'Ctrl+Alt+Shift+F12'
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Vi' } }
+                Mock Get-PSReadLineKeyHandler {
+                    $function = if ($Chord -ceq $acceptChord) {
+                        'SnippetPredictorAccept'
+                    }
+                    elseif ($Chord -ceq 'Tab') {
+                        'SnippetPredictorTabCompleteNext'
+                    }
+                    else {
+                        'SnippetPredictorTabCompletePrevious'
+                    }
+                    [pscustomobject]@{ Function = $function }
+                }
+                Mock Remove-PSReadLineKeyHandler
+
+                Enable-SnippetPredictorKeyHandler -AcceptChord $acceptChord
+                Disable-SnippetPredictorKeyHandler
+
+                Should -Invoke Remove-PSReadLineKeyHandler -Times 1 -Exactly -ParameterFilter {
+                    $Chord -ceq $acceptChord -and $ViMode -ceq 'Insert'
+                }
+                Should -Not -Invoke Remove-PSReadLineKeyHandler -ParameterFilter {
+                    $Chord -ceq $acceptChord -and $ViMode -ceq 'Command'
+                }
+                $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
+            }
+        }
+        It 'Disable-SnippetPredictorKeyHandler should preserve a later user accept binding' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Set-PSReadLineKeyHandler
+                Mock Get-PSReadLineOption { [pscustomobject]@{ EditMode = 'Windows' } }
+                Mock Get-PSReadLineKeyHandler {
+                    $function = switch ($Chord) {
+                        'Tab' { 'SnippetPredictorTabCompleteNext' }
+                        'Enter' { 'UserOwnedAcceptLine' }
+                        default { 'SnippetPredictorTabCompletePrevious' }
+                    }
+                    [pscustomobject]@{ Function = $function }
+                }
+                Mock Remove-PSReadLineKeyHandler
+
+                Enable-SnippetPredictorKeyHandler -AcceptChord Enter
+                Disable-SnippetPredictorKeyHandler
+
+                Should -Not -Invoke Set-PSReadLineKeyHandler -ParameterFilter {
+                    $Chord -ceq 'Enter' -and $Function -ceq 'AcceptLine'
+                }
+                Should -Not -Invoke Remove-PSReadLineKeyHandler -ParameterFilter { $Chord -ceq 'Enter' }
+                $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
+            }
+        }
+        It 'Removing the module should clean up custom completion and accept bindings' {
             $modulePath = (Get-Module SnippetPredictor).Path
-            $chords = @('Ctrl+Alt+Shift+F13', 'Ctrl+Alt+Shift+F14')
+            $chords = @('Ctrl+Alt+Shift+F12', 'Ctrl+Alt+Shift+F13', 'Ctrl+Alt+Shift+F14')
 
             try {
                 foreach ($chord in $chords) {
                     Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue | Should -BeNullOrEmpty
                 }
 
-                Enable-SnippetPredictorKeyHandler -NextChord $chords[0] -PreviousChord $chords[1]
+                Enable-SnippetPredictorKeyHandler `
+                    -AcceptChord $chords[0] `
+                    -NextChord $chords[1] `
+                    -PreviousChord $chords[2]
                 Remove-Module SnippetPredictor -Force
 
                 foreach ($chord in $chords) {
                     Get-PSReadLineKeyHandler -Chord $chord -ErrorAction SilentlyContinue |
-                        Where-Object Function -CLike 'SnippetPredictorTabComplete*' |
+                        Where-Object Function -CLike 'SnippetPredictor*' |
                         Should -BeNullOrEmpty
                 }
             }
