@@ -5,7 +5,7 @@ HelpInfoUri: "https://github.com/krymtkts/SnippetPredictor/blob/main/docs/Snippe
 Locale: en-US
 Module Guid: 46275f69-83fc-4a16-89b5-fd0e750c6358
 Module Name: SnippetPredictor
-ms.date: 08-02-2026
+ms.date: 08-29-2026
 PlatyPS schema version: 2024-05-01
 title: SnippetPredictor Module
 ---
@@ -27,10 +27,19 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
   - Typing a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
 Use `Enable-SnippetPredictorKeyHandler` to register completion bindings.
-By default, it binds Tab and Shift+Tab.
+By default, it binds Tab and Shift+Tab without an accept binding.
 The handlers complete `:snp` and configured group identifiers from `:` or a partial identifier.
 They complete matching snippets after an exact `:snp` or group identifier.
 The `:tip` identifier isn't included in this completion.
+Specify `-AcceptChord` to bind the accept handler to a key chord.
+For a partial identifier, it replaces the command line.
+It uses the first matching complete identifier.
+For a complete identifier with one matching snippet, it replaces the command line.
+It uses the matching snippet.
+For a complete identifier with more than one matching snippet, it selects a prediction.
+The prediction ListView selects the first item.
+The line stays open after each operation.
+For no matching candidate or unsupported input, it uses the standard PSReadLine `AcceptLine` action.
 Use `Disable-SnippetPredictorKeyHandler` to remove bindings registered by the enable command.
 Removing the module performs the same cleanup automatically.
 
