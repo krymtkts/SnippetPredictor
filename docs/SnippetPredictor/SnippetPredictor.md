@@ -14,10 +14,10 @@ title: SnippetPredictor Module
 
 ## Description
 
-A predictor that suggests a snippet based on the input.
+A predictor that suggests snippets based on command-line input.
 The snippet configuration resides in `~/.snippet-predictor.json`.
 
-Filter snippets in your `~/.snippet-predictor.json` file using the following keywords:
+Use the following identifiers to filter snippets:
 
 - Use `:snp {input}` to search for `{input}` in the `Snippet` field.
 - Use `:tip {input}` to search for `{input}` in the `Tooltip` field.
@@ -26,22 +26,9 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
     (Group names must consist of alphanumeric characters.)
   - Typing a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
-Use `Enable-SnippetPredictorKeyHandler` to register completion bindings.
-By default, it binds Tab and Shift+Tab without an accept binding.
-The handlers complete `:snp` and configured group identifiers from `:` or a partial identifier.
-They complete matching snippets after an exact `:snp` or group identifier.
-The `:tip` identifier isn't included in this completion.
-Specify `-AcceptChord` to bind the accept handler to a key chord.
-For a partial identifier, it replaces the command line.
-It uses the first matching complete identifier.
-For a complete identifier with one matching snippet, it replaces the command line.
-It uses the matching snippet.
-For a complete identifier with more than one matching snippet, it selects a prediction.
-The prediction ListView selects the first item.
-The line stays open after each operation.
-For no matching candidate or unsupported input, it uses the standard PSReadLine `AcceptLine` action.
-Use `Disable-SnippetPredictorKeyHandler` to remove bindings registered by the enable command.
-Removing the module performs the same cleanup automatically.
+Use `Enable-SnippetPredictorKeyHandler` to register PSReadLine bindings.
+Use `Disable-SnippetPredictorKeyHandler` to remove them.
+The key handler command help describes completion, accept handling, and cleanup.
 
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.

@@ -29,44 +29,37 @@ Enable-SnippetPredictorKeyHandler [[-NextChord] <string>] [[-PreviousChord] <str
 
 ## DESCRIPTION
 
-Registers PSReadLine key bindings that invoke SnippetPredictor completion handlers.
+Registers PSReadLine key bindings for SnippetPredictor completion.
 A chord is the key or sequence of keys assigned to a handler.
 
 By default, the command binds Tab and Shift+Tab.
-For `:` or a partial identifier, the handlers complete `:snp` and matching group identifiers.
-The `:tip` identifier isn't included.
-For an exact `:snp` or group identifier, the handlers complete matching snippets.
+Use `-NextChord` and `-PreviousChord` to select other chords.
 
-Repeated Tab or Shift+Tab cycles through matching candidates.
-For one candidate, the next Tab or Shift+Tab starts a new lookup using the replaced input.
+The handlers accept `:` or a partial identifier.
+They complete `:snp` and matching group identifiers.
+After a complete identifier, they complete matching snippets.
+The `:tip` identifier isn't included.
+
+Repeated Tab or Shift+Tab presses cycle through matching candidates.
+When one candidate remains, the next press starts a new lookup using the replaced input.
 For example, press Tab twice after `:sn`.
 The first press completes `:snp`; the second starts snippet completion.
 
-The handlers require the cursor at the end of the line.
+The cursor must be at the end of the line.
 Every character before the identifier must be whitespace.
 Unsupported input delegates to standard PSReadLine completion.
 
-Specify `AcceptChord` to register an accept handler for a chord.
-For a partial identifier, it replaces the command line.
-It uses the first matching complete identifier.
-For a complete identifier with one matching snippet, it replaces the command line.
-It uses the matching snippet.
-For a complete identifier with more than one matching snippet, it invokes `NextSuggestion`.
+Specify `-AcceptChord` to register an accept handler.
+For a partial identifier, it replaces the command line with the first matching complete identifier.
+For a complete identifier with one matching snippet, it replaces the command line with that snippet.
+When more than one snippet matches a complete identifier, it invokes `NextSuggestion`.
 This selects the first item in the prediction ListView.
-The line stays open after each operation.
-For no matching candidate, it delegates to the standard PSReadLine `AcceptLine` action.
-Unsupported input uses the same action.
+Replacement and prediction selection leave the line open.
+No matching candidate or unsupported input delegates to the standard PSReadLine `AcceptLine` action.
 In Vi mode, the command registers the accept handler in Insert mode.
 
-The command doesn't change the prediction ListView bindings.
+The command doesn't change prediction ListView navigation.
 Use the standard PSReadLine UpArrow and DownArrow bindings to navigate the ListView.
-
-The command overwrites existing bindings for the selected chords.
-It doesn't preserve an arbitrary custom action for later restoration.
-Enabling the handlers again first cleans up bindings from the previous call.
-Use `Disable-SnippetPredictorKeyHandler` to remove the registered bindings explicitly.
-Removing the SnippetPredictor module performs the same cleanup automatically.
-The bindings apply to the current PowerShell session.
 
 ## EXAMPLES
 
@@ -179,6 +172,12 @@ No output.
 ## NOTES
 
 The command doesn't change the PSReadLine prediction source or view style.
+The command overwrites existing bindings for the selected chords.
+It doesn't preserve an arbitrary custom action for later restoration.
+The bindings apply to the current PowerShell session.
+Enabling the handlers again first cleans up bindings from the previous call.
+Use `Disable-SnippetPredictorKeyHandler` to remove the registered bindings explicitly.
+Removing the SnippetPredictor module performs the same cleanup automatically.
 Identifier matching is case-sensitive.
 Snippet matching follows the `SearchCaseSensitive` configuration value.
 Input such as `x :` isn't handled because a non-whitespace character precedes the identifier.

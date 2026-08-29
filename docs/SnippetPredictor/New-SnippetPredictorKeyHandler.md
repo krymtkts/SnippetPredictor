@@ -27,23 +27,17 @@ New-SnippetPredictorKeyHandler [[-Action] <string>] [<CommonParameters>]
 
 ## DESCRIPTION
 
-Returns a fixed script block for the selected SnippetPredictor action.
-The script block returns `$true` when SnippetPredictor handles the current input.
-It returns `$false` when the input is outside the supported scope.
-In that case, it doesn't invoke fallback completion.
+Returns a composable script block for the selected SnippetPredictor action.
 
-The Tab completion actions complete `:snp` and configured group identifiers.
-They accept `:` or a partial identifier.
-They complete snippets after an exact `:snp` or group identifier.
-The `:tip` identifier isn't included.
-For one candidate, the handler ends the candidate session.
-The next Tab or Shift+Tab starts a new completion lookup.
+The script block returns `$true` when it handles the current input and `$false` otherwise.
+The caller must use the result to choose fallback behavior.
 
-The caller must consume the Boolean result and decide which fallback action to invoke.
+The completion actions use the same input scope as `Enable-SnippetPredictorKeyHandler`.
+The suggestion actions navigate the prediction ListView.
+
+This command doesn't register or manage a PSReadLine key binding.
 Do not register the returned script block directly with `Set-PSReadLineKeyHandler`.
-`Enable-SnippetPredictorKeyHandler` doesn't register the prediction navigation actions.
-`Disable-SnippetPredictorKeyHandler` doesn't manage key bindings registered by user code.
-The caller controls bindings that use a returned script block.
+The caller owns any binding created from the returned script block.
 
 ## EXAMPLES
 
