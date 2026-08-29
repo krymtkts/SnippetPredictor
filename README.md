@@ -62,50 +62,37 @@ Set-PSReadLineOption -PredictionViewStyle ListView
 
 [^2]: [Using predictors in PSReadLine - PowerShell | Microsoft Learn](https://learn.microsoft.com/en-us/powershell/scripting/learn/shell/using-predictors?view=powershell-7.4#using-other-predictor-plug-ins)
 
-Optionally enable the SnippetPredictor key bindings:
+Optionally enable SnippetPredictor completion in PSReadLine:
 
 ```powershell
 Enable-SnippetPredictorKeyHandler
 ```
 
-The command binds Tab and Shift+Tab to SnippetPredictor completion handlers.
-Type `:` or a partial identifier to complete `:snp` and configured group identifiers.
-After an exact `:snp` or group identifier, use the bindings to complete matching snippets.
-Repeated key presses select the next or previous matching candidate.
+By default, Tab and Shift+Tab complete `:snp` and configured group identifiers.
+They accept `:` or a partial identifier.
+After a complete identifier, they cycle through matching snippets.
 The `:tip` identifier isn't included in this completion.
 
 Completion requires the cursor at the end of the line.
 Every character before the identifier must be whitespace.
-Unsupported Tab input falls back to standard PSReadLine completion.
-The prediction ListView keeps the standard PSReadLine UpArrow and DownArrow navigation.
+Other input uses standard PSReadLine completion.
+The prediction ListView remains navigable with the standard UpArrow and DownArrow bindings.
 
-The command overwrites existing key bindings for the selected chords.
-The changes apply to the current PowerShell session.
-Use `Disable-SnippetPredictorKeyHandler` to clean up bindings registered by the enable command.
-Cleanup restores `TabCompleteNext` and `TabCompletePrevious` for the default chords.
-Cleanup removes SnippetPredictor-owned bindings from custom chords.
-It leaves bindings replaced later by the user unchanged.
-Removing the SnippetPredictor module performs the same cleanup automatically.
-
-By default, the command doesn't bind an accept handler.
-Specify `-AcceptChord` to bind one to a key chord:
+To expand identifiers or select snippets without accepting the line, specify `-AcceptChord`:
 
 ```powershell
 Enable-SnippetPredictorKeyHandler -AcceptChord Enter
 ```
 
-For a partial identifier, it replaces the command line.
-It uses the first matching complete identifier.
-For a complete identifier with one matching snippet, it replaces the command line.
-It uses the matching snippet.
-For a complete identifier with more than one matching snippet, it selects a prediction.
-The prediction ListView selects the first item.
-The line stays open after each operation.
-For unsupported input or no matching candidate, it uses the standard PSReadLine `AcceptLine` action.
+The accept chord expands a partial identifier to the first matching complete identifier.
+It replaces a complete identifier with its snippet when one matches.
+When more than one snippet matches, it selects the first prediction.
+The line remains open for these operations.
+With no matching candidate or unsupported input, it uses the standard PSReadLine `AcceptLine` action.
 
-Use `New-SnippetPredictorKeyHandler` to compose custom completion or prediction handlers.
-Key bindings that use those composable handlers remain under the caller's control.
-See [New-SnippetPredictorKeyHandler](./docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md#example-2) for a tested custom action composition example.
+Use `Disable-SnippetPredictorKeyHandler` to remove the bindings.
+See [`Enable-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md) for input, fallback, and cleanup details.
+Use [`New-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md) to compose custom handlers.
 
 ## Cmdlet help
 
