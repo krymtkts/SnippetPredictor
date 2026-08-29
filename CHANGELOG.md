@@ -7,6 +7,10 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 ## [Unreleased]
 
+### Added
+
+- Add optional accept handling for partial and complete `:snp` and group identifiers. Use `-AcceptChord` to keep the line open.
+
 ## [0.7.0] - 2026-08-09
 
 ### Added
