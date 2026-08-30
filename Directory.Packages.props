@@ -11,6 +11,7 @@
     <!-- NOTE: Test dependencies. -->
     <PackageVersion Include="Expecto" Version="11.1.0" />
     <PackageVersion Include="YoloDev.Expecto.TestSdk" Version="0.16.1" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.GitHubActionsReport" Version="1.0.0-alpha.26377.5" />
     <!-- NOTE: Use HangDump on 2.x to match YoloDev.Expecto.TestSdk's MTP v2 line. -->
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.3.3" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.2.24" />

@@ -12,6 +12,7 @@
     <PackageReference Include="Expecto" />
     <PackageReference Include="YoloDev.Expecto.TestSdk" />
     <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
+    <PackageReference Include="Microsoft.Testing.Extensions.GitHubActionsReport" />
     <!-- NOTE: for IModuleAssemblyCleanup.OnRemove to work correctly. -->
     <PackageReference Include="Microsoft.Management.Infrastructure" />
   </ItemGroup>
