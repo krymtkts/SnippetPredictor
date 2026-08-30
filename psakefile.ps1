@@ -91,7 +91,7 @@ Task Build -Depends Clean {
 }
 
 Task UnitTest {
-    dotnet test --verbosity detailed --hangdump --hangdump-timeout 5s --hangdump-type full
+    dotnet test --verbosity detailed --hangdump --hangdump-timeout 5s --hangdump-type full --report-gh
     if (-not $?) {
         throw 'dotnet test failed.'
     }
