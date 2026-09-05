@@ -91,16 +91,31 @@ Task Build -Depends Clean {
 }
 
 Task UnitTest {
-    dotnet test --verbosity detailed --hangdump --hangdump-timeout 5s --hangdump-type full --report-gh
+    Remove-Item ./TestResults/* -Recurse -Force -ErrorAction SilentlyContinue
+    dotnet test --project "./src/${ModuleName}.Test/${ModuleName}.Test.fsproj" `
+        --verbosity detailed `
+        --results-directory './TestResults' `
+        --report-gh `
+        --coverlet `
+        --coverlet-include "[${ModuleName}*]*" `
+        --coverlet-output-format cobertura `
+        --coverlet-exclude-by-attribute 'CompilerGeneratedAttribute' `
+        --hangdump `
+        --hangdump-timeout 5s `
+        --hangdump-type full
     if (-not $?) {
         throw 'dotnet test failed.'
     }
+
+    $coverageFiles = @(Get-ChildItem ./TestResults -Filter 'coverage.cobertura.*.xml' -File)
+    if ($coverageFiles.Count -ne 1) {
+        throw "Expected exactly one coverage file, but found $($coverageFiles.Count)."
+    }
+
+    Move-Item $coverageFiles[0].FullName ./coverage.cobertura.xml -Force
 }
 
 Task Coverage -Depends UnitTest {
-    $target = "./src/${ModuleName}.Test/bin/Debug/*/${ModuleName}.Test.dll" | Resolve-Path -Relative
-    dotnet coverlet $target --target 'dotnet' --targetargs 'test --no-build' --format cobertura --output ./coverage.cobertura.xml --include "[${ModuleName}*]*" --exclude-by-attribute 'CompilerGeneratedAttribute'
-
     Remove-Item ./coverage/* -Force -ErrorAction SilentlyContinue
     dotnet reportgenerator
 }
