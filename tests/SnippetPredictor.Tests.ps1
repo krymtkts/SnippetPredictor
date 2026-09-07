@@ -225,6 +225,26 @@ Describe 'SnippetPredictor' {
                     Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
                 }
             }
+            It 'should accept an empty line without requesting candidates' {
+                InModuleScope SnippetPredictor.PSReadLine {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = ''; Cursor = 0 }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Not -Invoke Get-SnippetPredictorAcceptCandidates
+                    Should -Invoke Invoke-SnippetPredictorAcceptLine -Times 1 -Exactly -ParameterFilter {
+                        $Key -ceq 'accept-key' -and $Arg -ceq 'accept-arg'
+                    }
+                    Should -Not -Invoke Invoke-SnippetPredictorReplace
+                    Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                }
+            }
             It 'should accept the line when the cursor is not at the end' {
                 InModuleScope SnippetPredictor.PSReadLine {
                     Mock Get-SnippetPredictorBufferState {
