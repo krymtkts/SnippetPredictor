@@ -216,6 +216,10 @@ function Invoke-SnippetPredictorAcceptKeyHandler {
     $line = $bufferState.Line
     $cursor = $bufferState.Cursor
 
+    if ([string]::IsNullOrEmpty($line)) {
+        return $false
+    }
+
     if ($cursor -ne $line.Length) {
         return $false
     }
