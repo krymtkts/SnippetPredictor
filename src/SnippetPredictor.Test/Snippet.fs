@@ -290,6 +290,8 @@ module getPredictiveSuggestions =
             actual.SuggestionText = expected.SuggestionText
             && actual.ToolTip = expected.ToolTip
 
+        let assertSuggestion = entryToSuggestion >> asserter
+
         testList
             "getPredictiveSuggestions"
             [
@@ -301,7 +303,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing snippet symbol."
-                      (entryToSuggestion >> asserter <| expected1)
+                      (assertSuggestion expected1)
               }
 
               test "when snippet symbol is not set and matched" {
@@ -309,9 +311,7 @@ module getPredictiveSuggestions =
                   actual |> Expect.isNonEmpty "snippets"
 
                   actual
-                  |> Expect.all
-                      "should return the snippets filtered by the input."
-                      (entryToSuggestion >> asserter <| expected2)
+                  |> Expect.all "should return the snippets filtered by the input." (assertSuggestion expected2)
               }
 
               test "when no snippets matched with :" {
@@ -334,7 +334,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing tooltip symbol."
-                      (entryToSuggestion >> asserter <| expected1)
+                      (assertSuggestion expected1)
               }
 
               test "when tooltip symbol is not set and not matched" {
@@ -349,7 +349,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing group symbol."
-                      (entryToSuggestion >> asserter <| expected1)
+                      (assertSuggestion expected1)
               }
 
               test "when group symbol is set and matched case insensitive" {
@@ -359,7 +359,7 @@ module getPredictiveSuggestions =
                   actual
                   |> Expect.all
                       "should return the snippets filtered by the input removing group symbol."
-                      (entryToSuggestion >> asserter <| expected1)
+                      (assertSuggestion expected1)
               }
 
               test "when no group symbol is set and not matched" {

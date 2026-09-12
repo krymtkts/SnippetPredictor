@@ -360,8 +360,8 @@ module SnippetPredictorInitialization =
                   predictor.Description
                   |> Expect.equal "Description" "A predictor that suggests a snippet based on the input."
 
-                  predictor.Id |> Expect.equal "Id"
-                  <| Guid.Parse("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1")
+                  predictor.Id
+                  |> Expect.equal "Id" (Guid.Parse("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1"))
 
                   Integration.getCompletionTexts ":unsupported"
                   |> Expect.isEmpty "should use the registered predictor integration"
