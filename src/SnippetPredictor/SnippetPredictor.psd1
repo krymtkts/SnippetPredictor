@@ -12,7 +12,7 @@
     RootModule = 'SnippetPredictor.dll'
 
     # Version number of this module.
-    ModuleVersion = '0.7.0'
+    ModuleVersion = '0.8.0'
 
     # Supported PSEditions
     CompatiblePSEditions = @(
@@ -125,6 +125,12 @@
             # ReleaseNotes of this module
 
             ReleaseNotes = @'
+## [0.8.0] - 2026-09-12
+
+### Added
+
+- Add optional accept handling for partial and complete `:snp` and group identifiers. Use `-AcceptChord` to keep the line open.
+
 ## [0.7.0] - 2026-08-09
 
 ### Added
@@ -138,20 +144,6 @@
 ### Fixed
 
 - Refine the regular expression pattern to support leading whitespace in snippet input.
-
-## [0.5.0] - 2025-12-30
-
-### Added
-
-- Add a debounce mechanism for snippet refresh to optimize file change handling.
-
-### Changed
-
-- Update help documentation.
-
-### Fixed
-
-- Fix a potential group serialization error by returning an empty string instead of null.
 
 Full CHANGELOG: https://github.com/krymtkts/SnippetPredictor/blob/main/CHANGELOG.md
 '@
