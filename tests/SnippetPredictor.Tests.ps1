@@ -50,6 +50,28 @@ Describe 'SnippetPredictor' {
                 }
             }
         }
+        It 'should emit a terminal bell for Visual BellStyle' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                Mock Get-PSReadLineOption {
+                    [pscustomobject]@{ BellStyle = 'Visual' }
+                }
+
+                $writer = [System.IO.StringWriter]::new()
+                $originalWriter = [Console]::Out
+                $output = $null
+                try {
+                    [Console]::SetOut($writer)
+                    Invoke-SnippetPredictorDing
+                    $output = $writer.ToString()
+                }
+                finally {
+                    [Console]::SetOut($originalWriter)
+                    $writer.Dispose()
+                }
+
+                $output | Should -Be ([string][char]7)
+            }
+        }
         It 'Given <Action>, the completion handler should return <CoreResult>' -TestCases @(
             @{ Action = 'TabCompleteNext'; ExpectedDirection = 1; CoreResult = $true }
             @{ Action = 'TabCompleteNext'; ExpectedDirection = 1; CoreResult = $false }
@@ -223,6 +245,31 @@ Describe 'SnippetPredictor' {
                     }
                     Should -Not -Invoke Invoke-SnippetPredictorReplace
                     Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                }
+            }
+            It 'should ding and keep an unknown group identifier without accepting the line' {
+                InModuleScope SnippetPredictor.PSReadLine {
+                    Mock Get-SnippetPredictorBufferState {
+                        [pscustomobject]@{ Line = ':unknown'; Cursor = 8 }
+                    }
+                    Mock Get-SnippetPredictorAcceptCandidates {
+                        [pscustomobject]@{
+                            IsExactIdentifier = $false
+                            IsUnknownGroupIdentifier = $true
+                            Texts = @()
+                        }
+                    }
+                    Mock Invoke-SnippetPredictorDing
+                    Mock Invoke-SnippetPredictorReplace
+                    Mock Invoke-SnippetPredictorNextSuggestion
+                    Mock Invoke-SnippetPredictorAcceptLine
+
+                    & $script:SnippetPredictorAcceptHandler 'accept-key' 'accept-arg'
+
+                    Should -Invoke Invoke-SnippetPredictorDing -Times 1 -Exactly
+                    Should -Not -Invoke Invoke-SnippetPredictorReplace
+                    Should -Not -Invoke Invoke-SnippetPredictorNextSuggestion
+                    Should -Not -Invoke Invoke-SnippetPredictorAcceptLine
                 }
             }
             It 'should accept an empty line without requesting candidates' {
