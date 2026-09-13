@@ -369,6 +369,9 @@ module SnippetPredictorInitialization =
                   Integration.getExactIdentifierSnippetTexts ":unsupported"
                   |> Expect.isEmpty "should use the registered predictor integration"
 
+                  Integration.isUnknownGroupIdentifier ":unsupported"
+                  |> Expect.isTrue "should use the registered predictor integration"
+
                   (subsystem :> IModuleAssemblyCleanup).OnRemove(createMockModule ())
 
                   let predictor = getSnippetPredictorSubsystem ()
@@ -379,6 +382,9 @@ module SnippetPredictorInitialization =
 
                   Integration.getExactIdentifierSnippetTexts ":snp"
                   |> Expect.isEmpty "should clear the predictor integration"
+
+                  Integration.isUnknownGroupIdentifier ":unsupported"
+                  |> Expect.isFalse "should clear the predictor integration"
               }
 
               ]
@@ -505,6 +511,22 @@ module SnippetPredictor =
 
                   predictor.GetExactIdentifierSnippetTexts(":group Echo")
                   |> Expect.isEmpty "should exclude snippet search input"
+              }
+
+              test "IsUnknownGroupIdentifier" {
+                  use predictor =
+                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+
+                  Async.Sleep(1000) |> Async.RunSynchronously
+
+                  predictor.IsUnknownGroupIdentifier(":unknown")
+                  |> Expect.isTrue "should identify an unknown group identifier"
+
+                  predictor.IsUnknownGroupIdentifier(":group")
+                  |> Expect.isFalse "should identify a configured group identifier"
+
+                  predictor.IsUnknownGroupIdentifier(":group Echo")
+                  |> Expect.isFalse "should exclude group-scoped input"
               }
 
               test "for coverage" {

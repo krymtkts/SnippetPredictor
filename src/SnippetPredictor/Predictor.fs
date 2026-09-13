@@ -22,6 +22,8 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
     member __.GetExactIdentifierSnippetTexts(input: string) =
         cache.getExactIdentifierSnippetTexts input
 
+    member __.IsUnknownGroupIdentifier(input: string) = cache.isUnknownGroupIdentifier input
+
     interface ICommandPredictor with
         member __.Id = id
         member __.Name = Noun.snippet
@@ -71,6 +73,12 @@ module Integration =
         current
         |> Option.map (fun predictor -> predictor.GetExactIdentifierSnippetTexts input)
         |> Option.defaultValue Array.empty
+
+    [<CompiledName("IsUnknownGroupIdentifier")>]
+    let isUnknownGroupIdentifier (input: string) =
+        current
+        |> Option.map (fun predictor -> predictor.IsUnknownGroupIdentifier input)
+        |> Option.defaultValue false
 
 type Init() =
     [<Literal>]

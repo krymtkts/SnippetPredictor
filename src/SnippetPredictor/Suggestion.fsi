@@ -29,6 +29,8 @@ module Suggestion =
 
         member getExactIdentifierSnippetTexts: input: string -> string array
 
+        member isUnknownGroupIdentifier: input: string -> bool
+
         member load: getSnippetPath: (unit -> string * string) -> unit
 
     val getSnippetPath: (unit -> string * string)
