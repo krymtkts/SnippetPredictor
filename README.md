@@ -88,7 +88,12 @@ The accept chord expands a partial identifier to the first matching complete ide
 It replaces a complete identifier with its snippet when one matches.
 When more than one snippet matches, it selects the first prediction.
 The line remains open for these operations.
-With no matching candidate or unsupported input, it uses the standard PSReadLine `AcceptLine` action.
+An exact unknown group identifier remains in the buffer.
+It invokes PSReadLine's `Ding()` action for `Audible` and `None`.
+For `Visual`, it emits a terminal BEL.
+PSReadLine's `Ding()` has no visual effect in this case.
+The terminal handles the BEL according to its notification settings.
+Other inputs without a matching candidate use the standard PSReadLine `AcceptLine` action.
 
 Use `Disable-SnippetPredictorKeyHandler` to remove the bindings.
 See [`Enable-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md) for input, fallback, and cleanup details.
