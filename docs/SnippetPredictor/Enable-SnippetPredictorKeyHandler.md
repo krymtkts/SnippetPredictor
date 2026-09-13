@@ -55,7 +55,13 @@ For a complete identifier with one matching snippet, it replaces the command lin
 When more than one snippet matches a complete identifier, it invokes `NextSuggestion`.
 This selects the first item in the prediction ListView.
 Replacement and prediction selection leave the line open.
-No matching candidate or unsupported input delegates to the standard PSReadLine `AcceptLine` action.
+An exact unknown group identifier such as `:unknown` leaves the line open.
+It invokes PSReadLine's `Ding()` action for `Audible` and `None`.
+For `Visual`, it leaves the line open and emits a terminal BEL.
+PSReadLine's `Ding()` has no visual effect in this case.
+The terminal handles the BEL according to its notification settings.
+See [PSReadLine issue #4766](https://github.com/PowerShell/PSReadLine/issues/4766) for the upstream limitation.
+Other inputs without a matching candidate use the standard PSReadLine `AcceptLine` action.
 In Vi mode, the command registers the accept handler in Insert mode.
 
 The command doesn't change prediction ListView navigation.
@@ -80,6 +86,8 @@ Enable-SnippetPredictorKeyHandler -AcceptChord Enter
 
 Registers the accept handler on Enter with the default completion bindings.
 For a partial identifier with matches, pressing Enter replaces the command line.
+For an exact unknown group identifier, pressing Enter leaves the command line open.
+It invokes `Ding()` or emits a terminal BEL for `Visual`.
 
 ### Example 3
 

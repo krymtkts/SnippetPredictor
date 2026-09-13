@@ -595,6 +595,70 @@ module getPredictiveSuggestions =
               ]
 
     [<Tests>]
+    let tests_isUnknownGroupIdentifier =
+        let cache = new Suggestion.Cache()
+        cache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-valid.json")
+        let invalidCache = new Suggestion.Cache()
+        invalidCache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-invalid.json")
+
+        testList
+            "isUnknownGroupIdentifier"
+            [
+
+              test "when group identifier is known" {
+                  cache.isUnknownGroupIdentifier ":group"
+                  |> Expect.isFalse "should recognize a configured group identifier"
+              }
+
+              test "when snippet identifier is known" {
+                  cache.isUnknownGroupIdentifier "    :snp"
+                  |> Expect.isFalse "should recognize the snippet identifier"
+              }
+
+              test "when tooltip identifier is known" {
+                  cache.isUnknownGroupIdentifier ":tip"
+                  |> Expect.isFalse "should preserve tooltip fallback behavior"
+
+                  cache.isUnknownGroupIdentifier ":t"
+                  |> Expect.isFalse "should preserve partial tooltip fallback behavior"
+              }
+
+              test "when identifier is empty" {
+                  cache.isUnknownGroupIdentifier ":"
+                  |> Expect.isFalse "should preserve empty identifier fallback behavior"
+              }
+
+              test "when identifier is a known prefix" {
+                  cache.isUnknownGroupIdentifier ":sn"
+                  |> Expect.isFalse "should preserve partial identifier completion"
+              }
+
+              test "when group identifier is unknown" {
+                  cache.isUnknownGroupIdentifier ":unknown"
+                  |> Expect.isTrue "should recognize an unknown group identifier"
+
+                  cache.isUnknownGroupIdentifier "    :unknown"
+                  |> Expect.isTrue "should allow leading whitespace before an unknown identifier"
+              }
+
+              test "when identifier has a search input" {
+                  cache.isUnknownGroupIdentifier ":unknown text"
+                  |> Expect.isFalse "should exclude group-scoped input"
+              }
+
+              test "when identifier has a non-whitespace prefix" {
+                  cache.isUnknownGroupIdentifier "x :unknown"
+                  |> Expect.isFalse "should exclude a non-whitespace prefix"
+              }
+
+              test "when configuration is invalid" {
+                  invalidCache.isUnknownGroupIdentifier ":unknown"
+                  |> Expect.isFalse "should preserve fallback for invalid configuration"
+              }
+
+              ]
+
+    [<Tests>]
     let tests_Dispose =
         let cache = new Suggestion.Cache()
 

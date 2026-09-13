@@ -7,6 +7,8 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 ## [Unreleased]
 
+- Keep unknown group identifiers from executing with `-AcceptChord` and notify users with a bell.
+
 ## [0.8.0] - 2026-09-12
 
 ### Added

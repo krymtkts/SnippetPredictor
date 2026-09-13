@@ -153,6 +153,7 @@ function Get-SnippetPredictorAcceptCandidates {
     if ($snippets.Count -gt 0) {
         return [pscustomobject]@{
             IsExactIdentifier = $true
+            IsUnknownGroupIdentifier = $false
             Texts = $snippets
         }
     }
@@ -163,6 +164,12 @@ function Get-SnippetPredictorAcceptCandidates {
     )
     [pscustomobject]@{
         IsExactIdentifier = $false
+        IsUnknownGroupIdentifier = if ($identifiers.Count -eq 0) {
+            [SnippetPredictor.Integration]::IsUnknownGroupIdentifier($Line)
+        }
+        else {
+            $false
+        }
         Texts = $identifiers
     }
 }
@@ -193,6 +200,20 @@ function Invoke-SnippetPredictorNextSuggestion {
     )
 
     [Microsoft.PowerShell.PSConsoleReadLine]::NextSuggestion($Key, $Arg)
+}
+
+function Invoke-SnippetPredictorDing {
+    [CmdletBinding()]
+    param()
+
+    if ((Get-PSReadLineOption).BellStyle.ToString() -ceq 'Visual') {
+        # NOTE: PSReadLine's Visual BellStyle does not render feedback in the current implementation.
+        # See https://github.com/PowerShell/PSReadLine/issues/4766.
+        [Console]::Write([char]7)
+    }
+    else {
+        [Microsoft.PowerShell.PSConsoleReadLine]::Ding()
+    }
 }
 
 function Invoke-SnippetPredictorAcceptLine {
@@ -236,6 +257,11 @@ function Invoke-SnippetPredictorAcceptKeyHandler {
             -Start 0 `
             -Length $line.Length `
             -Replacement $candidates.Texts[0]
+        return $true
+    }
+
+    if ($candidates.IsUnknownGroupIdentifier) {
+        Invoke-SnippetPredictorDing
         return $true
     }
 

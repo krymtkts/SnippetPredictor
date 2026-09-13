@@ -325,6 +325,11 @@ module Suggestion =
 
         let basicGroupIds = [| Snp; Tip |]
 
+        let isKnownGroupIdOrPrefix input =
+            groups.Keys
+            |> Seq.append basicGroupIds
+            |> Seq.exists (fun groupId -> groupId.StartsWith(input, StringComparison.Ordinal))
+
         let chooseGroupIds input =
             groups.Keys
             |> Seq.append basicGroupIds
@@ -407,6 +412,15 @@ module Suggestion =
                 | _ -> Array.empty
             else
                 Array.empty
+
+        member __.isUnknownGroupIdentifier(input: string) =
+            if Volatile.Read(&hasValidConfiguration) then
+                match input with
+                | CompletionIdentifier groupId when not (String.IsNullOrEmpty(groupId)) ->
+                    not (isKnownGroupIdOrPrefix groupId)
+                | _ -> false
+            else
+                false
 
         interface IDisposable with
             member __.Dispose() =
