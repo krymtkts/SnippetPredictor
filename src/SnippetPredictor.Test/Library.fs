@@ -351,8 +351,12 @@ module SnippetPredictorInitialization =
             [
 
               test "run" {
+                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
+                  use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
                   let subsystem = Init()
                   (subsystem :> IModuleAssemblyInitializer).OnImport()
+
+                  Async.Sleep(1000) |> Async.RunSynchronously
 
                   let predictor = getSnippetPredictorSubsystem ()
                   let predictor = predictor |> Expect.wantSome "should have Snippet predictor"
