@@ -16,12 +16,12 @@ let tests_Dispose =
         "Nullable.dispose"
         [
 
-          test "when value is null" {
-              // NOTE: for coverage.
-              null |> Nullable.dispose
-          }
+            test "when value is null" {
+                // NOTE: for coverage.
+                null |> Nullable.dispose
+            }
 
-          ]
+        ]
 
 #if DEBUG
 [<Tests>]
@@ -31,24 +31,24 @@ let tests_Disposal =
         "Disposal"
         [
 
-          test "when not disposed" {
-              let flag = Suggestion.Disposal.Flag()
-              let mutable called = false
-              flag.IfDisposed(fun () -> failtest "should not call the function disposed handler")
-              flag.IfNotDisposed(fun () -> called <- true)
-              Expect.equal "should call the function not disposed handler" called true
-          }
+            test "when not disposed" {
+                let flag = Suggestion.Disposal.Flag()
+                let mutable called = false
+                flag.IfDisposed(fun () -> failtest "should not call the function disposed handler")
+                flag.IfNotDisposed(fun () -> called <- true)
+                Expect.equal "should call the function not disposed handler" called true
+            }
 
-          test "when disposed" {
-              let flag = Suggestion.Disposal.Flag()
-              let mutable called = false
-              flag.TryMarkDisposed() |> ignore
-              flag.IfDisposed(fun () -> called <- true)
-              flag.IfNotDisposed(fun () -> failtest "should not call the function not disposed handler")
-              Expect.equal "should call the function disposed handler" called true
-          }
+            test "when disposed" {
+                let flag = Suggestion.Disposal.Flag()
+                let mutable called = false
+                flag.TryMarkDisposed() |> ignore
+                flag.IfDisposed(fun () -> called <- true)
+                flag.IfNotDisposed(fun () -> failtest "should not call the function not disposed handler")
+                Expect.equal "should call the function disposed handler" called true
+            }
 
-          ]
+        ]
 
 [<Tests>]
 let tests_parseSnippets =
@@ -66,161 +66,209 @@ let tests_parseSnippets =
         "parseSnippets"
         [
 
-          test "when JSON is empty string" {
-              ""
-              |> Config.parseSnippets
-              |> _.IsEmpty
-              |> Expect.equal "should return ConfigState.Empty" true
-          }
+            test "when JSON is empty string" {
+                ""
+                |> Config.parseSnippets
+                |> _.IsEmpty
+                |> Expect.equal "should return ConfigState.Empty" true
+            }
 
-          test "when JSON is null" {
-              "null"
-              |> Config.parseSnippets
-              |> expectInvalid
-              |> Expect.equal
-                  "should return ConfigState.Invalid"
-                  { SnippetEntry.Snippet = "'.snippet-predictor.json is null or invalid format.'"
-                    SnippetEntry.Tooltip = ""
-                    SnippetEntry.Group = null }
-          }
+            test "when JSON is null" {
+                "null"
+                |> Config.parseSnippets
+                |> expectInvalid
+                |> Expect.equal
+                    "should return ConfigState.Invalid"
+                    {
+                        SnippetEntry.Snippet = "'.snippet-predictor.json is null or invalid format.'"
+                        SnippetEntry.Tooltip = ""
+                        SnippetEntry.Group = null
+                    }
+            }
 
-          test "when JSON is empty" {
-              "{}"
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return ConfigState.Valid"
-                  { SearchCaseSensitive = false
-                    SnippetConfig.Snippets = null }
-          }
+            test "when JSON is empty" {
+                "{}"
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return ConfigState.Valid"
+                    {
+                        SearchCaseSensitive = false
+                        SnippetConfig.Snippets = null
+                    }
+            }
 
-          test "when JSON is broken" {
-              "{"
-              |> Config.parseSnippets
-              |> expectInvalid
-              |> Expect.equal
-                  "should return ConfigState.Invalid"
-                  { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
-                    SnippetEntry.Tooltip =
-                      "Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 0 | BytePositionInLine: 1."
-                    SnippetEntry.Group = null }
+            test "when JSON is broken" {
+                "{"
+                |> Config.parseSnippets
+                |> expectInvalid
+                |> Expect.equal
+                    "should return ConfigState.Invalid"
+                    {
+                        SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
+                        SnippetEntry.Tooltip =
+                            "Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 0 | BytePositionInLine: 1."
+                        SnippetEntry.Group = null
+                    }
 
-          }
+            }
 
-          test "when JSON has null snippets" {
-              """{"snippets":null}"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return ConfigState.Valid"
-                  { SearchCaseSensitive = false
-                    SnippetConfig.Snippets = null }
-          }
+            test "when JSON has null snippets" {
+                """{"snippets":null}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return ConfigState.Valid"
+                    {
+                        SearchCaseSensitive = false
+                        SnippetConfig.Snippets = null
+                    }
+            }
 
-          test "when JSON has empty snippets" {
-              """{"snippets":[]}"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return ConfigState.Valid"
-                  { SearchCaseSensitive = false
-                    SnippetConfig.Snippets = [||] }
-          }
+            test "when JSON has empty snippets" {
+                """{"snippets":[]}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return ConfigState.Valid"
+                    {
+                        SearchCaseSensitive = false
+                        SnippetConfig.Snippets = [||]
+                    }
+            }
 
-          test "when JSON has snippets without group" {
-              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return ConfigState.Valid"
-                  { SearchCaseSensitive = false
-                    Snippets =
-                      [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip"
-                           SnippetEntry.Group = null } |] }
-          }
+            test "when JSON has snippets without group" {
+                """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip"}]}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return ConfigState.Valid"
+                    {
+                        SearchCaseSensitive = false
+                        Snippets =
+                            [|
+                                {
+                                    SnippetEntry.Snippet = "echo 'example'"
+                                    SnippetEntry.Tooltip = "example tooltip"
+                                    SnippetEntry.Group = null
+                                }
+                            |]
+                    }
+            }
 
-          test "when JSON has snippets" {
-              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return ConfigState.Valid"
-                  { SearchCaseSensitive = false
-                    SnippetConfig.Snippets =
-                      [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip"
-                           SnippetEntry.Group = "group" } |] }
-          }
+            test "when JSON has snippets" {
+                """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group"}]}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return ConfigState.Valid"
+                    {
+                        SearchCaseSensitive = false
+                        SnippetConfig.Snippets =
+                            [|
+                                {
+                                    SnippetEntry.Snippet = "echo 'example'"
+                                    SnippetEntry.Tooltip = "example tooltip"
+                                    SnippetEntry.Group = "group"
+                                }
+                            |]
+                    }
+            }
 
-          test "when JSON has snippets with trailing comma" {
-              """{
+            test "when JSON has snippets with trailing comma" {
+                """{
     // comment
     "snippets":[
         {"snippet": "echo 'example'", "tooltip": "example tooltip"},
     ]
 }"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return ConfigState.Valid"
-                  { SearchCaseSensitive = false
-                    SnippetConfig.Snippets =
-                      [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip"
-                           SnippetEntry.Group = null } |] }
-          }
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return ConfigState.Valid"
+                    {
+                        SearchCaseSensitive = false
+                        SnippetConfig.Snippets =
+                            [|
+                                {
+                                    SnippetEntry.Snippet = "echo 'example'"
+                                    SnippetEntry.Tooltip = "example tooltip"
+                                    SnippetEntry.Group = null
+                                }
+                            |]
+                    }
+            }
 
-          test "when JSON has snippet that has null group" {
-              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return ConfigState.Valid"
-                  { SearchCaseSensitive = false
-                    SnippetConfig.Snippets =
-                      [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip"
-                           SnippetEntry.Group = null } |] }
-          }
+            test "when JSON has snippet that has null group" {
+                """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return ConfigState.Valid"
+                    {
+                        SearchCaseSensitive = false
+                        SnippetConfig.Snippets =
+                            [|
+                                {
+                                    SnippetEntry.Snippet = "echo 'example'"
+                                    SnippetEntry.Tooltip = "example tooltip"
+                                    SnippetEntry.Group = null
+                                }
+                            |]
+                    }
+            }
 
-          test "when JSON has snippet that has group with disallowed characters" {
-              """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
-              |> Config.parseSnippets
-              |> expectInvalid
-              |> Expect.equal
-                  "should return ConfigState.Invalid"
-                  { SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
-                    SnippetEntry.Tooltip = "Invalid characters in group: group!"
-                    SnippetEntry.Group = null }
-          }
+            test "when JSON has snippet that has group with disallowed characters" {
+                """{"snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": "group!"}]}"""
+                |> Config.parseSnippets
+                |> expectInvalid
+                |> Expect.equal
+                    "should return ConfigState.Invalid"
+                    {
+                        SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
+                        SnippetEntry.Tooltip = "Invalid characters in group: group!"
+                        SnippetEntry.Group = null
+                    }
+            }
 
-          test "when JSON has search case sensitive set to true" {
-              """{"searchCaseSensitive": true, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return SearchCaseSensitive"
-                  { SearchCaseSensitive = true
-                    SnippetConfig.Snippets =
-                      [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip"
-                           SnippetEntry.Group = null } |] }
-          }
-          test "when JSON has search case sensitive set to null" {
-              """{"searchCaseSensitive": null, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
-              |> Config.parseSnippets
-              |> expectValid
-              |> Expect.equal
-                  "should return SearchCaseSensitive"
-                  { SearchCaseSensitive = false
-                    SnippetConfig.Snippets =
-                      [| { SnippetEntry.Snippet = "echo 'example'"
-                           SnippetEntry.Tooltip = "example tooltip"
-                           SnippetEntry.Group = null } |] }
-          }
+            test "when JSON has search case sensitive set to true" {
+                """{"searchCaseSensitive": true, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return SearchCaseSensitive"
+                    {
+                        SearchCaseSensitive = true
+                        SnippetConfig.Snippets =
+                            [|
+                                {
+                                    SnippetEntry.Snippet = "echo 'example'"
+                                    SnippetEntry.Tooltip = "example tooltip"
+                                    SnippetEntry.Group = null
+                                }
+                            |]
+                    }
+            }
+            test "when JSON has search case sensitive set to null" {
+                """{"searchCaseSensitive": null, "snippets":[{"snippet": "echo 'example'", "tooltip": "example tooltip", "group": null}]}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should return SearchCaseSensitive"
+                    {
+                        SearchCaseSensitive = false
+                        SnippetConfig.Snippets =
+                            [|
+                                {
+                                    SnippetEntry.Snippet = "echo 'example'"
+                                    SnippetEntry.Tooltip = "example tooltip"
+                                    SnippetEntry.Group = null
+                                }
+                            |]
+                    }
+            }
 
-          ]
+        ]
 
 module getSnippet =
 
@@ -232,32 +280,32 @@ module getSnippet =
             "getSnippetPathWith"
             [
 
-              test "when env var is set" {
-                  Config.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
-                  |> Expect.equal
-                      "should return the path based on env var."
-                      (".", $".{PathSeparator}.snippet-predictor.json")
-              }
+                test "when env var is set" {
+                    Config.getSnippetPathWith (fun _ -> ".") (fun _ -> "")
+                    |> Expect.equal
+                        "should return the path based on env var."
+                        (".", $".{PathSeparator}.snippet-predictor.json")
+                }
 
-              test "when env var is null" {
-                  let userProfile = "/Users/username"
+                test "when env var is null" {
+                    let userProfile = "/Users/username"
 
-                  Config.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
-                  |> Expect.equal
-                      "should return the default path"
-                      (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
-              }
+                    Config.getSnippetPathWith (fun _ -> null) (fun _ -> userProfile)
+                    |> Expect.equal
+                        "should return the default path"
+                        (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
+                }
 
-              test "when env var is empty" {
-                  let userProfile = "/Users/username"
+                test "when env var is empty" {
+                    let userProfile = "/Users/username"
 
-                  Config.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
-                  |> Expect.equal
-                      "should return the default path"
-                      (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
-              }
+                    Config.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
+                    |> Expect.equal
+                        "should return the default path"
+                        (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
+                }
 
-              ]
+            ]
 #endif
 
 module getPredictiveSuggestions =
@@ -269,14 +317,18 @@ module getPredictiveSuggestions =
         cache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-valid.json")
 
         let expected1 =
-            { SnippetEntry.Snippet = "echo 'example'"
-              SnippetEntry.Tooltip = "example  tooltip"
-              SnippetEntry.Group = "group" }
+            {
+                SnippetEntry.Snippet = "echo 'example'"
+                SnippetEntry.Tooltip = "example  tooltip"
+                SnippetEntry.Group = "group"
+            }
 
         let expected2 =
-            { SnippetEntry.Snippet = "touch sample.txt"
-              SnippetEntry.Tooltip = "new file"
-              SnippetEntry.Group = null }
+            {
+                SnippetEntry.Snippet = "touch sample.txt"
+                SnippetEntry.Tooltip = "new file"
+                SnippetEntry.Group = null
+            }
 
         let entryToSuggestion snippet =
             PredictiveSuggestion(
@@ -296,109 +348,111 @@ module getPredictiveSuggestions =
             "getPredictiveSuggestions"
             [
 
-              test "when snippet symbol is set and matched" {
-                  let actual = cache.getPredictiveSuggestions ":snp      Echo    "
-                  actual |> Expect.isNonEmpty "snippets"
+                test "when snippet symbol is set and matched" {
+                    let actual = cache.getPredictiveSuggestions ":snp      Echo    "
+                    actual |> Expect.isNonEmpty "snippets"
 
-                  actual
-                  |> Expect.all
-                      "should return the snippets filtered by the input removing snippet symbol."
-                      (assertSuggestion expected1)
-              }
+                    actual
+                    |> Expect.all
+                        "should return the snippets filtered by the input removing snippet symbol."
+                        (assertSuggestion expected1)
+                }
 
-              test "when snippet symbol is not set and matched" {
-                  let actual = cache.getPredictiveSuggestions "    tou    "
-                  actual |> Expect.isNonEmpty "snippets"
+                test "when snippet symbol is not set and matched" {
+                    let actual = cache.getPredictiveSuggestions "    tou    "
+                    actual |> Expect.isNonEmpty "snippets"
 
-                  actual
-                  |> Expect.all "should return the snippets filtered by the input." (assertSuggestion expected2)
-              }
+                    actual
+                    |> Expect.all "should return the snippets filtered by the input." (assertSuggestion expected2)
+                }
 
-              test "when no snippets matched with :" {
-                  cache.getPredictiveSuggestions ":    " |> Expect.isEmpty "should return empty."
-              }
+                test "when no snippets matched with :" {
+                    cache.getPredictiveSuggestions ":    " |> Expect.isEmpty "should return empty."
+                }
 
-              test "when no snippets matched" {
-                  cache.getPredictiveSuggestions "    exo    "
-                  |> Expect.isEmpty "should return empty."
-              }
+                test "when no snippets matched" {
+                    cache.getPredictiveSuggestions "    exo    "
+                    |> Expect.isEmpty "should return empty."
+                }
 
-              test "when input is whitespace" {
-                  cache.getPredictiveSuggestions "    " |> Expect.isEmpty "should return empty."
-              }
+                test "when input is whitespace" {
+                    cache.getPredictiveSuggestions "    " |> Expect.isEmpty "should return empty."
+                }
 
-              test "when tooltip symbol is set and matched" {
-                  let actual = cache.getPredictiveSuggestions ":tip    Example  tooltip    "
-                  actual |> Expect.isNonEmpty "snippets"
+                test "when tooltip symbol is set and matched" {
+                    let actual = cache.getPredictiveSuggestions ":tip    Example  tooltip    "
+                    actual |> Expect.isNonEmpty "snippets"
 
-                  actual
-                  |> Expect.all
-                      "should return the snippets filtered by the input removing tooltip symbol."
-                      (assertSuggestion expected1)
-              }
+                    actual
+                    |> Expect.all
+                        "should return the snippets filtered by the input removing tooltip symbol."
+                        (assertSuggestion expected1)
+                }
 
-              test "when tooltip symbol is not set and not matched" {
-                  cache.getPredictiveSuggestions "    example  tooltip    "
-                  |> Expect.isEmpty "should return empty."
-              }
+                test "when tooltip symbol is not set and not matched" {
+                    cache.getPredictiveSuggestions "    example  tooltip    "
+                    |> Expect.isEmpty "should return empty."
+                }
 
-              test "when group symbol is set and matched" {
-                  let actual = cache.getPredictiveSuggestions ":group     "
-                  actual |> Expect.isNonEmpty "snippets"
+                test "when group symbol is set and matched" {
+                    let actual = cache.getPredictiveSuggestions ":group     "
+                    actual |> Expect.isNonEmpty "snippets"
 
-                  actual
-                  |> Expect.all
-                      "should return the snippets filtered by the input removing group symbol."
-                      (assertSuggestion expected1)
-              }
+                    actual
+                    |> Expect.all
+                        "should return the snippets filtered by the input removing group symbol."
+                        (assertSuggestion expected1)
+                }
 
-              test "when group symbol is set and matched case insensitive" {
-                  let actual = cache.getPredictiveSuggestions ":group  Echo   "
-                  actual |> Expect.isNonEmpty "snippets"
+                test "when group symbol is set and matched case insensitive" {
+                    let actual = cache.getPredictiveSuggestions ":group  Echo   "
+                    actual |> Expect.isNonEmpty "snippets"
 
-                  actual
-                  |> Expect.all
-                      "should return the snippets filtered by the input removing group symbol."
-                      (assertSuggestion expected1)
-              }
+                    actual
+                    |> Expect.all
+                        "should return the snippets filtered by the input removing group symbol."
+                        (assertSuggestion expected1)
+                }
 
-              test "when no group symbol is set and not matched" {
-                  cache.getPredictiveSuggestions "    group    "
-                  |> Expect.isEmpty "should return empty."
-              }
+                test "when no group symbol is set and not matched" {
+                    cache.getPredictiveSuggestions "    group    "
+                    |> Expect.isEmpty "should return empty."
+                }
 
-              test "when group symbol is set and invalid" {
-                  cache.getPredictiveSuggestions ":grp     "
-                  |> Expect.isEmpty "should return empty."
-              }
+                test "when group symbol is set and invalid" {
+                    cache.getPredictiveSuggestions ":grp     "
+                    |> Expect.isEmpty "should return empty."
+                }
 
-              let expectedGroups =
-                  [ PredictiveSuggestion(":group", "")
-                    PredictiveSuggestion("Write-Host gr", "[gr]example 2") ]
+                let expectedGroups =
+                    [
+                        PredictiveSuggestion(":group", "")
+                        PredictiveSuggestion("Write-Host gr", "[gr]example 2")
+                    ]
 
-              test "when group symbol is set and partially matched" {
-                  cache.getPredictiveSuggestions "   :gr"
-                  |> Seq.iteri (fun index actual ->
-                      actual
-                      |> asserter expectedGroups[index]
-                      |> Expect.isTrue "should return group and matched snippets")
-              }
+                test "when group symbol is set and partially matched" {
+                    cache.getPredictiveSuggestions "   :gr"
+                    |> Seq.iteri (fun index actual ->
+                        actual
+                        |> asserter expectedGroups[index]
+                        |> Expect.isTrue "should return group and matched snippets")
+                }
 
-              test "when a separator follows a partially matched group symbol" {
-                  let actual = cache.getPredictiveSuggestions "   :gr     "
-                  actual |> Expect.hasLength "should exclude matching group identifiers" 1
+                test "when a separator follows a partially matched group symbol" {
+                    let actual = cache.getPredictiveSuggestions "   :gr     "
+                    actual |> Expect.hasLength "should exclude matching group identifiers" 1
 
-                  actual[0]
-                  |> asserter expectedGroups[1]
-                  |> Expect.isTrue "should return only snippets in the exact group"
-              }
+                    actual[0]
+                    |> asserter expectedGroups[1]
+                    |> Expect.isTrue "should return only snippets in the exact group"
+                }
 
-              test "when group symbol is set and start non-whitespace and partially matched" {
-                  cache.getPredictiveSuggestions "  x :gr     "
-                  |> Expect.isEmpty "should return empty."
-              }
+                test "when group symbol is set and start non-whitespace and partially matched" {
+                    cache.getPredictiveSuggestions "  x :gr     "
+                    |> Expect.isEmpty "should return empty."
+                }
 
-              ]
+            ]
 
     [<Tests>]
     let tests_getCompletionTexts =
@@ -412,119 +466,119 @@ module getPredictiveSuggestions =
             "getCompletionTexts"
             [
 
-              test "when snippet symbol is set and matched" {
-                  cache.getCompletionTexts "    :snp      Echo    "
-                  |> Expect.equal "should return matching snippet text" [| "echo 'example'" |]
-              }
+                test "when snippet symbol is set and matched" {
+                    cache.getCompletionTexts "    :snp      Echo    "
+                    |> Expect.equal "should return matching snippet text" [| "echo 'example'" |]
+                }
 
-              test "when snippet symbol is set without search input" {
-                  cache.getCompletionTexts ":snp"
-                  |> Expect.equal
-                      "should return all snippet texts"
-                      [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
-              }
+                test "when snippet symbol is set without search input" {
+                    cache.getCompletionTexts ":snp"
+                    |> Expect.equal
+                        "should return all snippet texts"
+                        [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
+                }
 
-              test "when snippet symbol is set and not matched" {
-                  cache.getCompletionTexts ":snp missing" |> Expect.isEmpty "should return empty"
-              }
+                test "when snippet symbol is set and not matched" {
+                    cache.getCompletionTexts ":snp missing" |> Expect.isEmpty "should return empty"
+                }
 
-              test "when snippet symbol is not set" {
-                  cache.getCompletionTexts "Echo" |> Expect.isEmpty "should return empty"
-              }
+                test "when snippet symbol is not set" {
+                    cache.getCompletionTexts "Echo" |> Expect.isEmpty "should return empty"
+                }
 
-              test "when tooltip symbol is set" {
-                  cache.getCompletionTexts ":tip example" |> Expect.isEmpty "should return empty"
-              }
+                test "when tooltip symbol is set" {
+                    cache.getCompletionTexts ":tip example" |> Expect.isEmpty "should return empty"
+                }
 
-              test "when group symbol is set and matched" {
-                  cache.getCompletionTexts ":group Echo"
-                  |> Expect.equal "should return matching group snippet text" [| "echo 'example'" |]
-              }
+                test "when group symbol is set and matched" {
+                    cache.getCompletionTexts ":group Echo"
+                    |> Expect.equal "should return matching group snippet text" [| "echo 'example'" |]
+                }
 
-              test "when group symbol is set and not matched" {
-                  cache.getCompletionTexts ":group missing"
-                  |> Expect.isEmpty "should return empty"
-              }
+                test "when group symbol is set and not matched" {
+                    cache.getCompletionTexts ":group missing"
+                    |> Expect.isEmpty "should return empty"
+                }
 
-              test "when identifier is empty" {
-                  completionCache.getCompletionTexts ":"
-                  |> Expect.equal
-                      "should return snippet and sorted group identifiers"
-                      [| ":snp"; ":Group"; ":gr"; ":group" |]
-              }
+                test "when identifier is empty" {
+                    completionCache.getCompletionTexts ":"
+                    |> Expect.equal
+                        "should return snippet and sorted group identifiers"
+                        [| ":snp"; ":Group"; ":gr"; ":group" |]
+                }
 
-              test "when identifier has leading whitespace" {
-                  completionCache.getCompletionTexts "    :g"
-                  |> Expect.equal "should return matching group identifiers" [| ":gr"; ":group" |]
-              }
+                test "when identifier has leading whitespace" {
+                    completionCache.getCompletionTexts "    :g"
+                    |> Expect.equal "should return matching group identifiers" [| ":gr"; ":group" |]
+                }
 
-              test "when identifier is partially matched" {
-                  completionCache.getCompletionTexts ":gro"
-                  |> Expect.equal "should return the matching group identifier" [| ":group" |]
-              }
+                test "when identifier is partially matched" {
+                    completionCache.getCompletionTexts ":gro"
+                    |> Expect.equal "should return the matching group identifier" [| ":group" |]
+                }
 
-              test "when snippet identifier is partially matched" {
-                  completionCache.getCompletionTexts ":sn"
-                  |> Expect.equal "should return the snippet identifier" [| ":snp" |]
-              }
+                test "when snippet identifier is partially matched" {
+                    completionCache.getCompletionTexts ":sn"
+                    |> Expect.equal "should return the snippet identifier" [| ":snp" |]
+                }
 
-              test "when identifier differs by case" {
-                  completionCache.getCompletionTexts ":G"
-                  |> Expect.equal "should match identifiers by ordinal comparison" [| ":Group" |]
+                test "when identifier differs by case" {
+                    completionCache.getCompletionTexts ":G"
+                    |> Expect.equal "should match identifiers by ordinal comparison" [| ":Group" |]
 
-                  completionCache.getCompletionTexts ":SN"
-                  |> Expect.isEmpty "should distinguish identifier case"
-              }
+                    completionCache.getCompletionTexts ":SN"
+                    |> Expect.isEmpty "should distinguish identifier case"
+                }
 
-              test "when reserved identifiers are partially matched" {
-                  completionCache.getCompletionTexts ":s"
-                  |> Expect.equal "should not duplicate the reserved snippet identifier" [| ":snp" |]
+                test "when reserved identifiers are partially matched" {
+                    completionCache.getCompletionTexts ":s"
+                    |> Expect.equal "should not duplicate the reserved snippet identifier" [| ":snp" |]
 
-                  completionCache.getCompletionTexts ":t"
-                  |> Expect.isEmpty "should exclude the tooltip identifier"
-              }
+                    completionCache.getCompletionTexts ":t"
+                    |> Expect.isEmpty "should exclude the tooltip identifier"
+                }
 
-              test "when reserved identifiers are predicted" {
-                  completionCache.getPredictiveSuggestions ":s"
-                  |> Seq.map _.SuggestionText
-                  |> Seq.toArray
-                  |> Expect.equal "should not duplicate the reserved snippet identifier" [| ":snp" |]
+                test "when reserved identifiers are predicted" {
+                    completionCache.getPredictiveSuggestions ":s"
+                    |> Seq.map _.SuggestionText
+                    |> Seq.toArray
+                    |> Expect.equal "should not duplicate the reserved snippet identifier" [| ":snp" |]
 
-                  completionCache.getPredictiveSuggestions ":t"
-                  |> Seq.map _.SuggestionText
-                  |> Seq.toArray
-                  |> Expect.equal "should not duplicate the reserved tooltip identifier" [| ":tip" |]
-              }
+                    completionCache.getPredictiveSuggestions ":t"
+                    |> Seq.map _.SuggestionText
+                    |> Seq.toArray
+                    |> Expect.equal "should not duplicate the reserved tooltip identifier" [| ":tip" |]
+                }
 
-              test "when exact group is also another group prefix" {
-                  completionCache.getCompletionTexts ":gr"
-                  |> Expect.equal "should prefer exact group completion" [| "Write-Output gr" |]
-              }
+                test "when exact group is also another group prefix" {
+                    completionCache.getCompletionTexts ":gr"
+                    |> Expect.equal "should prefer exact group completion" [| "Write-Output gr" |]
+                }
 
-              test "when exact group differs by case" {
-                  completionCache.getCompletionTexts ":Group"
-                  |> Expect.equal "should return the exact case-sensitive group" [| "Write-Output Group" |]
-              }
+                test "when exact group differs by case" {
+                    completionCache.getCompletionTexts ":Group"
+                    |> Expect.equal "should return the exact case-sensitive group" [| "Write-Output Group" |]
+                }
 
-              test "when group snippet search differs by case" {
-                  completionCache.getCompletionTexts ":group GROUP"
-                  |> Expect.equal "should use snippet search case sensitivity" [| "Write-Output group" |]
-              }
+                test "when group snippet search differs by case" {
+                    completionCache.getCompletionTexts ":group GROUP"
+                    |> Expect.equal "should use snippet search case sensitivity" [| "Write-Output group" |]
+                }
 
-              test "when identifier has a non-whitespace prefix" {
-                  completionCache.getCompletionTexts "x    :"
-                  |> Expect.isEmpty "should exclude a non-whitespace prefix"
+                test "when identifier has a non-whitespace prefix" {
+                    completionCache.getCompletionTexts "x    :"
+                    |> Expect.isEmpty "should exclude a non-whitespace prefix"
 
-                  completionCache.getCompletionTexts "Get-Item :"
-                  |> Expect.isEmpty "should exclude ordinary command input"
-              }
+                    completionCache.getCompletionTexts "Get-Item :"
+                    |> Expect.isEmpty "should exclude ordinary command input"
+                }
 
-              test "when partial identifier has trailing whitespace" {
-                  completionCache.getCompletionTexts ":gro "
-                  |> Expect.isEmpty "should not complete an unregistered group"
-              }
+                test "when partial identifier has trailing whitespace" {
+                    completionCache.getCompletionTexts ":gro "
+                    |> Expect.isEmpty "should not complete an unregistered group"
+                }
 
-              ]
+            ]
 
     [<Tests>]
     let tests_getExactIdentifierSnippetTexts =
@@ -540,59 +594,59 @@ module getPredictiveSuggestions =
             "getExactIdentifierSnippetTexts"
             [
 
-              test "when snippet identifier is exact" {
-                  cache.getExactIdentifierSnippetTexts "    :snp"
-                  |> Expect.equal
-                      "should return all snippet texts"
-                      [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
-              }
+                test "when snippet identifier is exact" {
+                    cache.getExactIdentifierSnippetTexts "    :snp"
+                    |> Expect.equal
+                        "should return all snippet texts"
+                        [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
+                }
 
-              test "when group identifier is exact" {
-                  cache.getExactIdentifierSnippetTexts ":group"
-                  |> Expect.equal "should return snippets in the exact group" [| "echo 'example'" |]
-              }
+                test "when group identifier is exact" {
+                    cache.getExactIdentifierSnippetTexts ":group"
+                    |> Expect.equal "should return snippets in the exact group" [| "echo 'example'" |]
+                }
 
-              test "when exact group is also another group prefix" {
-                  completionCache.getExactIdentifierSnippetTexts ":gr"
-                  |> Expect.equal "should return snippets in the exact group" [| "Write-Output gr" |]
-              }
+                test "when exact group is also another group prefix" {
+                    completionCache.getExactIdentifierSnippetTexts ":gr"
+                    |> Expect.equal "should return snippets in the exact group" [| "Write-Output gr" |]
+                }
 
-              test "when identifier is partial" {
-                  completionCache.getExactIdentifierSnippetTexts ":gro"
-                  |> Expect.isEmpty "should exclude a partial identifier"
-              }
+                test "when identifier is partial" {
+                    completionCache.getExactIdentifierSnippetTexts ":gro"
+                    |> Expect.isEmpty "should exclude a partial identifier"
+                }
 
-              test "when tooltip identifier is exact" {
-                  completionCache.getExactIdentifierSnippetTexts ":tip"
-                  |> Expect.isEmpty "should exclude the tooltip identifier"
-              }
+                test "when tooltip identifier is exact" {
+                    completionCache.getExactIdentifierSnippetTexts ":tip"
+                    |> Expect.isEmpty "should exclude the tooltip identifier"
+                }
 
-              test "when identifier has a separator" {
-                  cache.getExactIdentifierSnippetTexts ":group "
-                  |> Expect.isEmpty "should exclude an identifier with a separator"
-              }
+                test "when identifier has a separator" {
+                    cache.getExactIdentifierSnippetTexts ":group "
+                    |> Expect.isEmpty "should exclude an identifier with a separator"
+                }
 
-              test "when identifier has search input" {
-                  cache.getExactIdentifierSnippetTexts ":group Echo"
-                  |> Expect.isEmpty "should exclude an identifier with search input"
-              }
+                test "when identifier has search input" {
+                    cache.getExactIdentifierSnippetTexts ":group Echo"
+                    |> Expect.isEmpty "should exclude an identifier with search input"
+                }
 
-              test "when identifier has a non-whitespace prefix" {
-                  cache.getExactIdentifierSnippetTexts "x :group"
-                  |> Expect.isEmpty "should exclude a non-whitespace prefix"
-              }
+                test "when identifier has a non-whitespace prefix" {
+                    cache.getExactIdentifierSnippetTexts "x :group"
+                    |> Expect.isEmpty "should exclude a non-whitespace prefix"
+                }
 
-              test "when group identifier is unknown" {
-                  cache.getExactIdentifierSnippetTexts ":unknown"
-                  |> Expect.isEmpty "should exclude an unknown group"
-              }
+                test "when group identifier is unknown" {
+                    cache.getExactIdentifierSnippetTexts ":unknown"
+                    |> Expect.isEmpty "should exclude an unknown group"
+                }
 
-              test "when configuration is invalid" {
-                  invalidCache.getExactIdentifierSnippetTexts ":snp"
-                  |> Expect.isEmpty "should exclude the configuration error suggestion"
-              }
+                test "when configuration is invalid" {
+                    invalidCache.getExactIdentifierSnippetTexts ":snp"
+                    |> Expect.isEmpty "should exclude the configuration error suggestion"
+                }
 
-              ]
+            ]
 
     [<Tests>]
     let tests_isUnknownGroupIdentifier =
@@ -605,58 +659,58 @@ module getPredictiveSuggestions =
             "isUnknownGroupIdentifier"
             [
 
-              test "when group identifier is known" {
-                  cache.isUnknownGroupIdentifier ":group"
-                  |> Expect.isFalse "should recognize a configured group identifier"
-              }
+                test "when group identifier is known" {
+                    cache.isUnknownGroupIdentifier ":group"
+                    |> Expect.isFalse "should recognize a configured group identifier"
+                }
 
-              test "when snippet identifier is known" {
-                  cache.isUnknownGroupIdentifier "    :snp"
-                  |> Expect.isFalse "should recognize the snippet identifier"
-              }
+                test "when snippet identifier is known" {
+                    cache.isUnknownGroupIdentifier "    :snp"
+                    |> Expect.isFalse "should recognize the snippet identifier"
+                }
 
-              test "when tooltip identifier is known" {
-                  cache.isUnknownGroupIdentifier ":tip"
-                  |> Expect.isFalse "should preserve tooltip fallback behavior"
+                test "when tooltip identifier is known" {
+                    cache.isUnknownGroupIdentifier ":tip"
+                    |> Expect.isFalse "should preserve tooltip fallback behavior"
 
-                  cache.isUnknownGroupIdentifier ":t"
-                  |> Expect.isFalse "should preserve partial tooltip fallback behavior"
-              }
+                    cache.isUnknownGroupIdentifier ":t"
+                    |> Expect.isFalse "should preserve partial tooltip fallback behavior"
+                }
 
-              test "when identifier is empty" {
-                  cache.isUnknownGroupIdentifier ":"
-                  |> Expect.isFalse "should preserve empty identifier fallback behavior"
-              }
+                test "when identifier is empty" {
+                    cache.isUnknownGroupIdentifier ":"
+                    |> Expect.isFalse "should preserve empty identifier fallback behavior"
+                }
 
-              test "when identifier is a known prefix" {
-                  cache.isUnknownGroupIdentifier ":sn"
-                  |> Expect.isFalse "should preserve partial identifier completion"
-              }
+                test "when identifier is a known prefix" {
+                    cache.isUnknownGroupIdentifier ":sn"
+                    |> Expect.isFalse "should preserve partial identifier completion"
+                }
 
-              test "when group identifier is unknown" {
-                  cache.isUnknownGroupIdentifier ":unknown"
-                  |> Expect.isTrue "should recognize an unknown group identifier"
+                test "when group identifier is unknown" {
+                    cache.isUnknownGroupIdentifier ":unknown"
+                    |> Expect.isTrue "should recognize an unknown group identifier"
 
-                  cache.isUnknownGroupIdentifier "    :unknown"
-                  |> Expect.isTrue "should allow leading whitespace before an unknown identifier"
-              }
+                    cache.isUnknownGroupIdentifier "    :unknown"
+                    |> Expect.isTrue "should allow leading whitespace before an unknown identifier"
+                }
 
-              test "when identifier has a search input" {
-                  cache.isUnknownGroupIdentifier ":unknown text"
-                  |> Expect.isFalse "should exclude group-scoped input"
-              }
+                test "when identifier has a search input" {
+                    cache.isUnknownGroupIdentifier ":unknown text"
+                    |> Expect.isFalse "should exclude group-scoped input"
+                }
 
-              test "when identifier has a non-whitespace prefix" {
-                  cache.isUnknownGroupIdentifier "x :unknown"
-                  |> Expect.isFalse "should exclude a non-whitespace prefix"
-              }
+                test "when identifier has a non-whitespace prefix" {
+                    cache.isUnknownGroupIdentifier "x :unknown"
+                    |> Expect.isFalse "should exclude a non-whitespace prefix"
+                }
 
-              test "when configuration is invalid" {
-                  invalidCache.isUnknownGroupIdentifier ":unknown"
-                  |> Expect.isFalse "should preserve fallback for invalid configuration"
-              }
+                test "when configuration is invalid" {
+                    invalidCache.isUnknownGroupIdentifier ":unknown"
+                    |> Expect.isFalse "should preserve fallback for invalid configuration"
+                }
 
-              ]
+            ]
 
     [<Tests>]
     let tests_Dispose =
@@ -666,17 +720,17 @@ module getPredictiveSuggestions =
             "Cache.Dispose"
             [
 
-              test "OnRefresh default is callable" {
-                  // NOTE: for coverage. (Cache.OnRefresh has a default implementation.)
-                  cache.OnRefresh("dummy")
-              }
+                test "OnRefresh default is callable" {
+                    // NOTE: for coverage. (Cache.OnRefresh has a default implementation.)
+                    cache.OnRefresh("dummy")
+                }
 
-              test "when watcher is stopped" {
-                  // NOTE: for coverage.
-                  (cache :> IDisposable).Dispose()
-              }
+                test "when watcher is stopped" {
+                    // NOTE: for coverage.
+                    (cache :> IDisposable).Dispose()
+                }
 
-              ]
+            ]
 
 module CacheDisposeBehavior =
 
@@ -721,78 +775,80 @@ module CacheDisposeBehavior =
     let tests_DisposeStopsHandlingEvents =
         testList
             "Cache.Dispose behavior"
-            [ test "Changed after Dispose does nothing" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
+            [
+                test "Changed after Dispose does nothing" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"Snippets": []}""")
 
-                  let mutable watcherCreatedCount = 0
-                  let mutable refreshCalls = 0
-                  let mutable watcher: TestWatcher option = None
+                    let mutable watcherCreatedCount = 0
+                    let mutable refreshCalls = 0
+                    let mutable watcher: TestWatcher option = None
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              watcherCreatedCount <- watcherCreatedCount + 1
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          (fun _ -> refreshCalls <- refreshCalls + 1)
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                watcherCreatedCount <- watcherCreatedCount + 1
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            (fun _ -> refreshCalls <- refreshCalls + 1)
+                        )
 
-                  cache.load (fun () -> tmpDir.Path, filePath)
-                  (cache :> IDisposable).Dispose()
+                    cache.load (fun () -> tmpDir.Path, filePath)
+                    (cache :> IDisposable).Dispose()
 
-                  let w = watcher |> Expect.wantSome "watcher should be created"
+                    let w = watcher |> Expect.wantSome "watcher should be created"
 
-                  try
-                      w.TriggerChanged(tmpDir.Path, fileName)
-                  finally
-                      w.ReleaseHandles()
+                    try
+                        w.TriggerChanged(tmpDir.Path, fileName)
+                    finally
+                        w.ReleaseHandles()
 
-                  waitUntilFileUnlocked 2000 20 filePath
-                  |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
+                    waitUntilFileUnlocked 2000 20 filePath
+                    |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
 
-                  refreshCalls |> Expect.equal "should not refresh after Dispose" 0
+                    refreshCalls |> Expect.equal "should not refresh after Dispose" 0
 
-                  watcherCreatedCount |> Expect.equal "should not create watcher again" 1
-              }
+                    watcherCreatedCount |> Expect.equal "should not create watcher again" 1
+                }
 
-              test "Error after Dispose does not restart watcher" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
+                test "Error after Dispose does not restart watcher" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"Snippets": []}""")
 
-                  let mutable watcherCreatedCount = 0
-                  let mutable watcher: TestWatcher option = None
+                    let mutable watcherCreatedCount = 0
+                    let mutable watcher: TestWatcher option = None
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              watcherCreatedCount <- watcherCreatedCount + 1
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          ignore
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                watcherCreatedCount <- watcherCreatedCount + 1
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            ignore
+                        )
 
-                  cache.load (fun () -> tmpDir.Path, filePath)
-                  (cache :> IDisposable).Dispose()
+                    cache.load (fun () -> tmpDir.Path, filePath)
+                    (cache :> IDisposable).Dispose()
 
-                  let w = watcher |> Expect.wantSome "watcher should be created"
+                    let w = watcher |> Expect.wantSome "watcher should be created"
 
-                  try
-                      w.TriggerError(InvalidOperationException("boom"))
-                  finally
-                      w.ReleaseHandles()
+                    try
+                        w.TriggerError(InvalidOperationException("boom"))
+                    finally
+                        w.ReleaseHandles()
 
-                  waitUntilFileUnlocked 2000 20 filePath
-                  |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
+                    waitUntilFileUnlocked 2000 20 filePath
+                    |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
 
-                  watcherCreatedCount |> Expect.equal "should not restart watcher after Dispose" 1
-              } ]
+                    watcherCreatedCount |> Expect.equal "should not restart watcher after Dispose" 1
+                }
+            ]
 
     [<Tests>]
     let tests_ErrorBackoff =
@@ -800,56 +856,56 @@ module CacheDisposeBehavior =
             "Cache watcher restart backoff"
             [
 
-              test "Error restarts watcher after backoff (not immediately)" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
+                test "Error restarts watcher after backoff (not immediately)" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"Snippets": []}""")
 
-                  let mutable watcherCreatedCount = 0
-                  let mutable watchers: TestWatcher list = []
+                    let mutable watcherCreatedCount = 0
+                    let mutable watchers: TestWatcher list = []
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              watcherCreatedCount <- watcherCreatedCount + 1
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watchers <- w :: watchers
-                              w),
-                          ignore
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                watcherCreatedCount <- watcherCreatedCount + 1
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watchers <- w :: watchers
+                                w),
+                            ignore
+                        )
 
-                  try
-                      cache.load (fun () -> tmpDir.Path, filePath)
+                    try
+                        cache.load (fun () -> tmpDir.Path, filePath)
 
-                      watcherCreatedCount |> Expect.equal "should create initial watcher" 1
-                      let w = watchers |> List.tryHead |> Expect.wantSome "watcher should be created"
+                        watcherCreatedCount |> Expect.equal "should create initial watcher" 1
+                        let w = watchers |> List.tryHead |> Expect.wantSome "watcher should be created"
 
-                      let sw = Stopwatch.StartNew()
-                      w.TriggerError(InvalidOperationException("boom"))
+                        let sw = Stopwatch.StartNew()
+                        w.TriggerError(InvalidOperationException("boom"))
 
-                      // Should not restart immediately.
-                      System.Threading.Thread.Sleep 50
-                      watcherCreatedCount |> Expect.equal "should not restart watcher immediately" 1
+                        // Should not restart immediately.
+                        System.Threading.Thread.Sleep 50
+                        watcherCreatedCount |> Expect.equal "should not restart watcher immediately" 1
 
-                      // Should restart after the fixed backoff.
-                      waitUntil 2000 20 (fun () -> watcherCreatedCount = 2)
-                      |> Expect.isTrue "should restart watcher after backoff"
+                        // Should restart after the fixed backoff.
+                        waitUntil 2000 20 (fun () -> watcherCreatedCount = 2)
+                        |> Expect.isTrue "should restart watcher after backoff"
 
-                      (sw.ElapsedMilliseconds >= 150L)
-                      |> Expect.isTrue "restart should be delayed (backoff)"
-                  finally
-                      (cache :> IDisposable).Dispose()
+                        (sw.ElapsedMilliseconds >= 150L)
+                        |> Expect.isTrue "restart should be delayed (backoff)"
+                    finally
+                        (cache :> IDisposable).Dispose()
 
-                      // Cleanup: release native handles for all watchers.
-                      for w in watchers do
-                          w.ReleaseHandles()
+                        // Cleanup: release native handles for all watchers.
+                        for w in watchers do
+                            w.ReleaseHandles()
 
-                      waitUntilFileUnlocked 2000 20 filePath
-                      |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
-              }
+                        waitUntilFileUnlocked 2000 20 filePath
+                        |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
+                }
 
-              ]
+            ]
 
     [<Tests>]
     let tests_ChangedIsDebounced =
@@ -881,152 +937,155 @@ module CacheDisposeBehavior =
             "Cache debounced refresh"
             [
 
-              test "Changed is debounced" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
+                test "Changed is debounced" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"Snippets": []}""")
 
-                  let mutable refreshCalls = 0
-                  let mutable watcher: TestWatcher option = None
+                    let mutable refreshCalls = 0
+                    let mutable watcher: TestWatcher option = None
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          (fun _ -> refreshCalls <- refreshCalls + 1)
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            (fun _ -> refreshCalls <- refreshCalls + 1)
+                        )
 
-                  cache.load (fun () -> tmpDir.Path, filePath)
+                    cache.load (fun () -> tmpDir.Path, filePath)
 
-                  refreshCalls <- 0
+                    refreshCalls <- 0
 
-                  let w = watcher |> Expect.wantSome "watcher should be created"
+                    let w = watcher |> Expect.wantSome "watcher should be created"
 
-                  testWithRelease w cache filePath (fun () ->
-                      for _ in 1..10 do
-                          w.TriggerChanged(tmpDir.Path, fileName)
+                    testWithRelease w cache filePath (fun () ->
+                        for _ in 1..10 do
+                            w.TriggerChanged(tmpDir.Path, fileName)
 
-                      waitUntil 2000 20 (fun () -> refreshCalls = 1)
-                      |> Expect.isTrue "should refresh exactly once after debounced Changed burst"
+                        waitUntil 2000 20 (fun () -> refreshCalls = 1)
+                        |> Expect.isTrue "should refresh exactly once after debounced Changed burst"
 
-                      System.Threading.Thread.Sleep 400
-                      refreshCalls |> Expect.equal "should still be one refresh" 1)
+                        System.Threading.Thread.Sleep 400
+                        refreshCalls |> Expect.equal "should still be one refresh" 1)
 
-              }
+                }
 
-              test "Changed refreshes completion identifiers" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
+                test "Changed refreshes completion identifiers" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
 
-                  File.WriteAllText(filePath, """{"Snippets":[{"Snippet":"old","Tooltip":"old","Group":"old"}]}""")
+                    File.WriteAllText(filePath, """{"Snippets":[{"Snippet":"old","Tooltip":"old","Group":"old"}]}""")
 
-                  let mutable watcher: TestWatcher option = None
+                    let mutable watcher: TestWatcher option = None
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          ignore
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            ignore
+                        )
 
-                  cache.load (fun () -> tmpDir.Path, filePath)
+                    cache.load (fun () -> tmpDir.Path, filePath)
 
-                  waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":old" |])
-                  |> Expect.isTrue "should load initial completion identifiers"
+                    waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":old" |])
+                    |> Expect.isTrue "should load initial completion identifiers"
 
-                  let w = watcher |> Expect.wantSome "watcher should be created"
+                    let w = watcher |> Expect.wantSome "watcher should be created"
 
-                  testWithRelease w cache filePath (fun () ->
-                      File.WriteAllText(filePath, """{"Snippets":[{"Snippet":"new","Tooltip":"new","Group":"new"}]}""")
+                    testWithRelease w cache filePath (fun () ->
+                        File.WriteAllText(
+                            filePath,
+                            """{"Snippets":[{"Snippet":"new","Tooltip":"new","Group":"new"}]}"""
+                        )
 
-                      w.TriggerChanged(tmpDir.Path, fileName)
+                        w.TriggerChanged(tmpDir.Path, fileName)
 
-                      waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":new" |])
-                      |> Expect.isTrue "should refresh completion identifiers")
-              }
+                        waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":new" |])
+                        |> Expect.isTrue "should refresh completion identifiers")
+                }
 
-              test "Debounced callback swallows ObjectDisposedException" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
+                test "Debounced callback swallows ObjectDisposedException" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"Snippets": []}""")
 
-                  let mutable called = false
-                  let mutable watcher: TestWatcher option = None
+                    let mutable called = false
+                    let mutable watcher: TestWatcher option = None
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          (fun _ ->
-                              called <- true
-                              raise (ObjectDisposedException("boom")))
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            (fun _ ->
+                                called <- true
+                                raise (ObjectDisposedException("boom")))
+                        )
 
-                  cache.load (fun () -> tmpDir.Path, filePath)
-                  let w = watcher |> Expect.wantSome "watcher should be created"
-                  testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
-              }
+                    cache.load (fun () -> tmpDir.Path, filePath)
+                    let w = watcher |> Expect.wantSome "watcher should be created"
+                    testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
+                }
 
-              test "Debounced callback swallows OperationCanceledException" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
+                test "Debounced callback swallows OperationCanceledException" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"Snippets": []}""")
 
-                  let mutable called = false
-                  let mutable watcher: TestWatcher option = None
+                    let mutable called = false
+                    let mutable watcher: TestWatcher option = None
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          (fun _ ->
-                              called <- true
-                              raise (OperationCanceledException("boom")))
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            (fun _ ->
+                                called <- true
+                                raise (OperationCanceledException("boom")))
+                        )
 
-                  cache.load (fun () -> tmpDir.Path, filePath)
-                  let w = watcher |> Expect.wantSome "watcher should be created"
-                  testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
-              }
+                    cache.load (fun () -> tmpDir.Path, filePath)
+                    let w = watcher |> Expect.wantSome "watcher should be created"
+                    testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
+                }
 
-              test "Debounced callback swallows unexpected exceptions" {
-                  use tmpDir = new TempDirectory("SnippetPredictor.Test.")
-                  let fileName = ".snippet-predictor.json"
-                  let filePath = Path.Combine(tmpDir.Path, fileName)
-                  File.WriteAllText(filePath, """{"Snippets": []}""")
+                test "Debounced callback swallows unexpected exceptions" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"Snippets": []}""")
 
-                  let mutable called = false
-                  let mutable watcher: TestWatcher option = None
+                    let mutable called = false
+                    let mutable watcher: TestWatcher option = None
 
-                  let cache =
-                      new CacheForTest(
-                          (fun _ ->
-                              let w = new TestWatcher(tmpDir.Path, fileName)
-                              watcher <- Some w
-                              w),
-                          (fun _ ->
-                              called <- true
-                              raise (InvalidOperationException("boom")))
-                      )
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            (fun _ ->
+                                called <- true
+                                raise (InvalidOperationException("boom")))
+                        )
 
-                  cache.load (fun () -> tmpDir.Path, filePath)
-                  let w = watcher |> Expect.wantSome "watcher should be created"
-                  testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
-              }
+                    cache.load (fun () -> tmpDir.Path, filePath)
+                    let w = watcher |> Expect.wantSome "watcher should be created"
+                    testTriggerAndRelease w cache (fun () -> called) tmpDir.Path fileName filePath
+                }
 
-              ]
+            ]
 
 [<Tests>]
 let tests_loadSnippets =
@@ -1035,54 +1094,60 @@ let tests_loadSnippets =
         "loadSnippets"
         [
 
-          test "when snippet file is not found" {
-              Store.loadSnippets (fun () -> "./not-found.json")
-              |> Expect.wantOk "should return Ok"
-              |> Expect.isEmpty "should return Empty"
-          }
+            test "when snippet file is not found" {
+                Store.loadSnippets (fun () -> "./not-found.json")
+                |> Expect.wantOk "should return Ok"
+                |> Expect.isEmpty "should return Empty"
+            }
 
-          test "when snippet file is invalid" {
-              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-invalid.json")
-              |> Expect.wantError "should return Error"
-              |> Expect.equal
-                  "should return Error entry"
-                  "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.Snippets[0] | LineNumber: 1 | BytePositionInLine: 15."
-          }
+            test "when snippet file is invalid" {
+                Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-invalid.json")
+                |> Expect.wantError "should return Error"
+                |> Expect.equal
+                    "should return Error entry"
+                    "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.Snippets[0] | LineNumber: 1 | BytePositionInLine: 15."
+            }
 
-          test "when snippet file is valid and null" {
-              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-null.json")
-              |> Expect.wantError "should return Error"
-              |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
-          }
+            test "when snippet file is valid and null" {
+                Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-null.json")
+                |> Expect.wantError "should return Error"
+                |> Expect.equal "should return Error entry" "'.snippet-predictor.json is null or invalid format.'"
+            }
 
-          test "when snippet file is valid and snippets is null" {
-              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-snippet-null.json")
-              |> Expect.wantOk "should return Ok"
-              |> Expect.isEmpty "should return Empty"
-          }
+            test "when snippet file is valid and snippets is null" {
+                Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-snippet-null.json")
+                |> Expect.wantOk "should return Ok"
+                |> Expect.isEmpty "should return Empty"
+            }
 
-          test "when snippet file is valid" {
-              let expected =
-                  [|
+            test "when snippet file is valid" {
+                let expected =
+                    [|
 
-                     { SnippetEntry.Snippet = "echo 'example'"
-                       SnippetEntry.Tooltip = "example  tooltip"
-                       SnippetEntry.Group = "group" }
-                     { SnippetEntry.Snippet = "touch sample.txt"
-                       SnippetEntry.Tooltip = "new file"
-                       SnippetEntry.Group = null }
-                     { SnippetEntry.Snippet = "Write-Host gr"
-                       SnippetEntry.Tooltip = "example 2"
-                       SnippetEntry.Group = "gr" }
+                        {
+                            SnippetEntry.Snippet = "echo 'example'"
+                            SnippetEntry.Tooltip = "example  tooltip"
+                            SnippetEntry.Group = "group"
+                        }
+                        {
+                            SnippetEntry.Snippet = "touch sample.txt"
+                            SnippetEntry.Tooltip = "new file"
+                            SnippetEntry.Group = null
+                        }
+                        {
+                            SnippetEntry.Snippet = "Write-Host gr"
+                            SnippetEntry.Tooltip = "example 2"
+                            SnippetEntry.Group = "gr"
+                        }
 
-                     |]
+                    |]
 
-              Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-valid.json")
-              |> Expect.wantOk "should return Ok"
-              |> Expect.equal "should return snippets" expected
-          }
+                Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-valid.json")
+                |> Expect.wantOk "should return Ok"
+                |> Expect.equal "should return snippets" expected
+            }
 
-          ]
+        ]
 
 module addAndRemoveSnippets =
 
@@ -1092,33 +1157,41 @@ module addAndRemoveSnippets =
             "addSnippets"
             [
 
-              test "when snippet file directory is not found" {
-                  let tmpDir =
-                      Path.Combine(Path.GetTempPath(), $"SnippetPredictor.Test.{Guid.NewGuid().ToString()}")
+                test "when snippet file directory is not found" {
+                    let tmpDir =
+                        Path.Combine(Path.GetTempPath(), $"SnippetPredictor.Test.{Guid.NewGuid().ToString()}")
 
-                  let path = Path.Combine(tmpDir, "not-found.json")
+                    let path = Path.Combine(tmpDir, "not-found.json")
 
-                  [ { SnippetEntry.Snippet = "echo '1'"
-                      SnippetEntry.Tooltip = "1 tooltip"
-                      SnippetEntry.Group = null } ]
-                  |> Store.addSnippets (fun () -> path)
-                  |> Expect.wantError "should return Error"
-                  |> Expect.equal "should return Error" $"Could not find a part of the path '{path}'."
-              }
+                    [
+                        {
+                            SnippetEntry.Snippet = "echo '1'"
+                            SnippetEntry.Tooltip = "1 tooltip"
+                            SnippetEntry.Group = null
+                        }
+                    ]
+                    |> Store.addSnippets (fun () -> path)
+                    |> Expect.wantError "should return Error"
+                    |> Expect.equal "should return Error" $"Could not find a part of the path '{path}'."
+                }
 
-              test "when snippet file is not found" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, "not-found.json")
+                test "when snippet file is not found" {
+                    use tmp = new TempDirectory("SnippetPredictor.Test.")
+                    let path = Path.Combine(tmp.Path, "not-found.json")
 
-                  [ { SnippetEntry.Snippet = "echo '1'"
-                      SnippetEntry.Tooltip = "1 tooltip"
-                      SnippetEntry.Group = null } ]
-                  |> Store.addSnippets (fun () -> path)
-                  |> Expect.wantOk "should return Ok"
-                  |> Expect.equal "should return Ok" ()
+                    [
+                        {
+                            SnippetEntry.Snippet = "echo '1'"
+                            SnippetEntry.Tooltip = "1 tooltip"
+                            SnippetEntry.Group = null
+                        }
+                    ]
+                    |> Store.addSnippets (fun () -> path)
+                    |> Expect.wantOk "should return Ok"
+                    |> Expect.equal "should return Ok" ()
 
-                  let expected =
-                      """{
+                    let expected =
+                        """{
   "SearchCaseSensitive": false,
   "Snippets": [
     {
@@ -1127,38 +1200,46 @@ module addAndRemoveSnippets =
     }
   ]
 }"""
-                      |> normalizeNewlines
+                        |> normalizeNewlines
 
-                  File.ReadAllText(path)
-                  |> normalizeNewlines
-                  |> Expect.equal "should create the snippet file" expected
-              }
+                    File.ReadAllText(path)
+                    |> normalizeNewlines
+                    |> Expect.equal "should create the snippet file" expected
+                }
 
-              test "when snippet file is invalid" {
-                  use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
+                test "when snippet file is invalid" {
+                    use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
 
-                  [ { SnippetEntry.Snippet = "echo '2'"
-                      SnippetEntry.Tooltip = "2 tooltip"
-                      SnippetEntry.Group = null } ]
-                  |> Store.addSnippets tmp.GetSnippetPath
-                  |> Expect.wantError "should return Error"
-                  |> Expect.equal
-                      "should return Error entry"
-                      "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
-              }
+                    [
+                        {
+                            SnippetEntry.Snippet = "echo '2'"
+                            SnippetEntry.Tooltip = "2 tooltip"
+                            SnippetEntry.Group = null
+                        }
+                    ]
+                    |> Store.addSnippets tmp.GetSnippetPath
+                    |> Expect.wantError "should return Error"
+                    |> Expect.equal
+                        "should return Error entry"
+                        "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
+                }
 
-              test "when snippet file is valid" {
-                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": []}""")
+                test "when snippet file is valid" {
+                    use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": []}""")
 
-                  [| { SnippetEntry.Snippet = "echo '3'"
-                       SnippetEntry.Tooltip = "3 tooltip"
-                       SnippetEntry.Group = null } |]
-                  |> Store.addSnippets tmp.GetSnippetPath
-                  |> Expect.wantOk "should return Ok"
-                  |> Expect.equal "should return snippets" ()
+                    [|
+                        {
+                            SnippetEntry.Snippet = "echo '3'"
+                            SnippetEntry.Tooltip = "3 tooltip"
+                            SnippetEntry.Group = null
+                        }
+                    |]
+                    |> Store.addSnippets tmp.GetSnippetPath
+                    |> Expect.wantOk "should return Ok"
+                    |> Expect.equal "should return snippets" ()
 
-                  let expected =
-                      """{
+                    let expected =
+                        """{
   "SearchCaseSensitive": false,
   "Snippets": [
     {
@@ -1167,25 +1248,29 @@ module addAndRemoveSnippets =
     }
   ]
 }"""
-                      |> normalizeNewlines
+                        |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "should add the snippet to snippet file" expected
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "should add the snippet to snippet file" expected
 
-              }
+                }
 
-              test "when snippet file is valid and omitted group" {
-                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
+                test "when snippet file is valid and omitted group" {
+                    use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
 
-                  [| { SnippetEntry.Snippet = "echo '3'"
-                       SnippetEntry.Tooltip = "3 tooltip"
-                       SnippetEntry.Group = null } |]
-                  |> Store.addSnippets tmp.GetSnippetPath
-                  |> Expect.wantOk "should return Ok"
-                  |> Expect.equal "should return snippets" ()
+                    [|
+                        {
+                            SnippetEntry.Snippet = "echo '3'"
+                            SnippetEntry.Tooltip = "3 tooltip"
+                            SnippetEntry.Group = null
+                        }
+                    |]
+                    |> Store.addSnippets tmp.GetSnippetPath
+                    |> Expect.wantOk "should return Ok"
+                    |> Expect.equal "should return snippets" ()
 
-                  let expected =
-                      """{
+                    let expected =
+                        """{
   "SearchCaseSensitive": false,
   "Snippets": [
     {
@@ -1194,25 +1279,29 @@ module addAndRemoveSnippets =
     }
   ]
 }"""
-                      |> normalizeNewlines
+                        |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "should add the snippet to snippet file" expected
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "should add the snippet to snippet file" expected
 
-              }
+                }
 
-              test "when snippet file is valid and has group" {
-                  use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
+                test "when snippet file is valid and has group" {
+                    use tmp = new TempFile(".snippet-predictor-valid.json", """{"Snippets": null}""")
 
-                  [| { SnippetEntry.Snippet = "echo '4'"
-                       SnippetEntry.Tooltip = "4 tooltip"
-                       SnippetEntry.Group = "group4" } |]
-                  |> Store.addSnippets tmp.GetSnippetPath
-                  |> Expect.wantOk "should return Ok"
-                  |> Expect.equal "should return snippets" ()
+                    [|
+                        {
+                            SnippetEntry.Snippet = "echo '4'"
+                            SnippetEntry.Tooltip = "4 tooltip"
+                            SnippetEntry.Group = "group4"
+                        }
+                    |]
+                    |> Store.addSnippets tmp.GetSnippetPath
+                    |> Expect.wantOk "should return Ok"
+                    |> Expect.equal "should return snippets" ()
 
-                  let expected =
-                      """{
+                    let expected =
+                        """{
   "SearchCaseSensitive": false,
   "Snippets": [
     {
@@ -1222,14 +1311,14 @@ module addAndRemoveSnippets =
     }
   ]
 }"""
-                      |> normalizeNewlines
+                        |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "should add the snippet to snippet file" expected
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "should add the snippet to snippet file" expected
 
-              }
+                }
 
-              ]
+            ]
 
     [<Tests>]
     let tests_removeSnippets =
@@ -1237,54 +1326,54 @@ module addAndRemoveSnippets =
             "removeSnippets"
             [
 
-              test "when snippet file is not found" {
-                  use tmp = new TempDirectory("SnippetPredictor.Test.")
-                  let path = Path.Combine(tmp.Path, "not-found.json")
+                test "when snippet file is not found" {
+                    use tmp = new TempDirectory("SnippetPredictor.Test.")
+                    let path = Path.Combine(tmp.Path, "not-found.json")
 
-                  [ "echo '1'" ]
-                  |> Store.removeSnippets (fun () -> path)
-                  |> Expect.wantOk "should return Ok"
-                  |> Expect.equal "should return Ok" ()
+                    [ "echo '1'" ]
+                    |> Store.removeSnippets (fun () -> path)
+                    |> Expect.wantOk "should return Ok"
+                    |> Expect.equal "should return Ok" ()
 
-                  Directory.GetFiles(tmp.Path)
-                  |> Expect.isEmpty "should not create the snippet file"
-              }
+                    Directory.GetFiles(tmp.Path)
+                    |> Expect.isEmpty "should not create the snippet file"
+                }
 
-              test "when snippet file is invalid" {
-                  use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
+                test "when snippet file is invalid" {
+                    use tmp = new TempFile(".snippet-predictor-invalid.json", """{"Snippets":[}""")
 
-                  [ "echo '2'" ]
-                  |> Store.removeSnippets tmp.GetSnippetPath
-                  |> Expect.wantError "should return Error"
-                  |> Expect.equal
-                      "should return Error entry"
-                      "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
-              }
+                    [ "echo '2'" ]
+                    |> Store.removeSnippets tmp.GetSnippetPath
+                    |> Expect.wantError "should return Error"
+                    |> Expect.equal
+                        "should return Error entry"
+                        "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
+                }
 
-              test "when snippet file is valid" {
-                  use tmp =
-                      new TempFile(
-                          ".snippet-predictor-valid.json",
-                          """{"Snippet": "echo '3'", "Tooltip": "3 tooltip"}"""
-                      )
+                test "when snippet file is valid" {
+                    use tmp =
+                        new TempFile(
+                            ".snippet-predictor-valid.json",
+                            """{"Snippet": "echo '3'", "Tooltip": "3 tooltip"}"""
+                        )
 
-                  [ "echo '1'"; "echo '3'"; "echo '3'" ]
-                  |> Store.removeSnippets tmp.GetSnippetPath
-                  |> Expect.wantOk "should return Ok"
-                  |> Expect.equal "should return snippets" ()
+                    [ "echo '1'"; "echo '3'"; "echo '3'" ]
+                    |> Store.removeSnippets tmp.GetSnippetPath
+                    |> Expect.wantOk "should return Ok"
+                    |> Expect.equal "should return snippets" ()
 
-                  let expected =
-                      """{
+                    let expected =
+                        """{
   "SearchCaseSensitive": false,
   "Snippets": []
 }"""
-                      |> normalizeNewlines
+                        |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "should remove the snippet from snippet file" expected
-              }
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "should remove the snippet from snippet file" expected
+                }
 
-              ]
+            ]
 
 #if DEBUG
 
@@ -1297,23 +1386,23 @@ module GroupJsonConverter =
             "GroupJsonConverter"
             [
 
-              test "when the value is null " {
-                  let json = """{"key": null}"""
-                  let mutable reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json))
+                test "when the value is null " {
+                    let json = """{"key": null}"""
+                    let mutable reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json))
 
-                  reader.Read() |> ignore // {
-                  reader.Read() |> ignore // "key"
-                  reader.Read() |> ignore // null
+                    reader.Read() |> ignore // {
+                    reader.Read() |> ignore // "key"
+                    reader.Read() |> ignore // null
 
-                  let result: string | null =
-                      GroupJsonConverter().Read(&reader, typeof<string>, JsonSerializerOptions())
+                    let result: string | null =
+                        GroupJsonConverter().Read(&reader, typeof<string>, JsonSerializerOptions())
 
-                  match result with
-                  | null -> failtest "Expected empty string but got null"
-                  | value when value.Length = 0 -> ()
-                  | _ -> failtest "Expected empty string but got a different value"
-              }
+                    match result with
+                    | null -> failtest "Expected empty string but got null"
+                    | value when value.Length = 0 -> ()
+                    | _ -> failtest "Expected empty string but got a different value"
+                }
 
-              ]
+            ]
 
 #endif

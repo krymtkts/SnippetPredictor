@@ -121,8 +121,10 @@ module Suggestion =
                         result
                         |> function
                             | ConfigState.Empty -> ()
-                            | ConfigState.Valid { SearchCaseSensitive = searchCaseSensitive
-                                                  Snippets = snps } ->
+                            | ConfigState.Valid {
+                                                    SearchCaseSensitive = searchCaseSensitive
+                                                    Snippets = snps
+                                                } ->
                                 Interlocked.Exchange(
                                     &caseSensitive,
                                     searchCaseSensitive |> SearchCaseSensitivity.ofBool
@@ -192,7 +194,9 @@ module Suggestion =
                     | e ->
 #if DEBUG
                         Logger.LogFile
-                            [ $"Unexpected error occurred while running guarded timer callback: {e.Message}" ]
+                            [
+                                $"Unexpected error occurred while running guarded timer callback: {e.Message}"
+                            ]
 #else
                         ()
 #endif
@@ -242,7 +246,9 @@ module Suggestion =
             disposed.IfNotDisposed(fun () ->
 #if DEBUG
                 Logger.LogFile
-                    [ e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath ]
+                    [
+                        e.ChangeType.ToString(), sprintf "Snippets are refreshed due to file change: %s" e.FullPath
+                    ]
 #endif
                 scheduleDebouncedRefresh e.FullPath)
 
