@@ -80,17 +80,17 @@ module Cmdlets =
             "AddSnippet"
             [
 
-              test "when snippet file is valid" {
-                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
+                test "when snippet file is valid" {
+                    use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
 
-                  let cmdlet = AddSnippetCommandForTest(tmp.GetSnippetPath |> Some)
-                  cmdlet.Snippet <- "Add-Snippet 'echo test'"
-                  cmdlet.Tooltip <- "add snippet"
-                  cmdlet.Group <- "test"
-                  cmdlet.Test() |> ignore
+                    let cmdlet = AddSnippetCommandForTest(tmp.GetSnippetPath |> Some)
+                    cmdlet.Snippet <- "Add-Snippet 'echo test'"
+                    cmdlet.Tooltip <- "add snippet"
+                    cmdlet.Group <- "test"
+                    cmdlet.Test() |> ignore
 
-                  let expected =
-                      """{
+                    let expected =
+                        """{
   "SearchCaseSensitive": false,
   "Snippets": [
     {
@@ -100,44 +100,44 @@ module Cmdlets =
     }
   ]
 }"""
-                      |> normalizeNewlines
+                        |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "should add the snippet to snippet file" expected
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "should add the snippet to snippet file" expected
 
-              }
+                }
 
-              test "when snippet file is invalid" {
-                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
+                test "when snippet file is invalid" {
+                    use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let cmdlet = AddSnippetCommandForTest(tmp.GetSnippetPath |> Some)
-                  cmdlet.Snippet <- "Add-Snippet 'echo test'"
-                  cmdlet.Tooltip <- "add snippet"
-                  cmdlet.Group <- "test"
-                  cmdlet.Test() |> ignore
+                    let cmdlet = AddSnippetCommandForTest(tmp.GetSnippetPath |> Some)
+                    cmdlet.Snippet <- "Add-Snippet 'echo test'"
+                    cmdlet.Tooltip <- "add snippet"
+                    cmdlet.Group <- "test"
+                    cmdlet.Test() |> ignore
 
-                  let expected = """{"Snippets": [}""" |> normalizeNewlines
+                    let expected = """{"Snippets": [}""" |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "shouldn't add the snippet to snippet file" expected
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "shouldn't add the snippet to snippet file" expected
 
-                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
+                    cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
-                  let expected =
-                      ErrorRecord(
-                          Exception(
-                              "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
-                          ),
-                          "",
-                          ErrorCategory.InvalidData,
-                          null
-                      )
+                    let expected =
+                        ErrorRecord(
+                            Exception(
+                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                            ),
+                            "",
+                            ErrorCategory.InvalidData,
+                            null
+                        )
 
-                  cmdlet.Runtime.Errors
-                  |> Expect.all "should have error" (assertErrorRecord expected)
-              }
+                    cmdlet.Runtime.Errors
+                    |> Expect.all "should have error" (assertErrorRecord expected)
+                }
 
-              ]
+            ]
 
     type GetSnippetCommandForTest(getSnippetPath) =
         inherit GetSnippetCommand()
@@ -162,53 +162,56 @@ module Cmdlets =
             "GetSnippet"
             [
 
-              test "when snippet file is valid" {
-                  use tmp =
-                      new TempFile(
-                          ".snippet-predictor.json",
-                          """{"Snippets": [{"Snippet": "Get-Snippet", "Tooltip": "get snippet", "Group": "test"}]}"""
-                      )
+                test "when snippet file is valid" {
+                    use tmp =
+                        new TempFile(
+                            ".snippet-predictor.json",
+                            """{"Snippets": [{"Snippet": "Get-Snippet", "Tooltip": "get snippet", "Group": "test"}]}"""
+                        )
 
-                  let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath |> Some)
-                  cmdlet.Test() |> ignore
+                    let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath |> Some)
+                    cmdlet.Test() |> ignore
 
-                  let expected: SnippetEntry =
-                      { Snippet = "Get-Snippet"
-                        Tooltip = "get snippet"
-                        Group = "test" }
+                    let expected: SnippetEntry =
+                        {
+                            Snippet = "Get-Snippet"
+                            Tooltip = "get snippet"
+                            Group = "test"
+                        }
 
-                  cmdlet.Runtime.Output
-                  |> Expect.all "should have snippet" (fun output ->
-                      let actual = output :?> SnippetEntry
-                      actual = expected)
-              }
+                    cmdlet.Runtime.Output
+                    |> Expect.all "should have snippet" (fun output ->
+                        let actual = output :?> SnippetEntry
+                        actual = expected)
+                }
 
-              test "when snippet file is invalid" {
-                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
+                test "when snippet file is invalid" {
+                    use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath |> Some)
-                  cmdlet.Test() |> ignore
+                    let cmdlet = GetSnippetCommandForTest(tmp.GetSnippetPath |> Some)
+                    cmdlet.Test() |> ignore
 
-                  let expected = """{"Snippets": [}""" |> normalizeNewlines
+                    let expected = """{"Snippets": [}""" |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "shouldn't add the snippet to snippet file" expected
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "shouldn't add the snippet to snippet file" expected
 
-                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
+                    cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
-                  let expected =
-                      ErrorRecord(
-                          Exception(
-                              "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
-                          ),
-                          "",
-                          ErrorCategory.InvalidData,
-                          null
-                      )
+                    let expected =
+                        ErrorRecord(
+                            Exception(
+                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                            ),
+                            "",
+                            ErrorCategory.InvalidData,
+                            null
+                        )
 
-                  cmdlet.Runtime.Errors
-                  |> Expect.all "should have error" (assertErrorRecord expected)
-              } ]
+                    cmdlet.Runtime.Errors
+                    |> Expect.all "should have error" (assertErrorRecord expected)
+                }
+            ]
 
     type RemoveSnippetCommandForTest(getSnippetPath) =
         inherit RemoveSnippetCommand()
@@ -233,55 +236,56 @@ module Cmdlets =
             "RemoveSnippet"
             [
 
-              test "when snippet file is valid" {
-                  use tmp =
-                      new TempFile(
-                          ".snippet-predictor.json",
-                          """{"Snippets": [{"Snippet": "Remove-Snippet", "Tooltip": "remove snippet", "Group": "test"}]}"""
-                      )
+                test "when snippet file is valid" {
+                    use tmp =
+                        new TempFile(
+                            ".snippet-predictor.json",
+                            """{"Snippets": [{"Snippet": "Remove-Snippet", "Tooltip": "remove snippet", "Group": "test"}]}"""
+                        )
 
-                  let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath |> Some)
-                  cmdlet.Snippet <- "Remove-Snippet"
-                  cmdlet.Test() |> ignore
+                    let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath |> Some)
+                    cmdlet.Snippet <- "Remove-Snippet"
+                    cmdlet.Test() |> ignore
 
-                  let expected =
-                      """{
+                    let expected =
+                        """{
   "SearchCaseSensitive": false,
   "Snippets": []
 }"""
-                      |> normalizeNewlines
+                        |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> normalizeNewlines
-                  |> Expect.equal "should remove the snippet from snippet file" expected
-              }
+                    tmp.GetSnippetContent()
+                    |> normalizeNewlines
+                    |> Expect.equal "should remove the snippet from snippet file" expected
+                }
 
-              test "when snippet file is invalid" {
-                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
+                test "when snippet file is invalid" {
+                    use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 
-                  let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath |> Some)
-                  cmdlet.Test() |> ignore
+                    let cmdlet = RemoveSnippetCommandForTest(tmp.GetSnippetPath |> Some)
+                    cmdlet.Test() |> ignore
 
-                  let expected = """{"Snippets": [}""" |> normalizeNewlines
+                    let expected = """{"Snippets": [}""" |> normalizeNewlines
 
-                  tmp.GetSnippetContent()
-                  |> Expect.equal "shouldn't remove the snippet from snippet file" expected
+                    tmp.GetSnippetContent()
+                    |> Expect.equal "shouldn't remove the snippet from snippet file" expected
 
-                  cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
+                    cmdlet.Runtime.Errors |> Expect.isNonEmpty "should have error"
 
-                  let expected =
-                      ErrorRecord(
-                          Exception(
-                              "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
-                          ),
-                          "",
-                          ErrorCategory.InvalidData,
-                          null
-                      )
+                    let expected =
+                        ErrorRecord(
+                            Exception(
+                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                            ),
+                            "",
+                            ErrorCategory.InvalidData,
+                            null
+                        )
 
-                  cmdlet.Runtime.Errors
-                  |> Expect.all "should have error" (assertErrorRecord expected)
-              } ]
+                    cmdlet.Runtime.Errors
+                    |> Expect.all "should have error" (assertErrorRecord expected)
+                }
+            ]
 
     [<Tests>]
     let tests_defaultMethods =
@@ -289,38 +293,38 @@ module Cmdlets =
             "call default methods"
             [
 
-              test "run successfully" {
-                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
-                  use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
+                test "run successfully" {
+                    use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
+                    use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
 
-                  let snippet = "Add-Snippet 'echo test'"
-                  let cmdlet = AddSnippetCommandForTest(None)
-                  cmdlet.Snippet <- snippet
-                  cmdlet.Tooltip <- "add snippet"
-                  cmdlet.Group <- "test"
-                  cmdlet.Test() |> ignore
+                    let snippet = "Add-Snippet 'echo test'"
+                    let cmdlet = AddSnippetCommandForTest(None)
+                    cmdlet.Snippet <- snippet
+                    cmdlet.Tooltip <- "add snippet"
+                    cmdlet.Group <- "test"
+                    cmdlet.Test() |> ignore
 
-                  let cmdlet = GetSnippetCommandForTest(None)
-                  cmdlet.Test() |> ignore
-                  cmdlet.Runtime.Errors |> Expect.isEmpty "get should have no error"
-                  cmdlet.Runtime.Output |> Expect.hasLength "should have one snippet" 1
-                  let actual = cmdlet.Runtime.Output |> List.head :?> SnippetEntry
+                    let cmdlet = GetSnippetCommandForTest(None)
+                    cmdlet.Test() |> ignore
+                    cmdlet.Runtime.Errors |> Expect.isEmpty "get should have no error"
+                    cmdlet.Runtime.Output |> Expect.hasLength "should have one snippet" 1
+                    let actual = cmdlet.Runtime.Output |> List.head :?> SnippetEntry
 
-                  actual.Snippet |> Expect.equal "should have correct snippet" snippet
-                  actual.Tooltip |> Expect.equal "should have correct tooltip" "add snippet"
-                  actual.Group |> Expect.equal "should have correct group" "test"
+                    actual.Snippet |> Expect.equal "should have correct snippet" snippet
+                    actual.Tooltip |> Expect.equal "should have correct tooltip" "add snippet"
+                    actual.Group |> Expect.equal "should have correct group" "test"
 
-                  let cmdlet = RemoveSnippetCommandForTest(None)
-                  cmdlet.Snippet <- snippet
-                  cmdlet.Test() |> ignore
+                    let cmdlet = RemoveSnippetCommandForTest(None)
+                    cmdlet.Snippet <- snippet
+                    cmdlet.Test() |> ignore
 
-                  let cmdlet = GetSnippetCommandForTest(None)
-                  cmdlet.Test() |> ignore
-                  cmdlet.Runtime.Errors |> Expect.isEmpty "get should have no error"
-                  cmdlet.Runtime.Output |> Expect.hasLength "should have no snippet" 0
-              }
+                    let cmdlet = GetSnippetCommandForTest(None)
+                    cmdlet.Test() |> ignore
+                    cmdlet.Runtime.Errors |> Expect.isEmpty "get should have no error"
+                    cmdlet.Runtime.Output |> Expect.hasLength "should have no snippet" 0
+                }
 
-              ]
+            ]
 
 
 module SnippetPredictorInitialization =
@@ -350,48 +354,48 @@ module SnippetPredictorInitialization =
             "Init"
             [
 
-              test "run" {
-                  use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
-                  use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
-                  let subsystem = Init()
-                  (subsystem :> IModuleAssemblyInitializer).OnImport()
+                test "run" {
+                    use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
+                    use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
+                    let subsystem = Init()
+                    (subsystem :> IModuleAssemblyInitializer).OnImport()
 
-                  Async.Sleep(1000) |> Async.RunSynchronously
+                    Async.Sleep(1000) |> Async.RunSynchronously
 
-                  let predictor = getSnippetPredictorSubsystem ()
-                  let predictor = predictor |> Expect.wantSome "should have Snippet predictor"
+                    let predictor = getSnippetPredictorSubsystem ()
+                    let predictor = predictor |> Expect.wantSome "should have Snippet predictor"
 
-                  predictor.Description
-                  |> Expect.equal "Description" "A predictor that suggests a snippet based on the input."
+                    predictor.Description
+                    |> Expect.equal "Description" "A predictor that suggests a snippet based on the input."
 
-                  predictor.Id
-                  |> Expect.equal "Id" (Guid.Parse("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1"))
+                    predictor.Id
+                    |> Expect.equal "Id" (Guid.Parse("f6dbcf05-2f90-4c47-b40e-6a4cec337cc1"))
 
-                  Integration.getCompletionTexts ":unsupported"
-                  |> Expect.isEmpty "should use the registered predictor integration"
+                    Integration.getCompletionTexts ":unsupported"
+                    |> Expect.isEmpty "should use the registered predictor integration"
 
-                  Integration.getExactIdentifierSnippetTexts ":unsupported"
-                  |> Expect.isEmpty "should use the registered predictor integration"
+                    Integration.getExactIdentifierSnippetTexts ":unsupported"
+                    |> Expect.isEmpty "should use the registered predictor integration"
 
-                  Integration.isUnknownGroupIdentifier ":unsupported"
-                  |> Expect.isTrue "should use the registered predictor integration"
+                    Integration.isUnknownGroupIdentifier ":unsupported"
+                    |> Expect.isTrue "should use the registered predictor integration"
 
-                  (subsystem :> IModuleAssemblyCleanup).OnRemove(createMockModule ())
+                    (subsystem :> IModuleAssemblyCleanup).OnRemove(createMockModule ())
 
-                  let predictor = getSnippetPredictorSubsystem ()
-                  predictor |> Expect.isNone "should remove Snippet predictor"
+                    let predictor = getSnippetPredictorSubsystem ()
+                    predictor |> Expect.isNone "should remove Snippet predictor"
 
-                  Integration.getCompletionTexts ":snp Echo"
-                  |> Expect.isEmpty "should clear the predictor integration"
+                    Integration.getCompletionTexts ":snp Echo"
+                    |> Expect.isEmpty "should clear the predictor integration"
 
-                  Integration.getExactIdentifierSnippetTexts ":snp"
-                  |> Expect.isEmpty "should clear the predictor integration"
+                    Integration.getExactIdentifierSnippetTexts ":snp"
+                    |> Expect.isEmpty "should clear the predictor integration"
 
-                  Integration.isUnknownGroupIdentifier ":unsupported"
-                  |> Expect.isFalse "should clear the predictor integration"
-              }
+                    Integration.isUnknownGroupIdentifier ":unsupported"
+                    |> Expect.isFalse "should clear the predictor integration"
+                }
 
-              ]
+            ]
 
 module SnippetPredictor =
     open System.Management.Automation.Subsystem.Prediction
@@ -411,168 +415,168 @@ module SnippetPredictor =
             "SnippetPredictor"
             [
 
-              test "GetSuggestion" {
-                  use predictorForTest =
-                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+                test "GetSuggestion" {
+                    use predictorForTest =
+                        new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                  let predictor = predictorForTest :> ICommandPredictor
+                    let predictor = predictorForTest :> ICommandPredictor
 
-                  // NOTE: This is a workaround for the test; the test crashes without a proper wait.
-                  Async.Sleep(1000) |> Async.RunSynchronously
+                    // NOTE: This is a workaround for the test; the test crashes without a proper wait.
+                    Async.Sleep(1000) |> Async.RunSynchronously
 
-                  let client = PredictionClient("test", PredictionClientKind.Terminal)
+                    let client = PredictionClient("test", PredictionClientKind.Terminal)
 
-                  let suggestionEntries =
-                      predictor.GetSuggestion(client, PredictionContext.Create(":group Ex"), CancellationToken.None)
-                      |> _.SuggestionEntries
-                      |> Option.ofObj
-                      |> Expect.wantSome "should provide suggestions for matching input"
+                    let suggestionEntries =
+                        predictor.GetSuggestion(client, PredictionContext.Create(":group Ex"), CancellationToken.None)
+                        |> _.SuggestionEntries
+                        |> Option.ofObj
+                        |> Expect.wantSome "should provide suggestions for matching input"
 
 
-                  suggestionEntries
-                  |> Expect.isNonEmpty "should provide suggestions for matching input"
+                    suggestionEntries
+                    |> Expect.isNonEmpty "should provide suggestions for matching input"
 
-                  suggestionEntries
-                  |> Expect.all "should provide suggestions for matching input" (fun entry ->
-                      entry.SuggestionText = "echo 'example'"
-                      && entry.ToolTip = "[group]example  tooltip")
+                    suggestionEntries
+                    |> Expect.all "should provide suggestions for matching input" (fun entry ->
+                        entry.SuggestionText = "echo 'example'"
+                        && entry.ToolTip = "[group]example  tooltip")
 
-                  predictor.GetSuggestion(client, PredictionContext.Create(":test"), CancellationToken.None)
-                  |> _.SuggestionEntries
-                  |> Expect.isNull "should not provide suggestions when no match is found"
+                    predictor.GetSuggestion(client, PredictionContext.Create(":test"), CancellationToken.None)
+                    |> _.SuggestionEntries
+                    |> Expect.isNull "should not provide suggestions when no match is found"
 
-              }
+                }
 
-              test "GetSuggestion with case sensitivity" {
-                  use predictorForTest =
-                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid-case-sensitive.json")
+                test "GetSuggestion with case sensitivity" {
+                    use predictorForTest =
+                        new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid-case-sensitive.json")
 
-                  let predictor = predictorForTest :> ICommandPredictor
+                    let predictor = predictorForTest :> ICommandPredictor
 
-                  // NOTE: This is a workaround for the test; the test crashes without a proper wait.
-                  Async.Sleep(1000) |> Async.RunSynchronously
+                    // NOTE: This is a workaround for the test; the test crashes without a proper wait.
+                    Async.Sleep(1000) |> Async.RunSynchronously
 
-                  let client = PredictionClient("test", PredictionClientKind.Terminal)
+                    let client = PredictionClient("test", PredictionClientKind.Terminal)
 
-                  let suggestionEntries =
-                      predictor.GetSuggestion(client, PredictionContext.Create("ex"), CancellationToken.None)
-                      |> _.SuggestionEntries
-                      |> Option.ofObj
-                      |> Expect.wantSome "should provide suggestions for matching input"
+                    let suggestionEntries =
+                        predictor.GetSuggestion(client, PredictionContext.Create("ex"), CancellationToken.None)
+                        |> _.SuggestionEntries
+                        |> Option.ofObj
+                        |> Expect.wantSome "should provide suggestions for matching input"
 
-                  suggestionEntries
-                  |> Expect.isNonEmpty "should provide suggestions for matching input"
+                    suggestionEntries
+                    |> Expect.isNonEmpty "should provide suggestions for matching input"
 
-                  suggestionEntries
-                  |> Expect.all "should provide suggestions for matching input" (fun entry ->
-                      entry.SuggestionText = "echo 'example'"
-                      && entry.ToolTip = "[group]example  tooltip")
+                    suggestionEntries
+                    |> Expect.all "should provide suggestions for matching input" (fun entry ->
+                        entry.SuggestionText = "echo 'example'"
+                        && entry.ToolTip = "[group]example  tooltip")
 
-                  predictor.GetSuggestion(client, PredictionContext.Create(" Ex"), CancellationToken.None)
-                  |> _.SuggestionEntries
-                  |> Expect.isNull "should not provide suggestions when no match is found"
+                    predictor.GetSuggestion(client, PredictionContext.Create(" Ex"), CancellationToken.None)
+                    |> _.SuggestionEntries
+                    |> Expect.isNull "should not provide suggestions when no match is found"
 
-              }
+                }
 
-              test "GetCompletionTexts" {
-                  use predictor =
-                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+                test "GetCompletionTexts" {
+                    use predictor =
+                        new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                  Async.Sleep(1000) |> Async.RunSynchronously
+                    Async.Sleep(1000) |> Async.RunSynchronously
 
-                  predictor.GetCompletionTexts("    :snp Echo    ")
-                  |> Expect.equal "should provide matching completion texts" [| "echo 'example'" |]
+                    predictor.GetCompletionTexts("    :snp Echo    ")
+                    |> Expect.equal "should provide matching completion texts" [| "echo 'example'" |]
 
-                  predictor.GetCompletionTexts("ls -")
-                  |> Expect.isEmpty "should exclude ordinary command completion"
+                    predictor.GetCompletionTexts("ls -")
+                    |> Expect.isEmpty "should exclude ordinary command completion"
 
-                  predictor.GetCompletionTexts(":tip example")
-                  |> Expect.isEmpty "should exclude tooltip completion"
+                    predictor.GetCompletionTexts(":tip example")
+                    |> Expect.isEmpty "should exclude tooltip completion"
 
-                  predictor.GetCompletionTexts(":group Echo")
-                  |> Expect.equal "should provide matching group completion texts" [| "echo 'example'" |]
+                    predictor.GetCompletionTexts(":group Echo")
+                    |> Expect.equal "should provide matching group completion texts" [| "echo 'example'" |]
 
-                  predictor.GetCompletionTexts(":g")
-                  |> Expect.equal "should provide matching group identifiers" [| ":gr"; ":group" |]
+                    predictor.GetCompletionTexts(":g")
+                    |> Expect.equal "should provide matching group identifiers" [| ":gr"; ":group" |]
 
-                  predictor.GetCompletionTexts("x :")
-                  |> Expect.isEmpty "should exclude a non-whitespace prefix"
-              }
+                    predictor.GetCompletionTexts("x :")
+                    |> Expect.isEmpty "should exclude a non-whitespace prefix"
+                }
 
-              test "GetExactIdentifierSnippetTexts" {
-                  use predictor =
-                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+                test "GetExactIdentifierSnippetTexts" {
+                    use predictor =
+                        new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                  Async.Sleep(1000) |> Async.RunSynchronously
+                    Async.Sleep(1000) |> Async.RunSynchronously
 
-                  predictor.GetExactIdentifierSnippetTexts("    :snp")
-                  |> Expect.equal
-                      "should provide all snippets for the exact snippet identifier"
-                      [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
+                    predictor.GetExactIdentifierSnippetTexts("    :snp")
+                    |> Expect.equal
+                        "should provide all snippets for the exact snippet identifier"
+                        [| "echo 'example'"; "touch sample.txt"; "Write-Host gr" |]
 
-                  predictor.GetExactIdentifierSnippetTexts(":group")
-                  |> Expect.equal "should provide snippets for the exact group identifier" [| "echo 'example'" |]
+                    predictor.GetExactIdentifierSnippetTexts(":group")
+                    |> Expect.equal "should provide snippets for the exact group identifier" [| "echo 'example'" |]
 
-                  predictor.GetExactIdentifierSnippetTexts(":group Echo")
-                  |> Expect.isEmpty "should exclude snippet search input"
-              }
+                    predictor.GetExactIdentifierSnippetTexts(":group Echo")
+                    |> Expect.isEmpty "should exclude snippet search input"
+                }
 
-              test "IsUnknownGroupIdentifier" {
-                  use predictor =
-                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+                test "IsUnknownGroupIdentifier" {
+                    use predictor =
+                        new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                  Async.Sleep(1000) |> Async.RunSynchronously
+                    Async.Sleep(1000) |> Async.RunSynchronously
 
-                  predictor.IsUnknownGroupIdentifier(":unknown")
-                  |> Expect.isTrue "should identify an unknown group identifier"
+                    predictor.IsUnknownGroupIdentifier(":unknown")
+                    |> Expect.isTrue "should identify an unknown group identifier"
 
-                  predictor.IsUnknownGroupIdentifier(":group")
-                  |> Expect.isFalse "should identify a configured group identifier"
+                    predictor.IsUnknownGroupIdentifier(":group")
+                    |> Expect.isFalse "should identify a configured group identifier"
 
-                  predictor.IsUnknownGroupIdentifier(":group Echo")
-                  |> Expect.isFalse "should exclude group-scoped input"
-              }
+                    predictor.IsUnknownGroupIdentifier(":group Echo")
+                    |> Expect.isFalse "should exclude group-scoped input"
+                }
 
-              test "for coverage" {
-                  use predictorForTest =
-                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
+                test "for coverage" {
+                    use predictorForTest =
+                        new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                  let predictor = predictorForTest :> ICommandPredictor
+                    let predictor = predictorForTest :> ICommandPredictor
 
-                  predictor.FunctionsToDefine
-                  |> Option.ofObj
-                  |> Expect.wantSome "should have functions to define"
-                  |> Expect.isEmpty "should not have functions to define"
+                    predictor.FunctionsToDefine
+                    |> Option.ofObj
+                    |> Expect.wantSome "should have functions to define"
+                    |> Expect.isEmpty "should not have functions to define"
 
-                  let client = PredictionClient("test", PredictionClientKind.Terminal)
+                    let client = PredictionClient("test", PredictionClientKind.Terminal)
 
-                  predictor.CanAcceptFeedback(client, PredictorFeedbackKind.SuggestionDisplayed)
-                  |> Expect.isFalse "should not accept feedback"
+                    predictor.CanAcceptFeedback(client, PredictorFeedbackKind.SuggestionDisplayed)
+                    |> Expect.isFalse "should not accept feedback"
 
-                  predictor.OnSuggestionDisplayed(client, 0u, 0)
-                  predictor.OnSuggestionAccepted(client, 0u, "test")
-                  predictor.OnCommandLineAccepted(client, [||])
-                  predictor.OnCommandLineExecuted(client, "tes", true)
-              }
+                    predictor.OnSuggestionDisplayed(client, 0u, 0)
+                    predictor.OnSuggestionAccepted(client, 0u, "test")
+                    predictor.OnCommandLineAccepted(client, [||])
+                    predictor.OnCommandLineExecuted(client, "tes", true)
+                }
 
-              test "snippet file is not found" {
-                  use predictorForTest =
-                      new SnippetPredictorForTest(testAssetPath ".snippet-predictor-not-found.json")
+                test "snippet file is not found" {
+                    use predictorForTest =
+                        new SnippetPredictorForTest(testAssetPath ".snippet-predictor-not-found.json")
 
-                  let predictor = predictorForTest :> ICommandPredictor
+                    let predictor = predictorForTest :> ICommandPredictor
 
-                  predictor.FunctionsToDefine
-                  |> Option.ofObj
-                  |> Expect.wantSome "should have functions to define"
-                  |> Expect.isEmpty "should not have functions to define"
+                    predictor.FunctionsToDefine
+                    |> Option.ofObj
+                    |> Expect.wantSome "should have functions to define"
+                    |> Expect.isEmpty "should not have functions to define"
 
-                  let client = PredictionClient("", PredictionClientKind.Terminal)
+                    let client = PredictionClient("", PredictionClientKind.Terminal)
 
-                  let result =
-                      predictor.GetSuggestion(client, PredictionContext.Create(":group"), CancellationToken.None)
+                    let result =
+                        predictor.GetSuggestion(client, PredictionContext.Create(":group"), CancellationToken.None)
 
-                  result.SuggestionEntries |> Expect.isNull "should provide no suggestions"
+                    result.SuggestionEntries |> Expect.isNull "should provide no suggestions"
 
-              }
+                }
 
-              ]
+            ]

@@ -23,9 +23,11 @@ module Config =
         }
 
     let makeErrorEntry (errorMessage: string) (errorDetail: string) : ErrorEntry =
-        { Snippet = $"'{errorMessage}'" // NOTE: Wrap in quotes to avoid errors if the error message is executed.
-          Tooltip = errorDetail
-          Group = null }
+        {
+            Snippet = $"'{errorMessage}'" // NOTE: Wrap in quotes to avoid errors if the error message is executed.
+            Tooltip = errorDetail
+            Group = null
+        }
 
 
     [<RequireQualifiedAccess>]

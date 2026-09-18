@@ -28,9 +28,11 @@ module Store =
         new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
 
     let makeSnippetEntry (snippet: string) (tooltip: string) (group: string | null) =
-        { Snippet = snippet
-          Tooltip = tooltip
-          Group = group }
+        {
+            Snippet = snippet
+            Tooltip = tooltip
+            Group = group
+        }
 
     let loadSnippets getSnippetPath =
         loadConfig getSnippetPath
@@ -48,8 +50,10 @@ module Store =
         loadConfig getSnippetPath
         |> function
             | ConfigState.Empty ->
-                { SearchCaseSensitive = false
-                  Snippets = Array.ofSeq snippets }
+                {
+                    SearchCaseSensitive = false
+                    Snippets = Array.ofSeq snippets
+                }
                 |> storeConfig getSnippetPath
             | ConfigState.Valid config ->
                 let newSnippets =

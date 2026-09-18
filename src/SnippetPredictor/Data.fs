@@ -37,11 +37,13 @@ type GroupJsonConverter() =
         value |> writer.WriteStringValue
 
 type SnippetEntry =
-    { Snippet: string
-      Tooltip: string
-      [<JsonConverter(typeof<GroupJsonConverter>)>]
-      [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
-      Group: string | null }
+    {
+        Snippet: string
+        Tooltip: string
+        [<JsonConverter(typeof<GroupJsonConverter>)>]
+        [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
+        Group: string | null
+    }
 
 type ErrorEntry = SnippetEntry
 
@@ -58,6 +60,8 @@ type SearchCaseSensitiveJsonConverter() =
         value |> writer.WriteBooleanValue
 
 type SnippetConfig =
-    { [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
-      SearchCaseSensitive: bool
-      Snippets: SnippetEntry array | null }
+    {
+        [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
+        SearchCaseSensitive: bool
+        Snippets: SnippetEntry array | null
+    }
