@@ -51,7 +51,7 @@ function Get-ValidMarkdownCommentHelp {
 }
 
 Task Lint {
-    dotnet fantomas ./src --check
+    dotnet fantomas check ./src
     if (-not $?) {
         throw 'dotnet fantomas failed.'
     }
