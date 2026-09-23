@@ -93,7 +93,7 @@ Task Build -Depends Clean {
 Task UnitTest {
     Remove-Item ./TestResults/* -Recurse -Force -ErrorAction SilentlyContinue
     dotnet test --project "./src/${ModuleName}.Test/${ModuleName}.Test.fsproj" `
-        --verbosity detailed `
+        --verbosity normal `
         --results-directory './TestResults' `
         --report-gh `
         --coverlet `
