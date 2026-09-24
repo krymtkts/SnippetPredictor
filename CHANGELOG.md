@@ -8,6 +8,7 @@ This project uses prerelease versions such as 0.1.0-alpha.
 ## [Unreleased]
 
 - Keep unknown group identifiers from executing with `-AcceptChord` and notify users with a bell.
+- Reject null entries and missing, null, empty, or blank `Snippet` values. Treat missing or null `Tooltip` values as empty strings and include JSON paths in diagnostics.
 
 ## [0.8.0] - 2026-09-12
 
