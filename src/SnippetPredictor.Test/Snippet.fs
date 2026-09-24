@@ -1135,6 +1135,61 @@ module CacheDisposeBehavior =
                         |> Expect.isTrue "should refresh completion identifiers")
                 }
 
+                test "Changed restores valid snippets after a read error" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+
+                    File.WriteAllText(
+                        filePath,
+                        """{"Snippets":[{"Snippet":"Write-Host original","Tooltip":"original","Group":"original"}]}"""
+                    )
+
+                    let mutable watcher: TestWatcher option = None
+
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            ignore
+                        )
+
+                    cache.load (fun () -> tmpDir.Path, filePath)
+                    let w = watcher |> Expect.wantSome "watcher should be created"
+
+                    testWithRelease w cache filePath (fun () ->
+                        waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":original" |])
+                        |> Expect.isTrue "should load the original snippet"
+
+                        File.Delete(filePath)
+                        Directory.CreateDirectory(filePath) |> ignore
+                        w.TriggerChanged(tmpDir.Path, fileName)
+
+                        waitUntil 2000 20 (fun () ->
+                            cache.getCompletionTexts ":" = [| ":snp" |]
+                            && cache.getPredictiveSuggestions("An error").Count > 0)
+                        |> Expect.isTrue "should replace the original snippet with a read error diagnostic"
+
+                        Directory.Delete(filePath)
+
+                        File.WriteAllText(
+                            filePath,
+                            """{"Snippets":[{"Snippet":"Write-Host recovered","Tooltip":"recovered","Group":"recovered"}]}"""
+                        )
+
+                        w.TriggerChanged(tmpDir.Path, fileName)
+
+                        waitUntil 2000 20 (fun () ->
+                            cache.getCompletionTexts ":" = [| ":snp"; ":recovered" |]
+                            && cache.getPredictiveSuggestions("Write-Host recovered").Count > 0)
+                        |> Expect.isTrue "should restore snippets after the configuration is repaired"
+
+                        cache.getPredictiveSuggestions "An error"
+                        |> Expect.isEmpty "should remove the read error diagnostic after recovery")
+                }
+
                 test "Debounced callback swallows ObjectDisposedException" {
                     use tmpDir = new TempDirectory("SnippetPredictor.Test.")
                     let fileName = ".snippet-predictor.json"
