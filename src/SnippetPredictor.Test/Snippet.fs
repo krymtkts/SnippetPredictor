@@ -1098,12 +1098,15 @@ module CacheDisposeBehavior =
 
                 }
 
-                test "Changed refreshes completion identifiers" {
+                test "Changed refreshes the suggestion snapshot" {
                     use tmpDir = new TempDirectory("SnippetPredictor.Test.")
                     let fileName = ".snippet-predictor.json"
                     let filePath = Path.Combine(tmpDir.Path, fileName)
 
-                    File.WriteAllText(filePath, """{"Snippets":[{"Snippet":"old","Tooltip":"old","Group":"old"}]}""")
+                    File.WriteAllText(
+                        filePath,
+                        """{"SearchCaseSensitive":true,"Snippets":[{"Snippet":"Write-Host OLD","Tooltip":"old","Group":"old"}]}"""
+                    )
 
                     let mutable watcher: TestWatcher option = None
 
@@ -1121,18 +1124,86 @@ module CacheDisposeBehavior =
                     waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":old" |])
                     |> Expect.isTrue "should load initial completion identifiers"
 
+                    cache.getCompletionTexts ":old write-host"
+                    |> Expect.isEmpty "should apply the initial case-sensitive search setting"
+
+                    cache.getCompletionTexts ":old Write-Host"
+                    |> Expect.equal "should match the initial case-sensitive text" [| "Write-Host OLD" |]
+
                     let w = watcher |> Expect.wantSome "watcher should be created"
 
                     testWithRelease w cache filePath (fun () ->
                         File.WriteAllText(
                             filePath,
-                            """{"Snippets":[{"Snippet":"new","Tooltip":"new","Group":"new"}]}"""
+                            """{"SearchCaseSensitive":false,"Snippets":[{"Snippet":"Write-Host new","Tooltip":"new","Group":"new"}]}"""
                         )
 
                         w.TriggerChanged(tmpDir.Path, fileName)
 
-                        waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":new" |])
-                        |> Expect.isTrue "should refresh completion identifiers")
+                        waitUntil 2000 20 (fun () ->
+                            cache.getCompletionTexts ":" = [| ":snp"; ":new" |]
+                            && (cache.getCompletionTexts ":old").Length = 0
+                            && cache.getCompletionTexts ":new write-host" = [| "Write-Host new" |])
+                        |> Expect.isTrue "should refresh cache data and search settings together"
+
+                        cache.getExactIdentifierSnippetTexts ":new"
+                        |> Expect.equal "should read snippets from the published snapshot" [| "Write-Host new" |]
+
+                        cache.isUnknownGroupIdentifier ":new"
+                        |> Expect.isFalse "should recognize the group from the published snapshot"
+
+                        cache.isUnknownGroupIdentifier ":old"
+                        |> Expect.isTrue "should no longer recognize the previous group"
+
+                        cache.getPredictiveSuggestions ":new write-host"
+                        |> Seq.map _.SuggestionText
+                        |> Seq.toArray
+                        |> Expect.equal "should use the new group's snippets and search setting" [| "Write-Host new" |])
+                }
+
+                test "Changed publishes an empty snapshot when configuration is missing" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+
+                    File.WriteAllText(
+                        filePath,
+                        """{"Snippets":[{"Snippet":"Write-Host old","Tooltip":"old","Group":"old"}]}"""
+                    )
+
+                    let mutable watcher: TestWatcher option = None
+
+                    let cache =
+                        new CacheForTest(
+                            (fun _ ->
+                                let w = new TestWatcher(tmpDir.Path, fileName)
+                                watcher <- Some w
+                                w),
+                            ignore
+                        )
+
+                    try
+                        cache.load (fun () -> tmpDir.Path, filePath)
+
+                        let w = watcher |> Expect.wantSome "watcher should be created"
+
+                        waitUntil 2000 20 (fun () -> cache.getCompletionTexts ":" = [| ":snp"; ":old" |])
+                        |> Expect.isTrue "should load the initial snapshot"
+
+                        File.Delete(filePath)
+                        w.TriggerChanged(tmpDir.Path, fileName)
+
+                        waitUntil 2000 20 (fun () ->
+                            cache.getCompletionTexts ":" = [| ":snp" |]
+                            && (cache.getCompletionTexts ":old" |> Array.isEmpty)
+                            && cache.getPredictiveSuggestions("Write-Host old").Count = 0)
+                        |> Expect.isTrue "should clear snippets and groups for a missing configuration"
+
+                        cache.getExactIdentifierSnippetTexts ":snp"
+                        |> Expect.isEmpty "should not accept snippets from the previous snapshot"
+                    finally
+                        watcher |> Option.iter (fun w -> w.ReleaseHandles())
+                        (cache :> IDisposable).Dispose()
                 }
 
                 test "Changed restores valid snippets after a read error" {
