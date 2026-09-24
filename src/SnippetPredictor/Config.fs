@@ -47,20 +47,32 @@ module Config =
             WriteIndented = true
         )
 
+    let private jsonReadOptions =
+        let options = JsonSerializerOptions(jsonOptions)
+        // NOTE: Register this read-only converter only for deserialization.
+        options.Converters.Add(SnippetEntryJsonConverter())
+        options
+
     let parseSnippets (json: string) =
         try
             json.Trim()
             |> function
                 | json when String.length json = 0 -> ConfigState.Empty
                 | json ->
-                    JsonSerializer.Deserialize<SnippetConfig>(json, jsonOptions)
+                    JsonSerializer.Deserialize<SnippetConfig>(json, jsonReadOptions)
                     |> function
                         | null ->
                             makeErrorEntry $"{snippetFilesName} is null or invalid format." ""
                             |> ConfigState.Invalid
-                        | snippets -> ConfigState.Valid snippets
+                        | config -> ConfigState.Valid config
         with e ->
-            makeErrorEntry $"An error occurred while parsing {snippetFilesName}" e.Message
+            let errorDetail =
+                match e with
+                | :? SnippetConfigValidationException as validationError ->
+                    $"{validationError.Detail} Path: {validationError.Path}"
+                | _ -> e.Message
+
+            makeErrorEntry $"An error occurred while parsing {snippetFilesName}" errorDetail
             |> ConfigState.Invalid
 
     let parseSnippetFile (path: string) =

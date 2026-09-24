@@ -62,6 +62,12 @@ let tests_parseSnippets =
         | Config.ConfigState.Invalid entry -> entry
         | _ -> failtest "Expected ConfigState.Invalid but got a different state"
 
+    let expectInvalidTooltip (expectedTooltip: string) state =
+        let actualTooltip = state |> expectInvalid |> _.Tooltip
+
+        actualTooltip.Contains(expectedTooltip)
+        |> Expect.isTrue $"should include the diagnostic detail '{expectedTooltip}'"
+
     testList
         "parseSnippets"
         [
@@ -125,6 +131,24 @@ let tests_parseSnippets =
                     }
             }
 
+            test "when JSON snippet is missing" {
+                """{"snippets":[{"snippet":"valid"},{}]}"""
+                |> Config.parseSnippets
+                |> expectInvalidTooltip "Snippet is required and cannot be empty or whitespace."
+            }
+
+            test "when JSON snippet is null" {
+                """{"snippets":[{"snippet":"valid"},{"snippet":null}]}"""
+                |> Config.parseSnippets
+                |> expectInvalidTooltip "Snippet is required and cannot be empty or whitespace."
+            }
+
+            test "when JSON snippet entry is null" {
+                """{"snippets":[{"snippet":"valid"},null]}"""
+                |> Config.parseSnippets
+                |> expectInvalidTooltip "Snippet entry cannot be null."
+            }
+
             test "when JSON has empty snippets" {
                 """{"snippets":[]}"""
                 |> Config.parseSnippets
@@ -135,6 +159,42 @@ let tests_parseSnippets =
                         SearchCaseSensitive = false
                         SnippetConfig.Snippets = [||]
                     }
+            }
+
+            test "when JSON tooltip is missing or null" {
+                """{"snippets":[{"snippet":"without tooltip"},{"snippet":"null tooltip","tooltip":null}]}"""
+                |> Config.parseSnippets
+                |> expectValid
+                |> Expect.equal
+                    "should normalize missing and null tooltips"
+                    {
+                        SearchCaseSensitive = false
+                        Snippets =
+                            [|
+                                {
+                                    SnippetEntry.Snippet = "without tooltip"
+                                    SnippetEntry.Tooltip = ""
+                                    SnippetEntry.Group = null
+                                }
+                                {
+                                    SnippetEntry.Snippet = "null tooltip"
+                                    SnippetEntry.Tooltip = ""
+                                    SnippetEntry.Group = null
+                                }
+                            |]
+                    }
+            }
+
+            test "when JSON snippet is empty" {
+                """{"snippets":[{"snippet":""}]}"""
+                |> Config.parseSnippets
+                |> expectInvalidTooltip "Snippet is required and cannot be empty or whitespace."
+            }
+
+            test "when JSON snippet is whitespace" {
+                """{"snippets":[{"snippet":"   "}]}"""
+                |> Config.parseSnippets
+                |> expectInvalidTooltip "Snippet is required and cannot be empty or whitespace."
             }
 
             test "when JSON has snippets without group" {
@@ -226,7 +286,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Invalid"
                     {
                         SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
-                        SnippetEntry.Tooltip = "Invalid characters in group: group!"
+                        SnippetEntry.Tooltip = "Invalid characters in group: group! Path: $.snippets[0]"
                         SnippetEntry.Group = null
                     }
             }
@@ -368,6 +428,35 @@ module getPredictiveSuggestions =
 
                 test "when no snippets matched with :" {
                     cache.getPredictiveSuggestions ":    " |> Expect.isEmpty "should return empty."
+                }
+
+                test "when invalid config diagnostic is available" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let fileName = ".snippet-predictor.json"
+                    let filePath = Path.Combine(tmpDir.Path, fileName)
+                    File.WriteAllText(filePath, """{"snippets":[{}]}""")
+                    use invalidCache = new Suggestion.Cache()
+
+                    invalidCache.load (fun () -> tmpDir.Path, filePath)
+
+                    System.Threading.SpinWait.SpinUntil(
+                        (fun () -> invalidCache.getPredictiveSuggestions("An error").Count > 0),
+                        TimeSpan.FromSeconds 2.0
+                    )
+                    |> Expect.isTrue "should load invalid config diagnostic"
+
+                    let actual = invalidCache.getPredictiveSuggestions "An error"
+                    actual |> Expect.hasLength "should return the diagnostic candidate" 1
+
+                    let hasDiagnosticPath =
+                        match actual[0].ToolTip with
+                        | null -> false
+                        | tooltip ->
+                            tooltip.Contains("snippets[0]", System.StringComparison.OrdinalIgnoreCase)
+                            && tooltip.Contains("Snippet is required and cannot be empty or whitespace.")
+
+                    hasDiagnosticPath
+                    |> Expect.isTrue "should show the invalid field in the diagnostic"
                 }
 
                 test "when no snippets matched" {
