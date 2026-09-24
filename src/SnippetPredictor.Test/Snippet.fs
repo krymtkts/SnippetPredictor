@@ -459,6 +459,42 @@ module getPredictiveSuggestions =
                     |> Expect.isTrue "should show the invalid field in the diagnostic"
                 }
 
+                test "when a read error replaces the current cache with a diagnostic" {
+                    use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+                    let filePath = Path.Combine(tmpDir.Path, Config.snippetFilesName)
+
+                    File.WriteAllText(
+                        filePath,
+                        """{"Snippets":[{"Snippet":"Write-Host original","Tooltip":"original","Group":"original"}]}"""
+                    )
+
+                    use cache = new Suggestion.Cache()
+
+                    let load () =
+                        cache.load (fun () -> tmpDir.Path, filePath)
+
+                    load ()
+
+                    System.Threading.SpinWait.SpinUntil(
+                        (fun () -> cache.getCompletionTexts (":") = [| ":snp"; ":original" |]),
+                        TimeSpan.FromSeconds 2.0
+                    )
+                    |> Expect.isTrue "should load the original snippet"
+
+                    File.Delete(filePath)
+                    Directory.CreateDirectory(filePath) |> ignore
+                    load ()
+
+                    System.Threading.SpinWait.SpinUntil(
+                        (fun () -> cache.getPredictiveSuggestions("An error").Count > 0),
+                        TimeSpan.FromSeconds 2.0
+                    )
+                    |> Expect.isTrue "should surface the read error diagnostic"
+
+                    cache.getCompletionTexts (":")
+                    |> Expect.equal "should replace the previous group with the diagnostic" [| ":snp" |]
+                }
+
                 test "when no snippets matched" {
                     cache.getPredictiveSuggestions "    exo    "
                     |> Expect.isEmpty "should return empty."
@@ -1189,6 +1225,16 @@ let tests_loadSnippets =
                 |> Expect.isEmpty "should return Empty"
             }
 
+            test "when snippet path is a directory" {
+                use tmpDir = new TempDirectory("SnippetPredictor.Test.")
+
+                Store.loadSnippets (fun () -> tmpDir.Path)
+                |> Expect.wantError "should return Error"
+                |> fun error ->
+                    error.Contains("'An error occurred while reading .snippet-predictor.json'")
+                    |> Expect.isTrue "should report a file read error"
+            }
+
             test "when snippet file is invalid" {
                 Store.loadSnippets (fun () -> testAssetPath ".snippet-predictor-invalid.json")
                 |> Expect.wantError "should return Error"
@@ -1261,7 +1307,9 @@ module addAndRemoveSnippets =
                     ]
                     |> Store.addSnippets (fun () -> path)
                     |> Expect.wantError "should return Error"
-                    |> Expect.equal "should return Error" $"Could not find a part of the path '{path}'."
+                    |> fun error ->
+                        error.Contains("'An error occurred while reading .snippet-predictor.json'")
+                        |> Expect.isTrue "should report a configuration read error"
                 }
 
                 test "when snippet file is not found" {

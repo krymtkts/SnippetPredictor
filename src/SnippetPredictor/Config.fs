@@ -75,10 +75,31 @@ module Config =
             makeErrorEntry $"An error occurred while parsing {snippetFilesName}" errorDetail
             |> ConfigState.Invalid
 
+    // NOTE: Avoid checking File.Exists first; it returns false on determination errors,
+    // NOTE: including insufficient permissions, which would hide read failures.
     let parseSnippetFile (path: string) =
         task {
-            let! json = readSnippetFile path
-            return parseSnippets json
+            let! readResult =
+                task {
+                    try
+                        let! json = readSnippetFile path
+                        return Ok(Some json)
+                    with
+                    | :? FileNotFoundException -> return Ok None
+                    | :? IOException
+                    | :? UnauthorizedAccessException
+                    | :? Security.SecurityException
+                    | :? ArgumentException
+                    | :? NotSupportedException as e -> return Error e.Message
+                }
+
+            return
+                match readResult with
+                | Ok None -> ConfigState.Empty
+                | Ok(Some json) -> parseSnippets json
+                | Error errorDetail ->
+                    makeErrorEntry $"An error occurred while reading {snippetFilesName}" errorDetail
+                    |> ConfigState.Invalid
         }
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =

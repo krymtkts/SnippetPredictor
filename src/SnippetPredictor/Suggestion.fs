@@ -361,10 +361,7 @@ module Suggestion =
 
         member __.load getSnippetPath =
             let snippetDirectory, snippetPath = getSnippetPath ()
-
-            if File.Exists(snippetPath) then
-                startRefreshTask snippetPath
-
+            startRefreshTask snippetPath
             startFileWatchingEvent snippetDirectory
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =

@@ -18,11 +18,7 @@ module Store =
 
     let loadConfig (getSnippetPath: unit -> string) =
         let snippetPath = getSnippetPath ()
-
-        if snippetPath |> (File.Exists >> not) then
-            ConfigState.Empty
-        else
-            snippetPath |> parseSnippetFile |> _.Result
+        snippetPath |> parseSnippetFile |> _.Result
 
     let makeErrorRecord (e: string) =
         new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
