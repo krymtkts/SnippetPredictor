@@ -12,16 +12,6 @@ module Config =
     [<Literal>]
     let environmentVariable = "SNIPPET_PREDICTOR_CONFIG"
 
-    let readSnippetFile (path: string) =
-        task {
-            // NOTE: Open the file with shared read/write access to prevent the file lock error by other processes.
-            use fs =
-                new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
-
-            use sr = new StreamReader(fs)
-            return! sr.ReadToEndAsync()
-        }
-
     let makeErrorEntry (errorMessage: string) (errorDetail: string) : ErrorEntry =
         {
             Snippet = $"'{errorMessage}'" // NOTE: Wrap in quotes to avoid errors if the error message is executed.
@@ -75,31 +65,58 @@ module Config =
             makeErrorEntry $"An error occurred while parsing {snippetFilesName}" errorDetail
             |> ConfigState.Invalid
 
+    let private readToConfigState (read: Result<string option, string>) =
+        match read with
+        | Ok None -> ConfigState.Empty
+        | Ok(Some json) -> parseSnippets json
+        | Error errorDetail ->
+            makeErrorEntry $"An error occurred while reading {snippetFilesName}" errorDetail
+            |> ConfigState.Invalid
+
+    let private isExpectedReadError (error: exn) =
+        match error with
+        | :? IOException
+        | :? UnauthorizedAccessException
+        | :? Security.SecurityException
+        | :? ArgumentException
+        | :? NotSupportedException -> true
+        | _ -> false
+
     // NOTE: Avoid checking File.Exists first; it returns false on determination errors,
     // NOTE: including insufficient permissions, which would hide read failures.
+    // NOTE: Open files with shared read/write access to prevent file lock errors from other processes.
+    let private readSnippetFile (path: string) =
+        task {
+            try
+                use fs =
+                    new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, useAsync = true)
+
+                use sr = new StreamReader(fs)
+                let! json = sr.ReadToEndAsync()
+                return Ok(Some json)
+            with
+            | :? FileNotFoundException -> return Ok None
+            | error when isExpectedReadError error -> return Error error.Message
+        }
+
+    let private readSnippetFileSync (path: string) =
+        try
+            use fs =
+                new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096)
+
+            use sr = new StreamReader(fs)
+            sr.ReadToEnd() |> Some |> Ok
+        with
+        | :? FileNotFoundException -> Ok None
+        | error when isExpectedReadError error -> Error error.Message
+
+    let internal parseSnippetFileSync (path: string) =
+        path |> readSnippetFileSync |> readToConfigState
+
     let parseSnippetFile (path: string) =
         task {
-            let! readResult =
-                task {
-                    try
-                        let! json = readSnippetFile path
-                        return Ok(Some json)
-                    with
-                    | :? FileNotFoundException -> return Ok None
-                    | :? IOException
-                    | :? UnauthorizedAccessException
-                    | :? Security.SecurityException
-                    | :? ArgumentException
-                    | :? NotSupportedException as e -> return Error e.Message
-                }
-
-            return
-                match readResult with
-                | Ok None -> ConfigState.Empty
-                | Ok(Some json) -> parseSnippets json
-                | Error errorDetail ->
-                    makeErrorEntry $"An error occurred while reading {snippetFilesName}" errorDetail
-                    |> ConfigState.Invalid
+            let! read = readSnippetFile path
+            return read |> readToConfigState
         }
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =

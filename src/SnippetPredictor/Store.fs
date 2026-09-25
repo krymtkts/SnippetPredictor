@@ -18,7 +18,7 @@ module Store =
 
     let loadConfig (getSnippetPath: unit -> string) =
         let snippetPath = getSnippetPath ()
-        snippetPath |> parseSnippetFile |> _.Result
+        snippetPath |> parseSnippetFileSync
 
     let makeErrorRecord (e: string) =
         new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)

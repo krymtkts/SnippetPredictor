@@ -21,6 +21,8 @@ module Config =
 
     val parseSnippetFile: path: string -> Task<ConfigState>
 
+    val internal parseSnippetFileSync: path: string -> ConfigState
+
 #if DEBUG
     val getSnippetPathWith:
         getEnvironmentVariable: (string -> string | null) -> getUserProfilePath: (unit -> string) -> string * string
