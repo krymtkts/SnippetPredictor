@@ -55,13 +55,28 @@ module Suggestion =
             member __.IfNotDisposed(f: unit -> unit) = if __.IsDisposed then () else f ()
             member __.IfDisposed(f: unit -> unit) = if __.IsDisposed then f () else ()
 
+    type private Snapshot =
+        {
+            Snippets: SnippetEntry array
+            GroupIds: string array
+            Groups: Set<string>
+            CompletionIdentifiers: string array
+            SearchComparison: StringComparison
+            HasValidConfiguration: bool
+        }
+
     type Cache() as __ =
 
-        let mutable caseSensitive = CaseSensitivity.insensitive
-        let mutable hasValidConfiguration = false
-        let snippets = Concurrent.ConcurrentQueue<SnippetEntry>()
-        let groups = new Concurrent.ConcurrentDictionary<string, unit>()
-        let mutable completionIdentifiers = [| $":{Snp}" |]
+        let mutable snapshot =
+            {
+                Snippets = Array.empty
+                GroupIds = Array.empty
+                Groups = Set.empty
+                CompletionIdentifiers = [| $":{Snp}" |]
+                SearchComparison = StringComparison.OrdinalIgnoreCase
+                HasValidConfiguration = false
+            }
+
         let semaphore = new SemaphoreSlim(1, 1)
         let refreshCts = new CancellationTokenSource()
         let mutable watcher: FileSystemWatcher | null = null
@@ -90,14 +105,60 @@ module Suggestion =
             else
                 false
 
-        let updateCompletionIdentifiers () =
-            groups.Keys
-            |> Seq.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
-            |> Seq.map (fun groupId -> $":{groupId}")
-            |> Seq.append [ $":{Snp}" ]
-            |> Seq.toArray
-            |> fun identifiers -> Interlocked.Exchange(&completionIdentifiers, identifiers)
-            |> ignore
+        let createFallbackSnapshot snippets searchComparison : Snapshot =
+            {
+                Snippets = snippets
+                GroupIds = Array.empty
+                Groups = Set.empty
+                CompletionIdentifiers = [| $":{Snp}" |]
+                SearchComparison = searchComparison
+                HasValidConfiguration = false
+            }
+
+        let createSnapshot (previous: Snapshot) result =
+            match result with
+            | ConfigState.Empty -> createFallbackSnapshot Array.empty previous.SearchComparison
+            | ConfigState.Invalid errorEntry -> createFallbackSnapshot [| errorEntry |] previous.SearchComparison
+            | ConfigState.Valid {
+                                    SearchCaseSensitive = searchCaseSensitive
+                                    Snippets = entries
+                                } ->
+                let snippets =
+                    match entries with
+                    | null -> Array.empty
+                    | snippets -> snippets
+
+                let groups = new Concurrent.ConcurrentDictionary<string, unit>()
+
+                snippets
+                |> Array.iter (fun snippet ->
+                    match snippet.Group with
+                    | null
+                    | Snp
+                    | Tip -> ()
+                    | groupId when groups.ContainsKey groupId -> ()
+                    | groupId -> groups.TryAdd(groupId, ()) |> ignore)
+
+                let groupIds = groups.Keys |> Seq.toArray
+                let groupLookup = groupIds |> Set.ofArray
+
+                let completionIdentifiers =
+                    groupIds
+                    |> Array.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
+                    |> Array.map (fun groupId -> $":{groupId}")
+                    |> Array.append [| $":{Snp}" |]
+
+                {
+                    Snippets = snippets
+                    GroupIds = groupIds
+                    Groups = groupLookup
+                    CompletionIdentifiers = completionIdentifiers
+                    SearchComparison =
+                        searchCaseSensitive
+                        |> SearchCaseSensitivity.ofBool
+                        |> SearchCaseSensitivity.stringComparison
+                    HasValidConfiguration = true
+                }
 
         let startRefreshTask (path: string) =
             let cancellationToken = refreshCts.Token
@@ -114,41 +175,9 @@ module Suggestion =
 #endif
 
                         let! result = parseSnippetFile path
-                        Volatile.Write(&hasValidConfiguration, false)
-                        snippets.Clear()
-                        groups.Clear()
-
-                        result
-                        |> function
-                            | ConfigState.Empty -> ()
-                            | ConfigState.Valid {
-                                                    SearchCaseSensitive = searchCaseSensitive
-                                                    Snippets = snps
-                                                } ->
-                                Interlocked.Exchange(
-                                    &caseSensitive,
-                                    searchCaseSensitive |> SearchCaseSensitivity.ofBool
-                                )
-                                |> ignore
-
-                                snps
-                                |> function
-                                    | null -> Array.empty
-                                    | snippets -> snippets
-                                |> Array.iter (fun s ->
-                                    snippets.Enqueue s
-
-                                    match s.Group with
-                                    | null -> ()
-                                    | Snp
-                                    | Tip -> ()
-                                    | g when g |> groups.ContainsKey -> ()
-                                    | g -> groups.TryAdd(g, ()) |> ignore)
-
-                                Volatile.Write(&hasValidConfiguration, true)
-                            | ConfigState.Invalid errorEntry -> errorEntry |> snippets.Enqueue
-
-                        updateCompletionIdentifiers ()
+                        let previous = Volatile.Read(&snapshot)
+                        let next = createSnapshot previous result
+                        Interlocked.Exchange(&snapshot, next) |> ignore
 #if DEBUG
                         Logger.LogFile [ "Refreshed snippets." ]
 #endif
@@ -309,16 +338,16 @@ module Suggestion =
 
         let (|NoPrefix|) (value: string) = value.Trim()
 
-        let chooseSnippets pred =
-            snippets
+        let chooseSnippets (current: Snapshot) pred =
+            current.Snippets
             |> Seq.choose (fun x ->
                 if pred x then
                     Some(snippetToTuple x |> PredictiveSuggestion)
                 else
                     None)
 
-        let chooseCompletionTexts pred =
-            snippets
+        let chooseCompletionTexts (current: Snapshot) pred =
+            current.Snippets
             |> Seq.choose (fun x -> if pred x then Some x.Snippet else None)
             |> Seq.toArray
 
@@ -331,13 +360,13 @@ module Suggestion =
 
         let basicGroupIds = [| Snp; Tip |]
 
-        let isKnownGroupIdOrPrefix input =
-            groups.Keys
+        let isKnownGroupIdOrPrefix (current: Snapshot) input =
+            current.GroupIds
             |> Seq.append basicGroupIds
             |> Seq.exists (fun groupId -> groupId.StartsWith(input, StringComparison.Ordinal))
 
-        let chooseGroupIds input =
-            groups.Keys
+        let chooseGroupIds (current: Snapshot) input =
+            current.GroupIds
             |> Seq.append basicGroupIds
             |> Seq.choose (fun groupId ->
                 if groupId <> input && groupId.StartsWith(input) then
@@ -345,10 +374,10 @@ module Suggestion =
                 else
                     None)
 
-        let chooseCompletionGroupIds input =
+        let chooseCompletionGroupIds (current: Snapshot) input =
             let prefix = $":{input}"
 
-            Volatile.Read(&completionIdentifiers)
+            current.CompletionIdentifiers
             |> Array.filter (fun identifier -> identifier.StartsWith(prefix, StringComparison.Ordinal))
 
         abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
@@ -365,7 +394,8 @@ module Suggestion =
             startFileWatchingEvent snippetDirectory
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
-            let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
+            let current = Volatile.Read(&snapshot)
+            let comparisonType = current.SearchComparison
 
             match input with
             | Empty -> Seq.empty
@@ -382,45 +412,51 @@ module Suggestion =
 
                 let groupIds =
                     if not hasSeparator && String.IsNullOrWhiteSpace(input) then
-                        chooseGroupIds groupId
+                        chooseGroupIds current groupId
                     else
                         Seq.empty
 
-                pred |> chooseSnippets |> Seq.append groupIds
-            | NoPrefix input -> _.Snippet.Contains(input, comparisonType) |> chooseSnippets
+                pred |> chooseSnippets current |> Seq.append groupIds
+            | NoPrefix input -> _.Snippet.Contains(input, comparisonType) |> chooseSnippets current
             |> Linq.Enumerable.ToList
 
         member __.getCompletionTexts(input: string) =
-            let comparisonType = caseSensitive |> SearchCaseSensitivity.stringComparison
+            let current = Volatile.Read(&snapshot)
+            let comparisonType = current.SearchComparison
 
             match input with
             | Prefix(Snp, input, _) ->
                 (fun (snippet: SnippetEntry) -> snippet.Snippet.Contains(input, comparisonType))
-                |> chooseCompletionTexts
+                |> chooseCompletionTexts current
             | Prefix(Tip, _, _) -> Array.empty
-            | Prefix(groupId, input, _) when groups.ContainsKey groupId ->
+            | Prefix(groupId, input, _) when current.Groups.Contains groupId ->
                 (fun (snippet: SnippetEntry) ->
                     snippet.Group = groupId && snippet.Snippet.Contains(input, comparisonType))
-                |> chooseCompletionTexts
-            | CompletionIdentifier groupId -> chooseCompletionGroupIds groupId
+                |> chooseCompletionTexts current
+            | CompletionIdentifier groupId -> chooseCompletionGroupIds current groupId
             | _ -> Array.empty
 
         member __.getExactIdentifierSnippetTexts(input: string) =
-            if Volatile.Read(&hasValidConfiguration) then
+            let current = Volatile.Read(&snapshot)
+
+            if current.HasValidConfiguration then
                 match input with
-                | Prefix(Snp, input, false) when String.IsNullOrEmpty(input) -> (fun _ -> true) |> chooseCompletionTexts
+                | Prefix(Snp, input, false) when String.IsNullOrEmpty(input) ->
+                    (fun _ -> true) |> chooseCompletionTexts current
                 | Prefix(Tip, _, false) -> Array.empty
-                | Prefix(groupId, input, false) when String.IsNullOrEmpty(input) && groups.ContainsKey groupId ->
-                    (fun snippet -> snippet.Group = groupId) |> chooseCompletionTexts
+                | Prefix(groupId, input, false) when String.IsNullOrEmpty(input) && current.Groups.Contains groupId ->
+                    (fun snippet -> snippet.Group = groupId) |> chooseCompletionTexts current
                 | _ -> Array.empty
             else
                 Array.empty
 
         member __.isUnknownGroupIdentifier(input: string) =
-            if Volatile.Read(&hasValidConfiguration) then
+            let current = Volatile.Read(&snapshot)
+
+            if current.HasValidConfiguration then
                 match input with
                 | CompletionIdentifier groupId when not (String.IsNullOrEmpty(groupId)) ->
-                    not (isKnownGroupIdOrPrefix groupId)
+                    not (isKnownGroupIdOrPrefix current groupId)
                 | _ -> false
             else
                 false
