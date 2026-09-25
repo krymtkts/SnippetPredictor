@@ -36,6 +36,8 @@ module Suggestion =
     [<Literal>]
     let Tip = "tip"
 
+    let private snpCompletionIdentifiers = [| $":{Snp}" |]
+
     module Disposal =
         [<Literal>]
         let disposed = 1
@@ -72,7 +74,7 @@ module Suggestion =
                 Snippets = Array.empty
                 GroupIds = Array.empty
                 Groups = Set.empty
-                CompletionIdentifiers = [| $":{Snp}" |]
+                CompletionIdentifiers = snpCompletionIdentifiers
                 SearchComparison = StringComparison.OrdinalIgnoreCase
                 HasValidConfiguration = false
             }
@@ -110,7 +112,7 @@ module Suggestion =
                 Snippets = snippets
                 GroupIds = Array.empty
                 Groups = Set.empty
-                CompletionIdentifiers = [| $":{Snp}" |]
+                CompletionIdentifiers = snpCompletionIdentifiers
                 SearchComparison = searchComparison
                 HasValidConfiguration = false
             }
@@ -146,7 +148,7 @@ module Suggestion =
                     groupIds
                     |> Array.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
                     |> Array.map (fun groupId -> $":{groupId}")
-                    |> Array.append [| $":{Snp}" |]
+                    |> Array.append snpCompletionIdentifiers
 
                 {
                     Snippets = snippets
