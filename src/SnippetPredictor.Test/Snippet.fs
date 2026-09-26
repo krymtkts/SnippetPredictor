@@ -375,6 +375,8 @@ module getPredictiveSuggestions =
     let tests_getPredictiveSuggestions =
         let cache = new Suggestion.Cache()
         cache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-valid.json")
+        let completionCache = new Suggestion.Cache()
+        completionCache.load (fun () -> testAssetDirectory, testAssetPath ".snippet-predictor-completion.json")
 
         let expected1 =
             {
@@ -561,6 +563,13 @@ module getPredictiveSuggestions =
                         actual
                         |> asserter expectedGroups[index]
                         |> Expect.isTrue "should return group and matched snippets")
+                }
+
+                test "when group identifiers are partially matched, return them in ordinal order" {
+                    completionCache.getPredictiveSuggestions ":g"
+                    |> Seq.map _.SuggestionText
+                    |> Seq.toArray
+                    |> Expect.equal "should return matching group identifiers in ordinal order" [| ":gr"; ":group" |]
                 }
 
                 test "when a separator follows a partially matched group symbol" {
