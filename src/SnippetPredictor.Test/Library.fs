@@ -360,7 +360,8 @@ module SnippetPredictorInitialization =
                     let subsystem = Init()
                     (subsystem :> IModuleAssemblyInitializer).OnImport()
 
-                    Async.Sleep(1000) |> Async.RunSynchronously
+                    (fun () -> Integration.isUnknownGroupIdentifier ":unsupported")
+                    |> expectEventually "should load config before checking registered predictor integration"
 
                     let predictor = getSnippetPredictorSubsystem ()
                     let predictor = predictor |> Expect.wantSome "should have Snippet predictor"
@@ -421,10 +422,10 @@ module SnippetPredictor =
 
                     let predictor = predictorForTest :> ICommandPredictor
 
-                    // NOTE: This is a workaround for the test; the test crashes without a proper wait.
-                    Async.Sleep(1000) |> Async.RunSynchronously
-
                     let client = PredictionClient("test", PredictionClientKind.Terminal)
+
+                    (fun () -> predictorForTest.GetCompletionTexts(":group Ex").Length > 0)
+                    |> expectEventually "should load fixture before requesting suggestions"
 
                     let suggestionEntries =
                         predictor.GetSuggestion(client, PredictionContext.Create(":group Ex"), CancellationToken.None)
@@ -453,10 +454,10 @@ module SnippetPredictor =
 
                     let predictor = predictorForTest :> ICommandPredictor
 
-                    // NOTE: This is a workaround for the test; the test crashes without a proper wait.
-                    Async.Sleep(1000) |> Async.RunSynchronously
-
                     let client = PredictionClient("test", PredictionClientKind.Terminal)
+
+                    (fun () -> predictorForTest.GetExactIdentifierSnippetTexts(":snp").Length = 2)
+                    |> expectEventually "should load fixture before requesting suggestions"
 
                     let suggestionEntries =
                         predictor.GetSuggestion(client, PredictionContext.Create("ex"), CancellationToken.None)
@@ -482,7 +483,8 @@ module SnippetPredictor =
                     use predictor =
                         new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                    Async.Sleep(1000) |> Async.RunSynchronously
+                    (fun () -> predictor.GetCompletionTexts("    :snp Echo    ") = [| "echo 'example'" |])
+                    |> expectEventually "should load fixture before checking completion texts"
 
                     predictor.GetCompletionTexts("    :snp Echo    ")
                     |> Expect.equal "should provide matching completion texts" [| "echo 'example'" |]
@@ -507,7 +509,8 @@ module SnippetPredictor =
                     use predictor =
                         new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                    Async.Sleep(1000) |> Async.RunSynchronously
+                    (fun () -> predictor.GetExactIdentifierSnippetTexts("    :snp").Length = 3)
+                    |> expectEventually "should load fixture before checking identifier snippets"
 
                     predictor.GetExactIdentifierSnippetTexts("    :snp")
                     |> Expect.equal
@@ -525,7 +528,8 @@ module SnippetPredictor =
                     use predictor =
                         new SnippetPredictorForTest(testAssetPath ".snippet-predictor-valid.json")
 
-                    Async.Sleep(1000) |> Async.RunSynchronously
+                    (fun () -> predictor.GetCompletionTexts(":g") = [| ":gr"; ":group" |])
+                    |> expectEventually "should load fixture before checking unknown groups"
 
                     predictor.IsUnknownGroupIdentifier(":unknown")
                     |> Expect.isTrue "should identify an unknown group identifier"

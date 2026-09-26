@@ -1,7 +1,9 @@
 module SnippetPredictorTest.Utility
 
 open System
+open System.Diagnostics
 open System.IO
+open Expecto.Flip
 
 // Resolve test data from the source directory so test execution doesn't depend on the runner's working directory.
 let testAssetDirectory = __SOURCE_DIRECTORY__
@@ -10,6 +12,19 @@ let testAssetPath (fileName: string) =
     Path.Combine(testAssetDirectory, fileName)
 
 let normalizeNewlines (s: string) = s.Replace("\r\n", "\n")
+
+let waitUntil (timeoutMs: int) (pollMs: int) (predicate: unit -> bool) =
+    let stopwatch = Stopwatch.StartNew()
+    let mutable satisfied = predicate ()
+
+    while not satisfied && stopwatch.ElapsedMilliseconds < int64 timeoutMs do
+        Threading.Thread.Sleep pollMs
+        satisfied <- predicate ()
+
+    satisfied
+
+let expectEventually message predicate =
+    predicate |> waitUntil 5000 20 |> Expect.isTrue message
 
 type TempDirectory(directory: string) =
     member val Path: string = Directory.CreateTempSubdirectory(directory).FullName
@@ -38,13 +53,25 @@ type TempFile(fileName: string, content: string) =
         File.ReadAllText(path) |> normalizeNewlines
 
 type EnvironmentVariable(value: string) =
+    static let gate = new Threading.SemaphoreSlim(1, 1)
     let name = "SNIPPET_PREDICTOR_CONFIG"
-    let originalValue = Environment.GetEnvironmentVariable(name)
+    let mutable originalValue = None
 
-    do Environment.SetEnvironmentVariable(name, value)
+    do
+        gate.Wait()
+
+        try
+            originalValue <- Environment.GetEnvironmentVariable(name) |> Option.ofObj
+            Environment.SetEnvironmentVariable(name, value)
+        with _ ->
+            gate.Release() |> ignore
+            reraise ()
 
     interface IDisposable with
         member __.Dispose() =
-            match originalValue with
-            | null -> Environment.SetEnvironmentVariable(name, null)
-            | _ -> Environment.SetEnvironmentVariable(name, originalValue)
+            try
+                match originalValue with
+                | None -> Environment.SetEnvironmentVariable(name, null)
+                | Some value -> Environment.SetEnvironmentVariable(name, value)
+            finally
+                gate.Release() |> ignore

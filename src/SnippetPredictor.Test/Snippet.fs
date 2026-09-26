@@ -886,14 +886,6 @@ module getPredictiveSuggestions =
 
 module CacheDisposeBehavior =
 
-    let waitUntil (timeoutMs: int) (pollMs: int) (predicate: unit -> bool) =
-        let sw = Stopwatch.StartNew()
-
-        while sw.ElapsedMilliseconds < int64 timeoutMs && not (predicate ()) do
-            System.Threading.Thread.Sleep pollMs
-
-        predicate ()
-
     let waitUntilFileUnlocked (timeoutMs: int) (pollMs: int) (filePath: string) =
         waitUntil timeoutMs pollMs (fun () ->
             try
