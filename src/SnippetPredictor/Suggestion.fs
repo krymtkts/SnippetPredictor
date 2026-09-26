@@ -141,12 +141,15 @@ module Suggestion =
                     | groupId when groups.ContainsKey groupId -> ()
                     | groupId -> groups.TryAdd(groupId, ()) |> ignore)
 
-                let groupIds = groups.Keys |> Seq.toArray
+                let groupIds =
+                    groups.Keys
+                    |> Seq.toArray
+                    |> Array.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
+
                 let groupLookup = groupIds |> Set.ofArray
 
                 let completionIdentifiers =
                     groupIds
-                    |> Array.sortWith (fun left right -> StringComparer.Ordinal.Compare(left, right))
                     |> Array.map (fun groupId -> $":{groupId}")
                     |> Array.append snpCompletionIdentifiers
 
