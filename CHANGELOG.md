@@ -7,11 +7,19 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 ## [Unreleased]
 
+### Added
+
 - Keep unknown group identifiers from executing with `-AcceptChord` and notify users with a bell.
-- Reject null entries and missing, null, empty, or blank `Snippet` values. Treat missing or null `Tooltip` values as empty strings and include JSON paths in diagnostics.
-- Surface snippet configuration file read failures as diagnostics.
+
+### Changed
+
 - Sort group identifier suggestions in ordinal order.
 - Treat `SNIPPET_PREDICTOR_CONFIG` values consisting of whitespace as unset.
+
+### Fixed
+
+- Reject null entries and missing, null, empty, or blank `Snippet` values. Treat missing or null `Tooltip` values as empty strings and include JSON paths in diagnostics.
+- Surface snippet configuration file read failures as diagnostics.
 
 ## [0.8.0] - 2026-09-12
 
