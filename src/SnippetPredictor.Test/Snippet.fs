@@ -347,6 +347,15 @@ module getSnippet =
                         (".", $".{PathSeparator}.snippet-predictor.json")
                 }
 
+                test "when env var path has surrounding whitespace" {
+                    let snippetDirectory = " custom directory "
+
+                    Config.getSnippetPathWith (fun _ -> snippetDirectory) (fun _ -> "")
+                    |> Expect.equal
+                        "should preserve nonblank paths"
+                        (snippetDirectory, Path.Combine(snippetDirectory, ".snippet-predictor.json"))
+                }
+
                 test "when env var is null" {
                     let userProfile = "/Users/username"
 
@@ -360,6 +369,15 @@ module getSnippet =
                     let userProfile = "/Users/username"
 
                     Config.getSnippetPathWith (fun _ -> "") (fun _ -> userProfile)
+                    |> Expect.equal
+                        "should return the default path"
+                        (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
+                }
+
+                test "when env var is whitespace" {
+                    let userProfile = "/Users/username"
+
+                    Config.getSnippetPathWith (fun _ -> " \t\r\n") (fun _ -> userProfile)
                     |> Expect.equal
                         "should return the default path"
                         (userProfile, $"{userProfile}{PathSeparator}.snippet-predictor.json")
@@ -1445,6 +1463,9 @@ module addAndRemoveSnippets =
                     |> fun error ->
                         error.Contains("'An error occurred while reading .snippet-predictor.json'")
                         |> Expect.isTrue "should report a configuration read error"
+
+                    Directory.Exists(tmpDir)
+                    |> Expect.isFalse "should not create the snippet file directory"
                 }
 
                 test "when snippet file is not found" {

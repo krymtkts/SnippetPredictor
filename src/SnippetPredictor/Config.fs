@@ -124,7 +124,7 @@ module Config =
             // NOTE: Split branches to narrow the type (string | null)
             match getEnvironmentVariable environmentVariable with
             | null -> getUserProfilePath ()
-            | path when String.length path = 0 -> getUserProfilePath ()
+            | path when String.IsNullOrWhiteSpace path -> getUserProfilePath ()
             | path -> path
 
         snippetDirectory, Path.Combine(snippetDirectory, snippetFilesName)
