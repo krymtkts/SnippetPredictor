@@ -511,6 +511,31 @@ Describe 'SnippetPredictor' {
                 Enable-SnippetPredictorKeyHandler -AcceptChord $AcceptChord
             } | Should -Throw
         }
+        It 'Enable-SnippetPredictorKeyHandler should reject null or blank <ChordParameter> before changing bindings' -TestCases @(
+            @{ ChordParameter = 'NextChord'; InvalidChord = $null }
+            @{ ChordParameter = 'NextChord'; InvalidChord = '' }
+            @{ ChordParameter = 'NextChord'; InvalidChord = ' ' }
+            @{ ChordParameter = 'PreviousChord'; InvalidChord = $null }
+            @{ ChordParameter = 'PreviousChord'; InvalidChord = '' }
+            @{ ChordParameter = 'PreviousChord'; InvalidChord = ' ' }
+        ) {
+            InModuleScope SnippetPredictor.PSReadLine -Parameters @{
+                ChordParameter = $ChordParameter
+                InvalidChord = $InvalidChord
+            } {
+                $script:SnippetPredictorKeyHandlerBindings = @()
+
+                Mock Remove-SnippetPredictorKeyHandlerBindings
+                Mock Set-PSReadLineKeyHandler
+
+                $parameters = @{}
+                $parameters[$ChordParameter] = $InvalidChord
+                { Enable-SnippetPredictorKeyHandler @parameters } | Should -Throw
+
+                Should -Not -Invoke Remove-SnippetPredictorKeyHandlerBindings
+                Should -Not -Invoke Set-PSReadLineKeyHandler
+            }
+        }
         It 'Disable-SnippetPredictorKeyHandler should be idempotent' {
             {
                 Disable-SnippetPredictorKeyHandler

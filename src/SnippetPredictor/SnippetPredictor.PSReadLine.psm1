@@ -419,7 +419,9 @@ function Disable-SnippetPredictorKeyHandler {
 function Enable-SnippetPredictorKeyHandler {
     [CmdletBinding()]
     param(
+        [ValidateNotNullOrWhiteSpace()]
         [string] $NextChord = 'Tab',
+        [ValidateNotNullOrWhiteSpace()]
         [string] $PreviousChord = 'Shift+Tab',
         [ValidateNotNullOrWhiteSpace()]
         [string] $AcceptChord
