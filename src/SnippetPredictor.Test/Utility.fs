@@ -53,13 +53,25 @@ type TempFile(fileName: string, content: string) =
         File.ReadAllText(path) |> normalizeNewlines
 
 type EnvironmentVariable(value: string) =
+    static let gate = new Threading.SemaphoreSlim(1, 1)
     let name = "SNIPPET_PREDICTOR_CONFIG"
-    let originalValue = Environment.GetEnvironmentVariable(name)
+    let mutable originalValue = None
 
-    do Environment.SetEnvironmentVariable(name, value)
+    do
+        gate.Wait()
+
+        try
+            originalValue <- Environment.GetEnvironmentVariable(name) |> Option.ofObj
+            Environment.SetEnvironmentVariable(name, value)
+        with _ ->
+            gate.Release() |> ignore
+            reraise ()
 
     interface IDisposable with
         member __.Dispose() =
-            match originalValue with
-            | null -> Environment.SetEnvironmentVariable(name, null)
-            | _ -> Environment.SetEnvironmentVariable(name, originalValue)
+            try
+                match originalValue with
+                | None -> Environment.SetEnvironmentVariable(name, null)
+                | Some value -> Environment.SetEnvironmentVariable(name, value)
+            finally
+                gate.Release() |> ignore
