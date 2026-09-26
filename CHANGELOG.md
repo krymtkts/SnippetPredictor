@@ -11,6 +11,7 @@ This project uses prerelease versions such as 0.1.0-alpha.
 - Reject null entries and missing, null, empty, or blank `Snippet` values. Treat missing or null `Tooltip` values as empty strings and include JSON paths in diagnostics.
 - Surface snippet configuration file read failures as diagnostics.
 - Sort group identifier suggestions in ordinal order.
+- Treat `SNIPPET_PREDICTOR_CONFIG` values consisting of whitespace as unset.
 
 ## [0.8.0] - 2026-09-12
 
