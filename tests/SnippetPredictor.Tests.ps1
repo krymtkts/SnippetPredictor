@@ -902,13 +902,19 @@ Describe 'SnippetPredictor' {
     }
     BeforeAll {
         $originalConfigPath = $env:SNIPPET_PREDICTOR_CONFIG
+        $configFilePath = Join-Path $PSScriptRoot '.snippet-predictor.json'
+        $originalConfigBytes = [System.IO.File]::ReadAllBytes($configFilePath)
         $env:SNIPPET_PREDICTOR_CONFIG = $PSScriptRoot
     }
     AfterAll {
-        # Remove-Module -Name 'SnippetPredictor' -Force
-        Remove-Item Env:SNIPPET_PREDICTOR_CONFIG -ErrorAction SilentlyContinue
-        if ($originalConfigPath) {
-            $env:SNIPPET_PREDICTOR_CONFIG = $originalConfigPath
+        try {
+            [System.IO.File]::WriteAllBytes($configFilePath, $originalConfigBytes)
+        }
+        finally {
+            Remove-Item Env:SNIPPET_PREDICTOR_CONFIG -ErrorAction SilentlyContinue
+            if ($originalConfigPath) {
+                $env:SNIPPET_PREDICTOR_CONFIG = $originalConfigPath
+            }
         }
     }
     Context 'Get-Snippet' {
