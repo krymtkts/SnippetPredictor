@@ -12,7 +12,7 @@
     RootModule = 'SnippetPredictor.dll'
 
     # Version number of this module.
-    ModuleVersion = '0.8.0'
+    ModuleVersion = '0.9.0'
 
     # Supported PSEditions
     CompatiblePSEditions = @(
@@ -125,6 +125,23 @@
             # ReleaseNotes of this module
 
             ReleaseNotes = @'
+## [0.9.0] - 2026-09-27
+
+### Added
+
+- Keep unknown group identifiers from executing with `-AcceptChord` and notify users with a bell.
+
+### Changed
+
+- Sort group identifier suggestions in ordinal order.
+- Treat `SNIPPET_PREDICTOR_CONFIG` values consisting of whitespace as unset.
+
+### Fixed
+
+- Reject null entries and missing, null, empty, or blank `Snippet` values. Treat missing or null `Tooltip` values as empty strings and include JSON paths in diagnostics.
+- Surface snippet configuration file read failures as diagnostics.
+- Reject null, empty, or all-whitespace values for `NextChord` and `PreviousChord`.
+
 ## [0.8.0] - 2026-09-12
 
 ### Added
@@ -138,12 +155,6 @@
 - Add `Enable-SnippetPredictorKeyHandler` to register opt-in key bindings. The default Tab and Shift+Tab bindings cycle through `:snp` completion candidates. Provide composable handlers for custom completion and prediction ListView bindings.
 - Add identifier and group-scoped snippet completion to the opt-in key bindings. Complete `:snp` and group identifiers from `:` or partial input. Complete matching snippets after an exact identifier.
 - Add lifecycle cleanup for the opt-in PSReadLine key bindings. Provide `Disable-SnippetPredictorKeyHandler` for explicit cleanup. Clean up registered bindings automatically on module removal.
-
-## [0.6.0] - 2026-06-27
-
-### Fixed
-
-- Refine the regular expression pattern to support leading whitespace in snippet input.
 
 Full CHANGELOG: https://github.com/krymtkts/SnippetPredictor/blob/main/CHANGELOG.md
 '@
