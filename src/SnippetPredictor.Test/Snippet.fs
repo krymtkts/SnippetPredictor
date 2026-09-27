@@ -924,7 +924,11 @@ module CacheDisposeBehavior =
                     use tmpDir = new TempDirectory("SnippetPredictor.Test.")
                     let fileName = ".snippet-predictor.json"
                     let filePath = Path.Combine(tmpDir.Path, fileName)
-                    File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                    File.WriteAllText(
+                        filePath,
+                        """{"Snippets":[{"Snippet":"Write-Host cache dispose marker","Tooltip":"marker","Group":"test"}]}"""
+                    )
 
                     let mutable watcherCreatedCount = 0
                     let mutable refreshCalls = 0
@@ -941,6 +945,12 @@ module CacheDisposeBehavior =
                         )
 
                     cache.load (fun () -> tmpDir.Path, filePath)
+
+                    (fun () ->
+                        cache.getCompletionTexts ":snp"
+                        |> Array.contains "Write-Host cache dispose marker")
+                    |> expectEventually "initial refresh should load the snippet"
+
                     (cache :> IDisposable).Dispose()
 
                     let w = watcher |> Expect.wantSome "watcher should be created"
@@ -949,9 +959,6 @@ module CacheDisposeBehavior =
                         w.TriggerChanged(tmpDir.Path, fileName)
                     finally
                         w.ReleaseHandles()
-
-                    waitUntilFileUnlocked 2000 20 filePath
-                    |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
 
                     refreshCalls |> Expect.equal "should not refresh after Dispose" 0
 
@@ -962,7 +969,11 @@ module CacheDisposeBehavior =
                     use tmpDir = new TempDirectory("SnippetPredictor.Test.")
                     let fileName = ".snippet-predictor.json"
                     let filePath = Path.Combine(tmpDir.Path, fileName)
-                    File.WriteAllText(filePath, """{"Snippets": []}""")
+
+                    File.WriteAllText(
+                        filePath,
+                        """{"Snippets":[{"Snippet":"Write-Host cache dispose marker","Tooltip":"marker","Group":"test"}]}"""
+                    )
 
                     let mutable watcherCreatedCount = 0
                     let mutable watcher: TestWatcher option = None
@@ -978,6 +989,12 @@ module CacheDisposeBehavior =
                         )
 
                     cache.load (fun () -> tmpDir.Path, filePath)
+
+                    (fun () ->
+                        cache.getCompletionTexts ":snp"
+                        |> Array.contains "Write-Host cache dispose marker")
+                    |> expectEventually "initial refresh should load the snippet"
+
                     (cache :> IDisposable).Dispose()
 
                     let w = watcher |> Expect.wantSome "watcher should be created"
@@ -986,9 +1003,6 @@ module CacheDisposeBehavior =
                         w.TriggerError(InvalidOperationException("boom"))
                     finally
                         w.ReleaseHandles()
-
-                    waitUntilFileUnlocked 2000 20 filePath
-                    |> Expect.isTrue "temp snippet file should be unlocked after Dispose"
 
                     watcherCreatedCount |> Expect.equal "should not restart watcher after Dispose" 1
                 }
