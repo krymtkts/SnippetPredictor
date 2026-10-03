@@ -4,6 +4,7 @@ module Suggestion =
     open System
     open System.Collections
     open System.IO
+    open System.Globalization
     open System.Management.Automation.Subsystem.Prediction
     open System.Text.RegularExpressions
     open System.Threading
@@ -343,13 +344,67 @@ module Suggestion =
 
         let (|NoPrefix|) (value: string) = value.Trim()
 
-        let chooseSnippets (current: Snapshot) pred =
-            current.Snippets
-            |> Seq.choose (fun x ->
-                if pred x then
-                    Some(snippetToTuple x |> PredictiveSuggestion)
+        let isWordCharacter (text: string) index =
+            let index =
+                if
+                    index > 0
+                    && Char.IsLowSurrogate(text[index])
+                    && Char.IsHighSurrogate(text[index - 1])
+                then
+                    index - 1
                 else
-                    None)
+                    index
+
+            match CharUnicodeInfo.GetUnicodeCategory(text, index) with
+            | UnicodeCategory.UppercaseLetter
+            | UnicodeCategory.LowercaseLetter
+            | UnicodeCategory.TitlecaseLetter
+            | UnicodeCategory.ModifierLetter
+            | UnicodeCategory.OtherLetter
+            | UnicodeCategory.DecimalDigitNumber
+            | UnicodeCategory.NonSpacingMark
+            | UnicodeCategory.SpacingCombiningMark
+            | UnicodeCategory.EnclosingMark
+            | UnicodeCategory.ConnectorPunctuation -> true
+            | _ -> false
+
+        let matchRank (comparison: StringComparison) (query: string) (text: string) =
+            let first = text.IndexOf(query, comparison)
+
+            if first < 0 then
+                None
+            elif first = 0 then
+                Some(if text.Length = query.Length then 0 else 1)
+            else
+                let mutable position = first
+                let mutable wordStart = false
+
+                while position >= 0 && not wordStart do
+                    wordStart <- not (isWordCharacter text (position - 1))
+
+                    if not wordStart then
+                        position <- text.IndexOf(query, position + 1, comparison)
+
+                Some(if wordStart then 2 else 3)
+
+        let chooseSnippets (current: Snapshot) pred field query =
+            if String.IsNullOrEmpty(query) then
+                current.Snippets
+                |> Seq.choose (fun snippet ->
+                    if pred snippet then
+                        Some(snippetToTuple snippet |> PredictiveSuggestion)
+                    else
+                        None)
+            else
+                let buckets = Array.init 4 (fun _ -> Generic.List<PredictiveSuggestion>())
+
+                for snippet in current.Snippets do
+                    if pred snippet then
+                        match field snippet |> matchRank current.SearchComparison query with
+                        | Some rank -> buckets[rank].Add(snippetToTuple snippet |> PredictiveSuggestion)
+                        | None -> ()
+
+                buckets |> Seq.collect id
 
         let chooseCompletionTexts (current: Snapshot) pred =
             current.Snippets
@@ -400,7 +455,6 @@ module Suggestion =
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
             let current = Volatile.Read(&snapshot)
-            let comparisonType = current.SearchComparison
 
             match input with
             | Empty -> Seq.empty
@@ -409,11 +463,11 @@ module Suggestion =
                 Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
 #endif
 
-                let pred =
+                let pred, field =
                     match groupId with
-                    | Snp -> _.Snippet.Contains(input, comparisonType)
-                    | Tip -> _.Tooltip.Contains(input, comparisonType)
-                    | groupId -> fun (s: SnippetEntry) -> s.Group = groupId && s.Snippet.Contains(input, comparisonType)
+                    | Snp -> (fun _ -> true), (fun (snippet: SnippetEntry) -> snippet.Snippet)
+                    | Tip -> (fun _ -> true), (fun snippet -> snippet.Tooltip)
+                    | groupId -> (fun snippet -> snippet.Group = groupId), (fun snippet -> snippet.Snippet)
 
                 let groupIds =
                     if not hasSeparator && String.IsNullOrWhiteSpace(input) then
@@ -421,8 +475,8 @@ module Suggestion =
                     else
                         Seq.empty
 
-                pred |> chooseSnippets current |> Seq.append groupIds
-            | NoPrefix input -> _.Snippet.Contains(input, comparisonType) |> chooseSnippets current
+                input |> chooseSnippets current pred field |> Seq.append groupIds
+            | NoPrefix input -> input |> chooseSnippets current (fun _ -> true) _.Snippet
             |> Linq.Enumerable.ToList
 
         member __.getCompletionTexts(input: string) =
