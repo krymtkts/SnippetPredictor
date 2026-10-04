@@ -336,6 +336,91 @@ let tests_predictionRanking =
                         [| texts[6]; texts[2]; texts[3]; texts[4]; texts[5]; texts[0]; texts[1] |])
             }
 
+            test "skips trailing query initials without losing middle word starts" {
+                let texts =
+                    [|
+                        "digit digit gx gix g"
+                        "digit digit git gx gix g"
+                        "digit digit GIT gx gix g"
+                        "digit digit git" + String.replicate 10000 "x"
+                        "digit digit digit" + String.replicate 10000 "x"
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [| texts[1]; texts[3]; texts[0]; texts[2]; texts[4] |]
+                        else
+                            [| texts[1]; texts[2]; texts[3]; texts[0]; texts[4] |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should validate full queries and preserve stable ranks" expected)
+            }
+
+            test "retains overlapping and differently cased matches around the literal endpoint" {
+                let texts =
+                    [|
+                        "xaaa xaaaa"
+                        "xaaa aa xaaaa"
+                        "xaaa AA xaaaa"
+                        "xaaa xaaa AA"
+                        "xaaa aa xa"
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [| texts[1]; texts[4]; texts[0]; texts[2]; texts[3] |]
+                        else
+                            [| texts[1]; texts[2]; texts[3]; texts[4]; texts[0] |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "aa"
+                        |> Array.map fst
+                        |> Expect.equal "should inspect both sides of the literal endpoint" expected)
+            }
+
+            test "preserves ordinal casing for Unicode tails and ASCII lookalikes" {
+                for sensitive in [ false; true ] do
+                    let comparison =
+                        if sensitive then
+                            StringComparison.Ordinal
+                        else
+                            StringComparison.OrdinalIgnoreCase
+
+                    for query in [| "snp"; "kit"; "item"; "gÉ"; "é" |] do
+                        let tails =
+                            [|
+                                query
+                                query.ToUpperInvariant()
+                                "ſnp"
+                                "Kit"
+                                "ıtem"
+                                "İtem"
+                                "gÈ"
+                                "Gé"
+                                "É"
+                            |]
+
+                        let texts = tails |> Array.map (fun tail -> $"x{query} x{query} {tail}")
+
+                        let matches, internalMatches =
+                            Array.zip tails texts
+                            |> Array.partition (fun (tail, _) -> tail.StartsWith(query, comparison))
+
+                        let expected = Array.append matches internalMatches |> Array.map snd
+
+                        withCache sensitive texts (fun cache ->
+                            cache
+                            |> suggestions query
+                            |> Array.map fst
+                            |> Expect.equal "should retain the runtime ordinal comparison rules" expected)
+            }
+
             test "preserves ranks for ASCII and Unicode query initials" {
                 for sensitive in [ false; true ] do
                     for query in [| "git"; "GIT"; "-git"; "a-a"; "é"; "éGIT"; String.replicate 16 "g" + "it" |] do
