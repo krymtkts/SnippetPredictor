@@ -289,6 +289,27 @@ let tests_predictionRanking =
                     |> Array.map fst
                     |> Expect.equal "should inspect overlapping occurrences" [| "xa-a-a"; "xa-a" |])
             }
+
+            test "preserves ranks for ASCII and Unicode query initials" {
+                for sensitive in [ false; true ] do
+                    for query in [| "git"; "GIT"; "-git"; "a-a"; "é"; "éGIT"; String.replicate 16 "g" + "it" |] do
+                        let texts =
+                            [|
+                                "x" + query
+                                "x" + query + " " + query
+                                query + " tail"
+                                query
+                                "x" + query + "-" + query
+                            |]
+
+                        withCache sensitive texts (fun cache ->
+                            cache
+                            |> suggestions query
+                            |> Array.map fst
+                            |> Expect.equal
+                                "should preserve the best occurrence and stable ranks"
+                                [| texts[3]; texts[2]; texts[1]; texts[4]; texts[0] |])
+            }
         ]
 
 [<Tests>]

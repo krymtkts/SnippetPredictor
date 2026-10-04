@@ -392,7 +392,7 @@ module Suggestion =
                 | UnicodeCategory.ConnectorPunctuation -> true
                 | _ -> false
 
-        let matchRank (comparison: StringComparison) (query: string) (text: string) =
+        let matchRank (comparison: StringComparison) asciiQuery alternateInitial (query: string) (text: string) =
             let first = text.IndexOf(query, comparison)
 
             if first < 0 then
@@ -405,14 +405,32 @@ module Suggestion =
                         PrefixMatchRank
                 )
             else
-                let mutable position = first
-                let mutable wordStart = false
+                let mutable wordStart = not (isWordCharacter text (first - 1))
 
-                while position >= 0 && not wordStart do
-                    wordStart <- not (isWordCharacter text (position - 1))
+                if asciiQuery then
+                    let initial = query[0]
+                    let querySpan = query.AsSpan()
+                    let last = text.Length - query.Length
+                    let mutable position = first + 1
 
-                    if not wordStart then
+                    while position <= last && not wordStart do
+                        let candidate = text[position]
+
+                        if
+                            (candidate = initial || candidate = alternateInitial || candidate > '\u007F')
+                            && not (isWordCharacter text (position - 1))
+                        then
+                            wordStart <- MemoryExtensions.StartsWith(text.AsSpan(position), querySpan, comparison)
+
+                        position <- position + 1
+                else
+                    let mutable position = first
+
+                    while position >= 0 && not wordStart do
                         position <- text.IndexOf(query, position + 1, comparison)
+
+                        if position >= 0 then
+                            wordStart <- not (isWordCharacter text (position - 1))
 
                 ValueSome(if wordStart then WordStartMatchRank else SubstringMatchRank)
 
@@ -433,7 +451,27 @@ module Suggestion =
                 if pred snippet then
                     snippet |> snippetToSuggestion |> suggestions.Add
 
-        let collectMatches (current: Snapshot) pred field query =
+        let collectMatches (current: Snapshot) pred field (query: string) =
+            let mutable asciiQuery = true
+            let mutable queryPosition = 0
+
+            while queryPosition < query.Length && asciiQuery do
+                asciiQuery <- query[queryPosition] <= '\u007F'
+                queryPosition <- queryPosition + 1
+
+            let initial = query[0]
+
+            let alternateInitial =
+                if current.SearchComparison = StringComparison.OrdinalIgnoreCase then
+                    if initial >= 'a' && initial <= 'z' then
+                        char (int initial - 32)
+                    elif initial >= 'A' && initial <= 'Z' then
+                        char (int initial + 32)
+                    else
+                        initial
+                else
+                    initial
+
             let mutable matches: struct (int * int) array = Array.empty
             let mutable count = 0
             let mutable limit = 0
@@ -443,7 +481,10 @@ module Suggestion =
                 let snippet = current.Snippets[index]
 
                 if pred snippet then
-                    match field snippet |> matchRank current.SearchComparison query with
+                    match
+                        field snippet
+                        |> matchRank current.SearchComparison asciiQuery alternateInitial query
+                    with
                     | ValueSome rank ->
                         if count = 0 then
                             limit <- current.Snippets.Length - index
