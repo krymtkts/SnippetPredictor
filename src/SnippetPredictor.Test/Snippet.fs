@@ -216,8 +216,11 @@ let tests_predictionRanking =
                         |> Array.collect (fun sample ->
                             texts
                             |> Array.mapi (fun index text -> index, text)
-                            |> Array.filter (fun (_, text) -> text = samples[sample])
-                            |> Array.map (fun (index, text) -> text, $"[git]tooltip {index}"))
+                            |> Array.choose (fun (index, text) ->
+                                if text = samples[sample] then
+                                    Some(text, $"[git]tooltip {index}")
+                                else
+                                    None))
 
                     withCache false texts (fun cache ->
                         for input in [ "git"; ":snp git"; ":git git" ] do
