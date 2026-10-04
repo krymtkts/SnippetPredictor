@@ -92,6 +92,7 @@ module Cmdlets =
                     let expected =
                         """{
   "SearchCaseSensitive": false,
+  "PredictOnlyWithIdentifier": false,
   "Snippets": [
     {
       "Snippet": "Add-Snippet 'echo test'",
@@ -250,6 +251,7 @@ module Cmdlets =
                     let expected =
                         """{
   "SearchCaseSensitive": false,
+  "PredictOnlyWithIdentifier": false,
   "Snippets": []
 }"""
                         |> normalizeNewlines

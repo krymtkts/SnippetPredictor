@@ -77,6 +77,7 @@ module Suggestion =
             Groups: Set<string>
             CompletionIdentifiers: string array
             SearchComparison: StringComparison
+            PredictOnlyWithIdentifier: bool
             HasValidConfiguration: bool
         }
 
@@ -89,6 +90,7 @@ module Suggestion =
                 Groups = Set.empty
                 CompletionIdentifiers = snpCompletionIdentifiers
                 SearchComparison = StringComparison.OrdinalIgnoreCase
+                PredictOnlyWithIdentifier = false
                 HasValidConfiguration = false
             }
 
@@ -127,6 +129,7 @@ module Suggestion =
                 Groups = Set.empty
                 CompletionIdentifiers = snpCompletionIdentifiers
                 SearchComparison = searchComparison
+                PredictOnlyWithIdentifier = false
                 HasValidConfiguration = false
             }
 
@@ -136,6 +139,7 @@ module Suggestion =
             | ConfigState.Invalid errorEntry -> createFallbackSnapshot [| errorEntry |] previous.SearchComparison
             | ConfigState.Valid {
                                     SearchCaseSensitive = searchCaseSensitive
+                                    PredictOnlyWithIdentifier = predictOnlyWithIdentifier
                                     Snippets = entries
                                 } ->
                 let snippets =
@@ -176,6 +180,7 @@ module Suggestion =
                         |> SearchCaseSensitivity.ofBool
                         |> SearchCaseSensitivity.stringComparison
                     HasValidConfiguration = true
+                    PredictOnlyWithIdentifier = predictOnlyWithIdentifier
                 }
 
         let startRefreshTask (path: string) =
@@ -593,8 +598,11 @@ module Suggestion =
 
                 input |> chooseSnippets current pred field suggestions
             | NoPrefix input ->
-                input
-                |> chooseSnippets current (fun _ -> true) _.Snippet (Generic.List<PredictiveSuggestion>())
+                if current.PredictOnlyWithIdentifier && input <> ":" then
+                    Generic.List<PredictiveSuggestion>()
+                else
+                    input
+                    |> chooseSnippets current (fun _ -> true) _.Snippet (Generic.List<PredictiveSuggestion>())
 
         member __.getCompletionTexts(input: string) =
             let current = Volatile.Read(&snapshot)

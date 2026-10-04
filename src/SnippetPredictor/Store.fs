@@ -48,6 +48,7 @@ module Store =
             | ConfigState.Empty ->
                 {
                     SearchCaseSensitive = false
+                    PredictOnlyWithIdentifier = false
                     Snippets = Array.ofSeq snippets
                 }
                 |> storeConfig getSnippetPath
