@@ -315,6 +315,27 @@ let tests_predictionRanking =
                     |> Expect.equal "should inspect overlapping occurrences" [| "xa-a-a"; "xa-a" |])
             }
 
+            test "finds middle word starts when later occurrences are internal" {
+                let texts =
+                    [|
+                        "digit digit"
+                        "digit digit digit"
+                        "digit digit git digit"
+                        "digit git digit"
+                        "digit digit git"
+                        "digit digit digit git digit digit"
+                        "git"
+                    |]
+
+                withCache false texts (fun cache ->
+                    cache
+                    |> suggestions "git"
+                    |> Array.map fst
+                    |> Expect.equal
+                        "should consider every occurrence needed for the best rank"
+                        [| texts[6]; texts[2]; texts[3]; texts[4]; texts[5]; texts[0]; texts[1] |])
+            }
+
             test "preserves ranks for ASCII and Unicode query initials" {
                 for sensitive in [ false; true ] do
                     for query in [| "git"; "GIT"; "-git"; "a-a"; "é"; "éGIT"; String.replicate 16 "g" + "it" |] do

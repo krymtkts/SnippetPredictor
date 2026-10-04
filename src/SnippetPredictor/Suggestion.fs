@@ -392,60 +392,35 @@ module Suggestion =
                 | UnicodeCategory.ConnectorPunctuation -> true
                 | _ -> false
 
-        let isAsciiQuery (query: string) =
-            let mutable asciiQuery = true
-            let mutable position = 0
-
-            while position < query.Length && asciiQuery do
-                asciiQuery <- query[position] <= '\u007F'
-                position <- position + 1
-
-            asciiQuery
-
-        let alternateQueryInitial comparison initial =
-            if comparison = StringComparison.OrdinalIgnoreCase then
-                if initial >= 'a' && initial <= 'z' then
-                    char (int initial - 32)
-                elif initial >= 'A' && initial <= 'Z' then
-                    char (int initial + 32)
-                else
-                    initial
-            else
-                initial
-
-        let hasAsciiWordStart comparison alternateInitial (query: string) (text: string) first =
-            let initial = query[0]
-            let querySpan = query.AsSpan()
-            let last = text.Length - query.Length
-            let mutable position = first + 1
-            let mutable wordStart = false
-
-            while position <= last && not wordStart do
-                let candidate = text[position]
-
-                if
-                    (candidate = initial || candidate = alternateInitial || candidate > '\u007F')
-                    && not (isWordCharacter text (position - 1))
-                then
-                    wordStart <- MemoryExtensions.StartsWith(text.AsSpan(position), querySpan, comparison)
-
-                position <- position + 1
-
-            wordStart
-
         let hasLaterWordStart (comparison: StringComparison) (query: string) (text: string) first =
-            let mutable position = first
-            let mutable wordStart = false
+            let next = text.IndexOf(query, first + 1, comparison)
 
-            while position >= 0 && not wordStart do
-                position <- text.IndexOf(query, position + 1, comparison)
+            if next < 0 then
+                false
+            elif not (isWordCharacter text (next - 1)) then
+                true
+            else
+                let last = text.LastIndexOf(query, comparison)
 
-                if position >= 0 then
-                    wordStart <- not (isWordCharacter text (position - 1))
+                if last = next then
+                    false
+                elif not (isWordCharacter text (last - 1)) then
+                    true
+                else
+                    let mutable position = next
+                    let mutable wordStart = false
 
-            wordStart
+                    while position >= 0 && not wordStart do
+                        position <- text.IndexOf(query, position + 1, comparison)
 
-        let matchRank (comparison: StringComparison) asciiQuery alternateInitial (query: string) (text: string) =
+                        if position >= last then
+                            position <- -1
+                        elif position >= 0 then
+                            wordStart <- not (isWordCharacter text (position - 1))
+
+                    wordStart
+
+        let matchRank (comparison: StringComparison) (query: string) (text: string) =
             let first = text.IndexOf(query, comparison)
 
             if first < 0 then
@@ -461,8 +436,6 @@ module Suggestion =
                 let wordStart =
                     if not (isWordCharacter text (first - 1)) then
                         true
-                    elif asciiQuery then
-                        hasAsciiWordStart comparison alternateInitial query text first
                     else
                         hasLaterWordStart comparison query text first
 
@@ -486,9 +459,6 @@ module Suggestion =
                     snippet |> snippetToSuggestion |> suggestions.Add
 
         let collectMatches (current: Snapshot) pred field (query: string) =
-            let asciiQuery = isAsciiQuery query
-            let alternateInitial = alternateQueryInitial current.SearchComparison query[0]
-
             let mutable matches: struct (int * int) array = Array.empty
             let mutable count = 0
             let mutable limit = 0
@@ -498,10 +468,7 @@ module Suggestion =
                 let snippet = current.Snippets[index]
 
                 if pred snippet then
-                    match
-                        field snippet
-                        |> matchRank current.SearchComparison asciiQuery alternateInitial query
-                    with
+                    match field snippet |> matchRank current.SearchComparison query with
                     | ValueSome rank ->
                         if count = 0 then
                             limit <- current.Snippets.Length - index
