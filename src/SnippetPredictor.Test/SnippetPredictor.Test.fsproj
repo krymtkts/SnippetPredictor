@@ -25,6 +25,7 @@
   <ItemGroup>
     <Compile Include="Utility.fs" />
     <Compile Include="Snippet.fs" />
+    <Compile Include="PredictionScope.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

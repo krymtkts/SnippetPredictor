@@ -119,10 +119,24 @@ type SearchCaseSensitiveJsonConverter() =
     override _.Write(writer: Utf8JsonWriter, value: bool, options: JsonSerializerOptions) =
         value |> writer.WriteBooleanValue
 
+type PredictOnlyWithIdentifierJsonConverter() =
+    inherit JsonConverter<bool>()
+
+    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, _options: JsonSerializerOptions) =
+        if reader.TokenType = JsonTokenType.Null then
+            false
+        else
+            reader.GetBoolean()
+
+    override _.Write(writer: Utf8JsonWriter, value: bool, _options: JsonSerializerOptions) =
+        value |> writer.WriteBooleanValue
+
 type SnippetConfig =
     {
         [<JsonConverter(typeof<SearchCaseSensitiveJsonConverter>)>]
         SearchCaseSensitive: bool
+        [<JsonConverter(typeof<PredictOnlyWithIdentifierJsonConverter>)>]
+        PredictOnlyWithIdentifier: bool
         // NOTE: A property-level converter here must target the array, not one SnippetEntry item.
         // A type-level attribute would also affect serialization.
         Snippets: SnippetEntry array | null

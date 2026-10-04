@@ -607,6 +607,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Valid"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets = null
                     }
             }
@@ -634,6 +635,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Valid"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets = null
                     }
             }
@@ -664,6 +666,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Valid"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets = [||]
                     }
             }
@@ -676,6 +679,7 @@ let tests_parseSnippets =
                     "should normalize missing and null tooltips"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         Snippets =
                             [|
                                 {
@@ -712,6 +716,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Valid"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         Snippets =
                             [|
                                 {
@@ -731,6 +736,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Valid"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets =
                             [|
                                 {
@@ -755,6 +761,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Valid"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets =
                             [|
                                 {
@@ -774,6 +781,7 @@ let tests_parseSnippets =
                     "should return ConfigState.Valid"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets =
                             [|
                                 {
@@ -806,6 +814,7 @@ let tests_parseSnippets =
                     "should return SearchCaseSensitive"
                     {
                         SearchCaseSensitive = true
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets =
                             [|
                                 {
@@ -824,6 +833,7 @@ let tests_parseSnippets =
                     "should return SearchCaseSensitive"
                     {
                         SearchCaseSensitive = false
+                        PredictOnlyWithIdentifier = false
                         SnippetConfig.Snippets =
                             [|
                                 {
@@ -1999,6 +2009,7 @@ module addAndRemoveSnippets =
                     let expected =
                         """{
   "SearchCaseSensitive": false,
+  "PredictOnlyWithIdentifier": false,
   "Snippets": [
     {
       "Snippet": "echo '1'",
@@ -2047,6 +2058,7 @@ module addAndRemoveSnippets =
                     let expected =
                         """{
   "SearchCaseSensitive": false,
+  "PredictOnlyWithIdentifier": false,
   "Snippets": [
     {
       "Snippet": "echo '3'",
@@ -2078,6 +2090,7 @@ module addAndRemoveSnippets =
                     let expected =
                         """{
   "SearchCaseSensitive": false,
+  "PredictOnlyWithIdentifier": false,
   "Snippets": [
     {
       "Snippet": "echo '3'",
@@ -2109,6 +2122,7 @@ module addAndRemoveSnippets =
                     let expected =
                         """{
   "SearchCaseSensitive": false,
+  "PredictOnlyWithIdentifier": false,
   "Snippets": [
     {
       "Snippet": "echo '4'",
@@ -2171,6 +2185,7 @@ module addAndRemoveSnippets =
                     let expected =
                         """{
   "SearchCaseSensitive": false,
+  "PredictOnlyWithIdentifier": false,
   "Snippets": []
 }"""
                         |> normalizeNewlines
