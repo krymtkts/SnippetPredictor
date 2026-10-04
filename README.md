@@ -156,6 +156,27 @@ By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
 The default value is `false`.
 
+Set `PredictOnlyWithIdentifier` to `true` to suppress predictions for ordinary input.
+Edit `.snippet-predictor.json`:
+
+```json
+{
+  "PredictOnlyWithIdentifier": true,
+  "Snippets": [
+    {
+      "Snippet": "git status",
+      "Tooltip": "Show working tree status",
+      "Group": "git"
+    }
+  ]
+}
+```
+
+Identifier-based predictions keep their existing behavior.
+`:snp`, `:tip`, group and partial identifiers, and standalone `:` aren't affected.
+Omitting the setting or using `false` or `null` keeps the default behavior.
+This setting affects predictions, not completion or accept handlers.
+
 You can list your registered snippets with the `Get-Snippet` command.
 
 To remove a snippet, use the `Remove-Snippet` command.
