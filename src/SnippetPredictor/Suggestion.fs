@@ -392,6 +392,20 @@ module Suggestion =
                 | UnicodeCategory.ConnectorPunctuation -> true
                 | _ -> false
 
+        let hasWordStartInRange comparison (query: string) (text: string) start count =
+            let finish = start + count
+            let mutable position = text.IndexOf(query, start, count, comparison)
+            let mutable wordStart = false
+
+            while position >= 0 && not wordStart do
+                wordStart <- not (isWordCharacter text (position - 1))
+
+                if not wordStart then
+                    let next = position + 1
+                    position <- text.IndexOf(query, next, finish - next, comparison)
+
+            wordStart
+
         let hasLaterWordStart (comparison: StringComparison) (query: string) (text: string) first =
             let next = text.IndexOf(query, first + 1, comparison)
 
@@ -400,25 +414,17 @@ module Suggestion =
             elif not (isWordCharacter text (next - 1)) then
                 true
             else
-                let last = text.LastIndexOf(query, comparison)
+                let last =
+                    MemoryExtensions.LastIndexOf(text.AsSpan(), text.AsSpan(next, query.Length))
 
-                if last = next then
-                    false
-                elif not (isWordCharacter text (last - 1)) then
+                if not (isWordCharacter text (last - 1)) then
                     true
+                elif hasWordStartInRange comparison query text (last + 1) (text.Length - last - 1) then
+                    true
+                elif last > next then
+                    hasWordStartInRange comparison query text (next + 1) (last + query.Length - next - 2)
                 else
-                    let mutable position = next
-                    let mutable wordStart = false
-
-                    while position >= 0 && not wordStart do
-                        position <- text.IndexOf(query, position + 1, comparison)
-
-                        if position >= last then
-                            position <- -1
-                        elif position >= 0 then
-                            wordStart <- not (isWordCharacter text (position - 1))
-
-                    wordStart
+                    false
 
         let matchRank (comparison: StringComparison) (query: string) (text: string) =
             let first = text.IndexOf(query, comparison)
