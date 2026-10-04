@@ -185,6 +185,28 @@ let tests_predictionRanking =
                         |> Array.map fst
                         |> Expect.equal "should preserve membership and stable ASCII boundary ranks" expected))
 
+            for sensitive in [ false; true ] do
+                testCase $"finds later word starts with opposite case {sensitive}" (fun () ->
+                    let texts = [| "digit"; "digit GIT"; "DIGIT"; "DIGIT git" |]
+
+                    withCache sensitive texts (fun cache ->
+                        let lowerExpected, upperExpected =
+                            if sensitive then
+                                [| texts[3]; texts[0]; texts[1] |], [| texts[1]; texts[2]; texts[3] |]
+                            else
+                                [| texts[1]; texts[3]; texts[0]; texts[2] |],
+                                [| texts[1]; texts[3]; texts[0]; texts[2] |]
+
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should honor comparison at later uppercase initials" lowerExpected
+
+                        cache
+                        |> suggestions "GIT"
+                        |> Array.map fst
+                        |> Expect.equal "should honor comparison at later lowercase initials" upperExpected))
+
             test "preserves sparse matches and empty results" {
                 for matchIndex in [ 0; 64; 127 ] do
                     let texts = Array.create 128 "unrelated"
