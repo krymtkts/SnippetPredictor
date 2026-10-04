@@ -24,6 +24,9 @@ type Scenario =
     | InternalTail = 10
     | MiddleInternalTail = 11
     | InitialTail = 12
+    | AlternatingRepeated = 13
+    | AlternatingInternalTail = 14
+    | AlternatingMiddleTail = 15
 
 type Fixture(count: int, scenario: Scenario) =
     let directory = Directory.CreateTempSubdirectory("SnippetPredictor.Benchmark.")
@@ -50,6 +53,16 @@ type Fixture(count: int, scenario: Scenario) =
                 | Scenario.InternalTail -> [| "digit" + String.replicate 10000 "x" |]
                 | Scenario.MiddleInternalTail -> [| "digit digit digit" + String.replicate 10000 "x" |]
                 | Scenario.InitialTail -> [| "digit digit digit" + String.replicate 10000 "g" |]
+                | Scenario.AlternatingRepeated -> [| String.replicate 50 "digit DIGIT " + "GIT" |]
+                | Scenario.AlternatingInternalTail ->
+                    [| String.replicate 50 "digit DIGIT " + String.replicate 10000 "x" |]
+                | Scenario.AlternatingMiddleTail ->
+                    [|
+                        String.replicate 25 "digit DIGIT "
+                        + "GIT "
+                        + String.replicate 25 "digit DIGIT "
+                        + String.replicate 10000 "x"
+                    |]
                 | Scenario.Unicode -> [| "égit"; "\U00010400git"; "a\u0301git"; "\U0001F600git"; "git" |]
                 | _ -> [| "git"; "git status"; "Write-Host git"; "digit"; "unrelated" |]
 
@@ -68,6 +81,8 @@ type Fixture(count: int, scenario: Scenario) =
                                 scenario = Scenario.InternalTail
                                 || scenario = Scenario.MiddleInternalTail
                                 || scenario = Scenario.InitialTail
+                                || scenario = Scenario.AlternatingInternalTail
+                                || scenario = Scenario.AlternatingMiddleTail
                             then
                                 "internal match"
                             else

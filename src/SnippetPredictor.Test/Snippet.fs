@@ -384,6 +384,32 @@ let tests_predictionRanking =
                         |> Expect.equal "should inspect both sides of the literal endpoint" expected)
             }
 
+            test "ranks alternating-case repeated matches without losing word starts" {
+                let repeated = String.replicate 25 "digit DIGIT "
+                let tail = String.replicate 10000 "x"
+
+                let texts =
+                    [|
+                        repeated + repeated + tail
+                        repeated + repeated + "GIT"
+                        repeated + "GIT " + repeated + tail
+                        repeated + "git " + repeated + tail
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [| texts[3]; texts[0]; texts[1]; texts[2] |]
+                        else
+                            [| texts[1]; texts[2]; texts[3]; texts[0] |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should preserve word-start ranks and stable internal matches" expected)
+            }
+
             test "preserves ordinal casing for Unicode tails and ASCII lookalikes" {
                 for sensitive in [ false; true ] do
                     let comparison =
