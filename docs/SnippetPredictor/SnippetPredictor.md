@@ -34,6 +34,12 @@ By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
 The default value is `false`.
 
+Set `PredictOnlyWithIdentifier` to `true` to suppress predictions for ordinary input.
+Identifier-based predictions keep their existing behavior.
+`:snp`, `:tip`, group and partial identifiers, and standalone `:` aren't affected.
+Omitting the setting or using `false` or `null` keeps predictions enabled for ordinary input.
+This setting affects predictions, not completion or accept handlers.
+
 ## SnippetPredictor
 
 ### [Add-Snippet](Add-Snippet.md)
