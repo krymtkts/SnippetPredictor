@@ -143,6 +143,15 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
     (Group names must consist of alphanumeric characters.)
   - Typing a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
+Predictions rank exact matches first, followed by prefix, word-start, and other substring matches.
+Word-start matches follow a separator.
+Unicode letters, digits, combining marks, and connector punctuation such as `_` aren't separators.
+Plain input, `:snp`, and group searches rank the `Snippet` field; `:tip` ranks the `Tooltip` field.
+Matches with the same rank keep their configuration order.
+Without a search term, snippets keep their configuration order.
+Matching identifiers appear before snippets.
+This ranking doesn't change the candidate order used by completion or accept handlers.
+
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
 The default value is `false`.
