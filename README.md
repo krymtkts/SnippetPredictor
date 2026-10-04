@@ -176,7 +176,7 @@ Get-Snippet | Where-Object -Property Tooltip -like *test* | Remove-Snippet
 
 The solution includes the benchmark test project in the normal build and lint tasks.
 Performance measurements run separately from unit tests.
-They measure cache prediction and `ICommandPredictor.GetSuggestion` across 40 cases.
+They measure cache prediction and `ICommandPredictor.GetSuggestion` across 44 cases.
 Measurements cover time and managed allocations, excluding configuration setup and cleanup.
 
 Run from the repository root:

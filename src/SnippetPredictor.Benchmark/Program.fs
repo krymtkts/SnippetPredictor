@@ -21,6 +21,7 @@ type Scenario =
     | Group = 7
     | Tooltip = 8
     | Sparse = 9
+    | InternalTail = 10
 
 type Fixture(count: int, scenario: Scenario) =
     let directory = Directory.CreateTempSubdirectory("SnippetPredictor.Benchmark.")
@@ -44,6 +45,7 @@ type Fixture(count: int, scenario: Scenario) =
                 match scenario with
                 | Scenario.Long -> [| String.replicate 1000 "x" + " git" |]
                 | Scenario.Repeated -> [| String.replicate 100 "digit " + "git" |]
+                | Scenario.InternalTail -> [| "digit" + String.replicate 10000 "x" |]
                 | Scenario.Unicode -> [| "égit"; "\U00010400git"; "a\u0301git"; "\U0001F600git"; "git" |]
                 | _ -> [| "git"; "git status"; "Write-Host git"; "digit"; "unrelated" |]
 
@@ -57,7 +59,11 @@ type Fixture(count: int, scenario: Scenario) =
 
                     {|
                         Snippet = text
-                        Tooltip = samples[(index + 1) % samples.Length]
+                        Tooltip =
+                            if scenario = Scenario.InternalTail then
+                                "internal match"
+                            else
+                                samples[(index + 1) % samples.Length]
                         Group = if index % 2 = 0 then "git" else "other"
                     |})
 
