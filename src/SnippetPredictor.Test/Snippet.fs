@@ -410,6 +410,54 @@ let tests_predictionRanking =
                         |> Expect.equal "should preserve word-start ranks and stable internal matches" expected)
             }
 
+            test "checks suffix word boundaries without skipping middle matches" {
+                let texts =
+                    [|
+                        "digit"
+                        "digit xgit"
+                        "digit gix"
+                        "digit GIT"
+                        "digit git"
+                        "digit git gix"
+                        "digit git xgit"
+                        "digit _git"
+                        "digit égit"
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [|
+                                texts[4]
+                                texts[5]
+                                texts[6]
+                                texts[0]
+                                texts[1]
+                                texts[2]
+                                texts[3]
+                                texts[7]
+                                texts[8]
+                            |]
+                        else
+                            [|
+                                texts[3]
+                                texts[4]
+                                texts[5]
+                                texts[6]
+                                texts[0]
+                                texts[1]
+                                texts[2]
+                                texts[7]
+                                texts[8]
+                            |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should require a full suffix match and retain the fallback search" expected)
+            }
+
             test "preserves ordinal casing for Unicode tails and ASCII lookalikes" {
                 for sensitive in [ false; true ] do
                     let comparison =

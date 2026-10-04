@@ -443,7 +443,12 @@ module Suggestion =
                     if not (isWordCharacter text (first - 1)) then
                         true
                     else
-                        hasLaterWordStart comparison query text first
+                        let suffix = text.Length - query.Length
+
+                        (suffix > first
+                         && not (isWordCharacter text (suffix - 1))
+                         && text.EndsWith(query, comparison))
+                        || hasLaterWordStart comparison query text first
 
                 ValueSome(if wordStart then WordStartMatchRank else SubstringMatchRank)
 
