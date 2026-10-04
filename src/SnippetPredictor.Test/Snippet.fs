@@ -185,6 +185,76 @@ let tests_predictionRanking =
                         |> Array.map fst
                         |> Expect.equal "should preserve membership and stable ASCII boundary ranks" expected))
 
+            test "preserves sparse matches and empty results" {
+                for matchIndex in [ 0; 64; 127 ] do
+                    let texts = Array.create 128 "unrelated"
+                    texts[matchIndex] <- "git"
+
+                    withCache false texts (fun cache ->
+                        for input in [ "git"; ":snp git"; ":git git" ] do
+                            cache
+                            |> suggestions input
+                            |> Expect.equal
+                                "should retain the only match and its tooltip"
+                                [| "git", $"[git]tooltip {matchIndex}" |]
+
+                        for input in [ "missing"; ":snp missing"; ":git missing"; ":unknown git" ] do
+                            cache |> suggestions input |> Expect.isEmpty "should return no candidates")
+            }
+
+            test "preserves stable ranks across array growth" {
+                let samples = [| "digit"; "Write git"; "git status"; "git" |]
+
+                for count in [ 1; 4; 5; 16; 17; 129 ] do
+                    let texts =
+                        Array.append
+                            (Array.create 7 "unrelated")
+                            (Array.init count (fun index -> samples[index % samples.Length]))
+
+                    let expected =
+                        [| 3; 2; 1; 0 |]
+                        |> Array.collect (fun sample ->
+                            texts
+                            |> Array.mapi (fun index text -> index, text)
+                            |> Array.filter (fun (_, text) -> text = samples[sample])
+                            |> Array.map (fun (index, text) -> text, $"[git]tooltip {index}"))
+
+                    withCache false texts (fun cache ->
+                        for input in [ "git"; ":snp git"; ":git git" ] do
+                            cache
+                            |> suggestions input
+                            |> Expect.equal "should retain every rank and duplicate" expected)
+            }
+
+            test "keeps matching identifiers before unranked snippets" {
+                let entries =
+                    [| "git", "git"; "unrelated", "gitextra" |]
+                    |> Array.map (fun (snippet, group) ->
+                        {|
+                            Snippet = snippet
+                            Tooltip = "tooltip"
+                            Group = group
+                        |})
+
+                use file =
+                    new TempFile(
+                        ".snippet-predictor.json",
+                        System.Text.Json.JsonSerializer.Serialize({| Snippets = entries |})
+                    )
+
+                use cache = new Suggestion.Cache()
+                cache.load (fun () -> file.GetSnippetDirectoryPath(), file.GetSnippetPath())
+
+                (fun () -> cache.getCompletionTexts(":snp").Length = entries.Length)
+                |> expectEventually "should load identifier fixtures"
+
+                cache
+                |> suggestions ":git"
+                |> Expect.equal
+                    "should retain identifier and snippet order"
+                    [| ":gitextra", ""; "git", "[git]tooltip" |]
+            }
+
             test "recognizes Unicode word characters and delimiter boundaries" {
                 let inside =
                     [|

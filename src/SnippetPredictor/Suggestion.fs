@@ -39,6 +39,18 @@ module Suggestion =
 
     let private snpCompletionIdentifiers = [| $":{Snp}" |]
 
+    [<Literal>]
+    let private ExactMatchRank = 0
+
+    [<Literal>]
+    let private PrefixMatchRank = 1
+
+    [<Literal>]
+    let private WordStartMatchRank = 2
+
+    [<Literal>]
+    let private SubstringMatchRank = 3
+
     module Disposal =
         [<Literal>]
         let disposed = 1
@@ -322,11 +334,11 @@ module Suggestion =
             // NOTE: Assign after definition to avoid forward-reference issues.
             restartAction <- startFileWatchingEvent
 
-        let snippetToTuple (s: SnippetEntry) =
+        let snippetToSuggestion (s: SnippetEntry) =
             s.Group
             |> function
-                | null -> s.Snippet, s.Tooltip
-                | g -> s.Snippet, $"[{g}]{s.Tooltip}"
+                | null -> PredictiveSuggestion(s.Snippet, s.Tooltip)
+                | g -> PredictiveSuggestion(s.Snippet, $"[{g}]{s.Tooltip}")
 
         let (|Empty|_|) = String.IsNullOrWhiteSpace
 
@@ -384,9 +396,14 @@ module Suggestion =
             let first = text.IndexOf(query, comparison)
 
             if first < 0 then
-                None
+                ValueNone
             elif first = 0 then
-                Some(if text.Length = query.Length then 0 else 1)
+                ValueSome(
+                    if text.Length = query.Length then
+                        ExactMatchRank
+                    else
+                        PrefixMatchRank
+                )
             else
                 let mutable position = first
                 let mutable wordStart = false
@@ -397,26 +414,78 @@ module Suggestion =
                     if not wordStart then
                         position <- text.IndexOf(query, position + 1, comparison)
 
-                Some(if wordStart then 2 else 3)
+                ValueSome(if wordStart then WordStartMatchRank else SubstringMatchRank)
 
-        let chooseSnippets (current: Snapshot) pred field query =
+        let reserveSuggestions (suggestions: Generic.List<PredictiveSuggestion>) count =
+            if suggestions.Capacity < suggestions.Count + count then
+                suggestions.Capacity <- suggestions.Count + count
+
+        let appendUnrankedSnippets (current: Snapshot) pred (suggestions: Generic.List<PredictiveSuggestion>) =
+            let mutable count = 0
+
+            for snippet in current.Snippets do
+                if pred snippet then
+                    count <- count + 1
+
+            reserveSuggestions suggestions count
+
+            for snippet in current.Snippets do
+                if pred snippet then
+                    snippet |> snippetToSuggestion |> suggestions.Add
+
+        let collectMatches (current: Snapshot) pred field query =
+            let mutable matches: struct (int * int) array = Array.empty
+            let mutable count = 0
+            let mutable limit = 0
+            let mutable ranksPresent = 0
+
+            for index = 0 to current.Snippets.Length - 1 do
+                let snippet = current.Snippets[index]
+
+                if pred snippet then
+                    match field snippet |> matchRank current.SearchComparison query with
+                    | ValueSome rank ->
+                        if count = 0 then
+                            limit <- current.Snippets.Length - index
+                            matches <- Array.zeroCreate (min 4 limit)
+                        elif count = matches.Length then
+                            let capacity = count + min count (limit - count)
+                            let expanded = Array.zeroCreate capacity
+                            Array.Copy(matches, expanded, count)
+                            matches <- expanded
+
+                        matches[count] <- struct (index, rank)
+                        count <- count + 1
+                        ranksPresent <- ranksPresent ||| (1 <<< rank)
+                    | ValueNone -> ()
+
+            struct (matches, count, ranksPresent)
+
+        let appendRankedSnippets
+            (current: Snapshot)
+            (suggestions: Generic.List<PredictiveSuggestion>)
+            (matches: struct (int * int) array)
+            count
+            ranksPresent
+            =
+            reserveSuggestions suggestions count
+
+            for rank = ExactMatchRank to SubstringMatchRank do
+                if ranksPresent &&& (1 <<< rank) <> 0 then
+                    for position = 0 to count - 1 do
+                        let struct (index, candidateRank) = matches[position]
+
+                        if candidateRank = rank then
+                            current.Snippets[index] |> snippetToSuggestion |> suggestions.Add
+
+        let chooseSnippets (current: Snapshot) pred field (suggestions: Generic.List<PredictiveSuggestion>) query =
             if String.IsNullOrEmpty(query) then
-                current.Snippets
-                |> Seq.choose (fun snippet ->
-                    if pred snippet then
-                        Some(snippetToTuple snippet |> PredictiveSuggestion)
-                    else
-                        None)
+                appendUnrankedSnippets current pred suggestions
             else
-                let buckets = Array.init 4 (fun _ -> Generic.List<PredictiveSuggestion>())
+                let struct (matches, count, ranksPresent) = collectMatches current pred field query
+                appendRankedSnippets current suggestions matches count ranksPresent
 
-                for snippet in current.Snippets do
-                    if pred snippet then
-                        match field snippet |> matchRank current.SearchComparison query with
-                        | Some rank -> buckets[rank].Add(snippetToTuple snippet |> PredictiveSuggestion)
-                        | None -> ()
-
-                buckets |> Seq.collect id
+            suggestions
 
         let chooseCompletionTexts (current: Snapshot) pred =
             current.Snippets
@@ -469,7 +538,7 @@ module Suggestion =
             let current = Volatile.Read(&snapshot)
 
             match input with
-            | Empty -> Seq.empty
+            | Empty -> Generic.List<PredictiveSuggestion>()
             | Prefix(groupId, input, hasSeparator) ->
 #if DEBUG
                 Logger.LogFile [ $"group:'{groupId}' input: '{input}'" ]
@@ -481,15 +550,15 @@ module Suggestion =
                     | Tip -> (fun _ -> true), (fun snippet -> snippet.Tooltip)
                     | groupId -> (fun snippet -> snippet.Group = groupId), (fun snippet -> snippet.Snippet)
 
-                let groupIds =
-                    if not hasSeparator && String.IsNullOrWhiteSpace(input) then
-                        chooseGroupIds current groupId
-                    else
-                        Seq.empty
+                let suggestions = Generic.List<PredictiveSuggestion>()
 
-                input |> chooseSnippets current pred field |> Seq.append groupIds
-            | NoPrefix input -> input |> chooseSnippets current (fun _ -> true) _.Snippet
-            |> Linq.Enumerable.ToList
+                if not hasSeparator && String.IsNullOrWhiteSpace(input) then
+                    chooseGroupIds current groupId |> Seq.iter suggestions.Add
+
+                input |> chooseSnippets current pred field suggestions
+            | NoPrefix input ->
+                input
+                |> chooseSnippets current (fun _ -> true) _.Snippet (Generic.List<PredictiveSuggestion>())
 
         member __.getCompletionTexts(input: string) =
             let current = Volatile.Read(&snapshot)
