@@ -11,6 +11,513 @@ open System.Diagnostics
 open System.IO
 
 [<Tests>]
+let tests_predictionRanking =
+    let withCache sensitive texts action =
+        let entries =
+            texts
+            |> Array.mapi (fun index text ->
+                {|
+                    Snippet = text
+                    Tooltip = $"tooltip {index}"
+                    Group = "git"
+                |})
+
+        let json =
+            System.Text.Json.JsonSerializer.Serialize(
+                {|
+                    SearchCaseSensitive = sensitive
+                    Snippets = entries
+                |}
+            )
+
+        use file = new TempFile(".snippet-predictor.json", json)
+        use cache = new Suggestion.Cache()
+        cache.load (fun () -> file.GetSnippetDirectoryPath(), file.GetSnippetPath())
+
+        (fun () -> cache.getCompletionTexts(":snp").Length = texts.Length)
+        |> expectEventually "should load ranking fixtures"
+
+        action cache
+
+    let suggestions input (cache: Suggestion.Cache) =
+        cache.getPredictiveSuggestions input
+        |> Seq.map (fun suggestion -> suggestion.SuggestionText, suggestion.ToolTip)
+        |> Seq.toArray
+
+    testList
+        "prediction relevance"
+        [
+            test "ranks all snippet search routes without changing completion or accept order" {
+                let texts =
+                    [|
+                        "digit"
+                        "Write-Host git"
+                        "git status"
+                        "git"
+                        "git log"
+                        "digit git"
+                        "git"
+                        "unrelated"
+                    |]
+
+                withCache false texts (fun cache ->
+                    let expected =
+                        [| 3; 6; 2; 4; 1; 5; 0 |]
+                        |> Array.map (fun index -> texts[index], $"[git]tooltip {index}")
+
+                    for input in [ "git"; "  git  "; ":snp git"; ":git git" ] do
+                        cache
+                        |> suggestions input
+                        |> Expect.equal "should rank stably and keep duplicates" expected
+
+                    cache.getCompletionTexts ":snp git"
+                    |> Expect.equal "should retain completion order" texts[..6]
+
+                    cache.getExactIdentifierSnippetTexts ":git"
+                    |> Expect.equal "should retain accept order" texts
+
+                    for input in [ ":snp"; ":git"; ":tip" ] do
+                        cache
+                        |> suggestions input
+                        |> Array.map fst
+                        |> Expect.equal "should retain empty-query order" texts
+
+                    for input in [ ""; "   " ] do
+                        cache
+                        |> suggestions input
+                        |> Expect.isEmpty "should not predict empty ordinary input"
+
+                    cache
+                    |> suggestions ":g"
+                    |> Array.map fst
+                    |> Expect.equal "should keep identifiers ahead of snippets" [| ":git" |])
+            }
+
+            test "ranks raw tooltips instead of snippets or displayed group labels" {
+                let texts = [| "git"; "git status"; "digit"; "Write-Host git" |]
+
+                let entries =
+                    Array.zip texts [| "digit"; "Write-Host git"; "git status"; "git" |]
+                    |> Array.map (fun (snippet, tooltip) ->
+                        {|
+                            Snippet = snippet
+                            Tooltip = tooltip
+                            Group = if snippet = "Write-Host git" then "other" else "git"
+                        |})
+
+                use file =
+                    new TempFile(
+                        ".snippet-predictor.json",
+                        System.Text.Json.JsonSerializer.Serialize({| Snippets = entries |})
+                    )
+
+                use cache = new Suggestion.Cache()
+                cache.load (fun () -> file.GetSnippetDirectoryPath(), file.GetSnippetPath())
+
+                (fun () -> cache.getCompletionTexts(":snp").Length = texts.Length)
+                |> expectEventually "should load tooltip fixtures"
+
+                cache
+                |> suggestions ":tip git"
+                |> Array.map fst
+                |> Expect.equal "should rank by tooltip" [| texts[3]; texts[2]; texts[1]; texts[0] |]
+
+                cache
+                |> suggestions ":tip [git]"
+                |> Expect.isEmpty "should not search rendered group labels"
+
+                cache
+                |> suggestions ":git git"
+                |> Array.map fst
+                |> Expect.equal "should exclude other groups" [| "git"; "git status"; "digit" |]
+            }
+
+            for sensitive in [ false; true ] do
+                testCase $"case comparison {sensitive}" (fun () ->
+                    let texts = [| "GIT"; "DIGIT"; "git"; "GIT status"; "Write GIT"; "digit" |]
+
+                    withCache sensitive texts (fun cache ->
+                        let expected =
+                            if sensitive then
+                                [| "git"; "digit" |]
+                            else
+                                [| "GIT"; "git"; "GIT status"; "Write GIT"; "DIGIT"; "digit" |]
+
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should honor comparison at every rank" expected
+
+                        let comparison =
+                            if sensitive then
+                                StringComparison.Ordinal
+                            else
+                                StringComparison.OrdinalIgnoreCase
+
+                        let membership =
+                            texts
+                            |> Array.filter (fun text -> text.Contains("git", comparison))
+                            |> Array.sort
+
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Array.sort
+                        |> Expect.equal "should retain Contains membership" membership))
+
+            for sensitive in [ false; true ] do
+                testCase $"classifies all ASCII boundaries with case comparison {sensitive}" (fun () ->
+                    let characters = Array.init 128 char
+                    let texts = characters |> Array.map (fun character -> $"x{character}git")
+
+                    let isWordCharacter character =
+                        Char.IsLetterOrDigit character || character = '_'
+
+                    let expected =
+                        Array.append
+                            (characters |> Array.filter (isWordCharacter >> not))
+                            (characters |> Array.filter isWordCharacter)
+                        |> Array.map (fun character -> $"x{character}git")
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should preserve membership and stable ASCII boundary ranks" expected))
+
+            for sensitive in [ false; true ] do
+                testCase $"finds later word starts with opposite case {sensitive}" (fun () ->
+                    let texts = [| "digit"; "digit GIT"; "DIGIT"; "DIGIT git" |]
+
+                    withCache sensitive texts (fun cache ->
+                        let lowerExpected, upperExpected =
+                            if sensitive then
+                                [| texts[3]; texts[0]; texts[1] |], [| texts[1]; texts[2]; texts[3] |]
+                            else
+                                [| texts[1]; texts[3]; texts[0]; texts[2] |],
+                                [| texts[1]; texts[3]; texts[0]; texts[2] |]
+
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should honor comparison at later uppercase initials" lowerExpected
+
+                        cache
+                        |> suggestions "GIT"
+                        |> Array.map fst
+                        |> Expect.equal "should honor comparison at later lowercase initials" upperExpected))
+
+            test "preserves sparse matches and empty results" {
+                for matchIndex in [ 0; 64; 127 ] do
+                    let texts = Array.create 128 "unrelated"
+                    texts[matchIndex] <- "git"
+
+                    withCache false texts (fun cache ->
+                        for input in [ "git"; ":snp git"; ":git git" ] do
+                            cache
+                            |> suggestions input
+                            |> Expect.equal
+                                "should retain the only match and its tooltip"
+                                [| "git", $"[git]tooltip {matchIndex}" |]
+
+                        for input in [ "missing"; ":snp missing"; ":git missing"; ":unknown git" ] do
+                            cache |> suggestions input |> Expect.isEmpty "should return no candidates")
+            }
+
+            test "preserves stable ranks across array growth" {
+                let samples = [| "digit"; "Write git"; "git status"; "git" |]
+
+                for count in [ 1; 4; 5; 16; 17; 129 ] do
+                    let texts =
+                        Array.append
+                            (Array.create 7 "unrelated")
+                            (Array.init count (fun index -> samples[index % samples.Length]))
+
+                    let expected =
+                        [| 3; 2; 1; 0 |]
+                        |> Array.collect (fun sample ->
+                            texts
+                            |> Array.mapi (fun index text -> index, text)
+                            |> Array.choose (fun (index, text) ->
+                                if text = samples[sample] then
+                                    Some(text, $"[git]tooltip {index}")
+                                else
+                                    None))
+
+                    withCache false texts (fun cache ->
+                        for input in [ "git"; ":snp git"; ":git git" ] do
+                            cache
+                            |> suggestions input
+                            |> Expect.equal "should retain every rank and duplicate" expected)
+            }
+
+            test "keeps matching identifiers before unranked snippets" {
+                let entries =
+                    [| "git", "git"; "unrelated", "gitextra" |]
+                    |> Array.map (fun (snippet, group) ->
+                        {|
+                            Snippet = snippet
+                            Tooltip = "tooltip"
+                            Group = group
+                        |})
+
+                use file =
+                    new TempFile(
+                        ".snippet-predictor.json",
+                        System.Text.Json.JsonSerializer.Serialize({| Snippets = entries |})
+                    )
+
+                use cache = new Suggestion.Cache()
+                cache.load (fun () -> file.GetSnippetDirectoryPath(), file.GetSnippetPath())
+
+                (fun () -> cache.getCompletionTexts(":snp").Length = entries.Length)
+                |> expectEventually "should load identifier fixtures"
+
+                cache
+                |> suggestions ":git"
+                |> Expect.equal
+                    "should retain identifier and snippet order"
+                    [| ":gitextra", ""; "git", "[git]tooltip" |]
+            }
+
+            test "recognizes Unicode word characters and delimiter boundaries" {
+                let inside =
+                    [|
+                        "my_git"
+                        "1git"
+                        "égit"
+                        "a\u0301git"
+                        "\U00010400git"
+                        "\U0001D7CEgit"
+                        "x\u203Fgit"
+                    |]
+
+                let starts = [| " git"; "'git"; "Invoke-gitstatus"; "\U0001F600git"; "digit git" |]
+
+                withCache false (Array.append inside starts) (fun cache ->
+                    cache
+                    |> suggestions "git"
+                    |> Array.map fst
+                    |> Expect.equal "should classify left boundaries only" (Array.append starts inside))
+            }
+
+            test "finds overlapping matches and later word starts" {
+                withCache false [| "zaba"; "zababa aba"; "aba"; "aba tail" |] (fun cache ->
+                    cache
+                    |> suggestions "aba"
+                    |> Array.map fst
+                    |> Expect.equal "should use the best occurrence" [| "aba"; "aba tail"; "zababa aba"; "zaba" |])
+
+                withCache false [| "xa-a"; "xa-a-a" |] (fun cache ->
+                    cache
+                    |> suggestions "a-a"
+                    |> Array.map fst
+                    |> Expect.equal "should inspect overlapping occurrences" [| "xa-a-a"; "xa-a" |])
+            }
+
+            test "finds middle word starts when later occurrences are internal" {
+                let texts =
+                    [|
+                        "digit digit"
+                        "digit digit digit"
+                        "digit digit git digit"
+                        "digit git digit"
+                        "digit digit git"
+                        "digit digit digit git digit digit"
+                        "git"
+                    |]
+
+                withCache false texts (fun cache ->
+                    cache
+                    |> suggestions "git"
+                    |> Array.map fst
+                    |> Expect.equal
+                        "should consider every occurrence needed for the best rank"
+                        [| texts[6]; texts[2]; texts[3]; texts[4]; texts[5]; texts[0]; texts[1] |])
+            }
+
+            test "skips trailing query initials without losing middle word starts" {
+                let texts =
+                    [|
+                        "digit digit gx gix g"
+                        "digit digit git gx gix g"
+                        "digit digit GIT gx gix g"
+                        "digit digit git" + String.replicate 10000 "x"
+                        "digit digit digit" + String.replicate 10000 "x"
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [| texts[1]; texts[3]; texts[0]; texts[2]; texts[4] |]
+                        else
+                            [| texts[1]; texts[2]; texts[3]; texts[0]; texts[4] |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should validate full queries and preserve stable ranks" expected)
+            }
+
+            test "retains overlapping and differently cased matches around the literal endpoint" {
+                let texts =
+                    [|
+                        "xaaa xaaaa"
+                        "xaaa aa xaaaa"
+                        "xaaa AA xaaaa"
+                        "xaaa xaaa AA"
+                        "xaaa aa xa"
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [| texts[1]; texts[4]; texts[0]; texts[2]; texts[3] |]
+                        else
+                            [| texts[1]; texts[2]; texts[3]; texts[4]; texts[0] |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "aa"
+                        |> Array.map fst
+                        |> Expect.equal "should inspect both sides of the literal endpoint" expected)
+            }
+
+            test "ranks alternating-case repeated matches without losing word starts" {
+                let repeated = String.replicate 25 "digit DIGIT "
+                let tail = String.replicate 10000 "x"
+
+                let texts =
+                    [|
+                        repeated + repeated + tail
+                        repeated + repeated + "GIT"
+                        repeated + "GIT " + repeated + tail
+                        repeated + "git " + repeated + tail
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [| texts[3]; texts[0]; texts[1]; texts[2] |]
+                        else
+                            [| texts[1]; texts[2]; texts[3]; texts[0] |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should preserve word-start ranks and stable internal matches" expected)
+            }
+
+            test "checks suffix word boundaries without skipping middle matches" {
+                let texts =
+                    [|
+                        "digit"
+                        "digit xgit"
+                        "digit gix"
+                        "digit GIT"
+                        "digit git"
+                        "digit git gix"
+                        "digit git xgit"
+                        "digit _git"
+                        "digit égit"
+                    |]
+
+                for sensitive in [ false; true ] do
+                    let expected =
+                        if sensitive then
+                            [|
+                                texts[4]
+                                texts[5]
+                                texts[6]
+                                texts[0]
+                                texts[1]
+                                texts[2]
+                                texts[3]
+                                texts[7]
+                                texts[8]
+                            |]
+                        else
+                            [|
+                                texts[3]
+                                texts[4]
+                                texts[5]
+                                texts[6]
+                                texts[0]
+                                texts[1]
+                                texts[2]
+                                texts[7]
+                                texts[8]
+                            |]
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should require a full suffix match and retain the fallback search" expected)
+            }
+
+            test "preserves ordinal casing for Unicode tails and ASCII lookalikes" {
+                for sensitive in [ false; true ] do
+                    let comparison =
+                        if sensitive then
+                            StringComparison.Ordinal
+                        else
+                            StringComparison.OrdinalIgnoreCase
+
+                    for query in [| "snp"; "kit"; "item"; "gÉ"; "é" |] do
+                        let tails =
+                            [|
+                                query
+                                query.ToUpperInvariant()
+                                "ſnp"
+                                "Kit"
+                                "ıtem"
+                                "İtem"
+                                "gÈ"
+                                "Gé"
+                                "É"
+                            |]
+
+                        let texts = tails |> Array.map (fun tail -> $"x{query} x{query} {tail}")
+
+                        let matches, internalMatches =
+                            Array.zip tails texts
+                            |> Array.partition (fun (tail, _) -> tail.StartsWith(query, comparison))
+
+                        let expected = Array.append matches internalMatches |> Array.map snd
+
+                        withCache sensitive texts (fun cache ->
+                            cache
+                            |> suggestions query
+                            |> Array.map fst
+                            |> Expect.equal "should retain the runtime ordinal comparison rules" expected)
+            }
+
+            test "preserves ranks for ASCII and Unicode query initials" {
+                for sensitive in [ false; true ] do
+                    for query in [| "git"; "GIT"; "-git"; "a-a"; "é"; "éGIT"; String.replicate 16 "g" + "it" |] do
+                        let texts =
+                            [|
+                                "x" + query
+                                "x" + query + " " + query
+                                query + " tail"
+                                query
+                                "x" + query + "-" + query
+                            |]
+
+                        withCache sensitive texts (fun cache ->
+                            cache
+                            |> suggestions query
+                            |> Array.map fst
+                            |> Expect.equal
+                                "should preserve the best occurrence and stable ranks"
+                                [| texts[3]; texts[2]; texts[1]; texts[4]; texts[0] |])
+            }
+        ]
+
+[<Tests>]
 let tests_Dispose =
     testList
         "Nullable.dispose"

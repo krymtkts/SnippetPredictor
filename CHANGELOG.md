@@ -7,6 +7,10 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 ## [Unreleased]
 
+### Changed
+
+- Rank predictions by exact, prefix, word-start, then substring matches; keep ties in existing order.
+
 ## [0.9.0] - 2026-09-27
 
 ### Added

@@ -143,6 +143,15 @@ Filter snippets in your `~/.snippet-predictor.json` file using the following key
     (Group names must consist of alphanumeric characters.)
   - Typing a partial group name (e.g., `:p`) suggests matching groups like `:pwsh`.
 
+Predictions rank exact matches first, followed by prefix, word-start, and other substring matches.
+Word-start matches follow a separator.
+Unicode letters, digits, combining marks, and connector punctuation such as `_` aren't separators.
+Plain input, `:snp`, and group searches rank the `Snippet` field; `:tip` ranks the `Tooltip` field.
+Matches with the same rank keep their configuration order.
+Without a search term, snippets keep their configuration order.
+Matching identifiers appear before snippets.
+This ranking doesn't change the candidate order used by completion or accept handlers.
+
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
 The default value is `false`.
@@ -162,3 +171,27 @@ By combining `Get-Snippet` and `Remove-Snippet`, you can remove snippets that ma
 ```powershell
 Get-Snippet | Where-Object -Property Tooltip -like *test* | Remove-Snippet
 ```
+
+## Benchmarks
+
+The solution includes the benchmark test project in the normal build and lint tasks.
+Performance measurements run separately from unit tests.
+They measure cache prediction and `ICommandPredictor.GetSuggestion`.
+Measurements cover time and managed allocations, excluding configuration setup and cleanup.
+
+Run from the repository root:
+
+```powershell
+dotnet build src/SnippetPredictor.Benchmark -c Release
+dotnet run --project src/SnippetPredictor.Benchmark -c Release --no-build -- --filter '*' --job short --exporters json --artifacts BenchmarkDotNet.Artifacts/ranking-baseline
+```
+
+For before-and-after comparisons, keep the benchmark code and job settings unchanged.
+Use the same SDK, runtime, and hardware, with a different artifact directory for each run.
+Compare time, allocated bytes, and GC in the generated reports.
+ShortRun uses three measured iterations.
+Collect more samples before interpreting differences with overlapping uncertainty.
+Use `--job Dry` to check setup, execution, and cleanup, not performance.
+
+Managed allocations don't represent retained or native memory.
+These benchmarks don't measure PSReadLine rendering or initial prediction latency.
