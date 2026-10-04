@@ -345,28 +345,40 @@ module Suggestion =
         let (|NoPrefix|) (value: string) = value.Trim()
 
         let isWordCharacter (text: string) index =
-            let index =
-                if
-                    index > 0
-                    && Char.IsLowSurrogate(text[index])
-                    && Char.IsHighSurrogate(text[index - 1])
-                then
-                    index - 1
-                else
-                    index
+            let character = text[index]
 
-            match CharUnicodeInfo.GetUnicodeCategory(text, index) with
-            | UnicodeCategory.UppercaseLetter
-            | UnicodeCategory.LowercaseLetter
-            | UnicodeCategory.TitlecaseLetter
-            | UnicodeCategory.ModifierLetter
-            | UnicodeCategory.OtherLetter
-            | UnicodeCategory.DecimalDigitNumber
-            | UnicodeCategory.NonSpacingMark
-            | UnicodeCategory.SpacingCombiningMark
-            | UnicodeCategory.EnclosingMark
-            | UnicodeCategory.ConnectorPunctuation -> true
-            | _ -> false
+            // NOTE: U+0000 through U+007F covers all ASCII characters, including controls and punctuation.
+            // NOTE: ASCII letters, digits, and '_' match the Unicode word categories below without a category lookup.
+            if character <= '\u007F' then
+                (character >= 'a' && character <= 'z')
+                || (character >= 'A' && character <= 'Z')
+                || (character >= '0' && character <= '9')
+                || character = '_'
+            else
+                let index =
+                    if
+                        index > 0
+                        && Char.IsLowSurrogate(character)
+                        && Char.IsHighSurrogate(text[index - 1])
+                    then
+                        index - 1
+                    else
+                        index
+
+                // NOTE: Letters, decimal digits, combining marks, and connector punctuation remain part of a word.
+                // NOTE: Combining marks and connectors must not create word-start matches; other categories are delimiters.
+                match CharUnicodeInfo.GetUnicodeCategory(text, index) with
+                | UnicodeCategory.UppercaseLetter
+                | UnicodeCategory.LowercaseLetter
+                | UnicodeCategory.TitlecaseLetter
+                | UnicodeCategory.ModifierLetter
+                | UnicodeCategory.OtherLetter
+                | UnicodeCategory.DecimalDigitNumber
+                | UnicodeCategory.NonSpacingMark
+                | UnicodeCategory.SpacingCombiningMark
+                | UnicodeCategory.EnclosingMark
+                | UnicodeCategory.ConnectorPunctuation -> true
+                | _ -> false
 
         let matchRank (comparison: StringComparison) (query: string) (text: string) =
             let first = text.IndexOf(query, comparison)

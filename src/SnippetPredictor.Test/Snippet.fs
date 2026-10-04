@@ -165,6 +165,26 @@ let tests_predictionRanking =
                         |> Array.sort
                         |> Expect.equal "should retain Contains membership" membership))
 
+            for sensitive in [ false; true ] do
+                testCase $"classifies all ASCII boundaries with case comparison {sensitive}" (fun () ->
+                    let characters = Array.init 128 char
+                    let texts = characters |> Array.map (fun character -> $"x{character}git")
+
+                    let isWordCharacter character =
+                        Char.IsLetterOrDigit character || character = '_'
+
+                    let expected =
+                        Array.append
+                            (characters |> Array.filter (isWordCharacter >> not))
+                            (characters |> Array.filter isWordCharacter)
+                        |> Array.map (fun character -> $"x{character}git")
+
+                    withCache sensitive texts (fun cache ->
+                        cache
+                        |> suggestions "git"
+                        |> Array.map fst
+                        |> Expect.equal "should preserve membership and stable ASCII boundary ranks" expected))
+
             test "recognizes Unicode word characters and delimiter boundaries" {
                 let inside =
                     [|
