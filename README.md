@@ -216,3 +216,5 @@ Use `--job Dry` to check setup, execution, and cleanup, not performance.
 
 Managed allocations don't represent retained or native memory.
 These benchmarks don't measure PSReadLine rendering or initial prediction latency.
+
+The [PR benchmark workflow](.github/workflows/benchmark.yml) also compares base and head measurements.
