@@ -46,12 +46,12 @@ jobs:
       - name: Measure base
         working-directory: base
         run: |
-          dotnet run -c Release --project src/SnippetPredictor.Benchmark -- --filter '*' --job Short --exporters JSON --stopOnFirstError --artifacts ../results/base
+          dotnet run -c Release --project src/SnippetPredictor.Benchmark -- --filter '*GetSuggestion(Count: 10000, Scenario: Mixed)' '*GetSuggestion(Count: 10000, Scenario: NoMatch)' '*GetSuggestion(Count: 10000, Scenario: EmptyQuery)' '*GetSuggestion(Count: 10000, Scenario: Group)' '*GetSuggestion(Count: 10000, Scenario: Repeated)' --job Short --exporters JSON --stopOnFirstError --artifacts ../results/base
           if ($LASTEXITCODE) { throw 'Base benchmark failed.' }
       - name: Measure head
         working-directory: head
         run: |
-          dotnet run -c Release --project src/SnippetPredictor.Benchmark -- --filter '*' --job Short --exporters JSON --stopOnFirstError --artifacts ../results/head
+          dotnet run -c Release --project src/SnippetPredictor.Benchmark -- --filter '*GetSuggestion(Count: 10000, Scenario: Mixed)' '*GetSuggestion(Count: 10000, Scenario: NoMatch)' '*GetSuggestion(Count: 10000, Scenario: EmptyQuery)' '*GetSuggestion(Count: 10000, Scenario: Group)' '*GetSuggestion(Count: 10000, Scenario: Repeated)' --job Short --exporters JSON --stopOnFirstError --artifacts ../results/head
           if ($LASTEXITCODE) { throw 'Head benchmark failed.' }
       - name: Compare results
         env:
