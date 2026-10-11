@@ -7,6 +7,8 @@ open System.Management.Automation.Subsystem.Prediction
 open System.Text.Json
 open System.Threading
 open BenchmarkDotNet.Attributes
+open BenchmarkDotNet.Configs
+open BenchmarkDotNet.Filters
 open BenchmarkDotNet.Running
 open SnippetPredictor
 
@@ -207,10 +209,32 @@ type PredictionBenchmarks() =
     member _.GetSuggestion() = (getFixture ()).PredictorSuggestions()
 
 module Program =
+    let private isRepresentative (benchmark: BenchmarkCase) =
+        benchmark.Descriptor.WorkloadMethod.Name = "GetSuggestion"
+        && benchmark.Parameters.Items
+           |> Seq.exists (fun parameter -> parameter.Name = "Count" && unbox<int> parameter.Value = 10000)
+        && benchmark.Parameters.Items
+           |> Seq.exists (fun parameter ->
+               parameter.Name = "Scenario"
+               && match unbox<Scenario> parameter.Value with
+                  | Scenario.Mixed
+                  | Scenario.NoMatch
+                  | Scenario.EmptyQuery
+                  | Scenario.Group
+                  | Scenario.Repeated -> true
+                  | _ -> false)
+
     [<EntryPoint>]
     let main args =
+        let config = ManualConfig.Create(DefaultConfig.Instance)
+
+        if args |> Array.contains "--representative" then
+            config.AddFilter(SimpleFilter(isRepresentative)) |> ignore
+
+        let args = args |> Array.filter (fun argument -> argument <> "--representative")
+
         let summaries =
-            BenchmarkSwitcher.FromAssembly(typeof<PredictionBenchmarks>.Assembly).Run(args)
+            BenchmarkSwitcher.FromAssembly(typeof<PredictionBenchmarks>.Assembly).Run(args, config)
             |> Seq.toArray
 
         if
