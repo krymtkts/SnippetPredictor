@@ -1,0 +1,115 @@
+name: Compare benchmarks
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      artifact-id: ${{ steps.results.outputs.artifact-id }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout base
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+      - name: Checkout head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: base/global.json
+      - name: Check benchmark workload changes
+        run: |
+          git diff --no-index --quiet ./base/src/SnippetPredictor.Benchmark ./head/src/SnippetPredictor.Benchmark
+          if ($LASTEXITCODE -gt 1) { throw 'Benchmark workload comparison failed.' }
+          "BENCHMARK_CHANGED=$($LASTEXITCODE -eq 1)" | Add-Content $env:GITHUB_ENV
+          $LASTEXITCODE = 0
+      - name: Measure base
+        working-directory: base
+        run: |
+          dotnet run -c Release --project src/SnippetPredictor.Benchmark -- --filter '*' --job Short --exporters JSON --stopOnFirstError --artifacts ../results/base
+          if ($LASTEXITCODE) { throw 'Base benchmark failed.' }
+      - name: Measure head
+        working-directory: head
+        run: |
+          dotnet run -c Release --project src/SnippetPredictor.Benchmark -- --filter '*' --job Short --exporters JSON --stopOnFirstError --artifacts ../results/head
+          if ($LASTEXITCODE) { throw 'Head benchmark failed.' }
+      - name: Compare results
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          $notice = if ($env:BENCHMARK_CHANGED -eq 'True') {
+            'Benchmark project changed. Even matching cases may measure different workloads; interpret the comparison accordingly.'
+          }
+          else { 'Benchmark project unchanged.' }
+          "$notice`n" | Set-Content ./results/comparison.md
+          ./head/scripts/Compare-BenchmarkResults.ps1 `
+            -BasePath ./results/base/results/SnippetPredictorBenchmark.PredictionBenchmarks-report-full-compressed.json `
+            -HeadPath ./results/head/results/SnippetPredictorBenchmark.PredictionBenchmarks-report-full-compressed.json |
+            Add-Content ./results/comparison.md
+          "Base: $env:BASE_SHA`nHead: $env:HEAD_SHA`n" | Add-Content $env:GITHUB_STEP_SUMMARY
+          Get-Content ./results/comparison.md -Raw | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: Preserve measurements and comparison
+        id: results
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results-${{ github.run_attempt }}
+          path: results
+          retention-days: 7
+          if-no-files-found: error
+
+  comment:
+    needs: measure
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout trusted publication script
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          persist-credentials: false
+      - name: Check publication script availability
+        id: publication
+        shell: pwsh
+        run: |
+          $available = Test-Path ./trusted/scripts/Publish-BenchmarkComment.ps1
+          "available=$($available.ToString().ToLowerInvariant())" | Add-Content $env:GITHUB_OUTPUT
+          if (-not $available) {
+            'The base commit has no publication script yet. This introduction PR reports results in the measurement job summary only.' | Add-Content $env:GITHUB_STEP_SUMMARY
+          }
+      - name: Download comparison
+        if: steps.publication.outputs.available == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ needs.measure.outputs.artifact-id }}
+          path: results
+      - name: Publish a new PR comment
+        if: steps.publication.outputs.available == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./trusted/scripts/Publish-BenchmarkComment.ps1 -ReportPath ./results/comparison.md
