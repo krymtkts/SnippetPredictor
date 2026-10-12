@@ -112,6 +112,8 @@ Refer to the following documents for detailed cmdlet help:
 
 ## Usage
 
+### Create snippets
+
 First, set up your `~/.snippet-predictor.json` file.
 The easiest way to do this is to run the `Add-Snippet` command:
 
@@ -134,6 +136,8 @@ You can also create the file manually if you prefer.
 }
 ```
 
+### Search snippets
+
 Filter snippets in your `~/.snippet-predictor.json` file using the following keywords:
 
 - Use `:snp {input}` to search for `{input}` in the `Snippet` field.
@@ -152,6 +156,8 @@ Without a search term, snippets keep their configuration order.
 Matching identifiers appear before snippets.
 This ranking doesn't change the candidate order used by completion or accept handlers.
 
+### Predict after commands and comments
+
 For top-level commands, predictions search the final command after `;`, `|`, or a block comment.
 Selecting a prediction replaces that command and its arguments, keeping the preceding input.
 For example, registered snippets can produce these predictions:
@@ -167,6 +173,8 @@ Matching doesn't check whether a snippet accepts pipeline input.
 Redirections, invocation operators, script-block arguments, and subexpressions aren't supported.
 These commands use the existing whole-line search instead.
 Replacement inside strings or comments isn't supported.
+
+### Configure predictions
 
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
@@ -192,6 +200,8 @@ Identifier-based predictions keep their existing behavior.
 `:snp`, `:tip`, group and partial identifiers, and standalone `:` aren't affected.
 Omitting the setting or using `false` or `null` keeps the default behavior.
 This setting affects predictions, not completion or accept handlers.
+
+### List and remove snippets
 
 You can list your registered snippets with the `Get-Snippet` command.
 
