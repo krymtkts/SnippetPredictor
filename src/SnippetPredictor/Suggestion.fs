@@ -39,6 +39,8 @@ module Suggestion =
 
     let private snpCompletionIdentifiers = [| $":{Snp}" |]
 
+    let private includeAll (_: SnippetEntry) = true
+
     [<Literal>]
     let private ExactMatchRank = 0
 
@@ -339,11 +341,17 @@ module Suggestion =
             // NOTE: Assign after definition to avoid forward-reference issues.
             restartAction <- startFileWatchingEvent
 
-        let snippetToSuggestion (s: SnippetEntry) =
+        let snippetToSuggestion (leadingInput: string) (s: SnippetEntry) =
+            let text =
+                if leadingInput.Length = 0 then
+                    s.Snippet
+                else
+                    leadingInput + s.Snippet
+
             s.Group
             |> function
-                | null -> PredictiveSuggestion(s.Snippet, s.Tooltip)
-                | g -> PredictiveSuggestion(s.Snippet, $"[{g}]{s.Tooltip}")
+                | null -> PredictiveSuggestion(text, s.Tooltip)
+                | g -> PredictiveSuggestion(text, $"[{g}]{s.Tooltip}")
 
         let (|Empty|_|) = String.IsNullOrWhiteSpace
 
@@ -472,7 +480,7 @@ module Suggestion =
 
             for snippet in current.Snippets do
                 if pred snippet then
-                    snippet |> snippetToSuggestion |> suggestions.Add
+                    snippet |> snippetToSuggestion "" |> suggestions.Add
 
         let collectMatches (current: Snapshot) pred field (query: string) =
             let mutable matches: struct (int * int) array = Array.empty
@@ -504,6 +512,7 @@ module Suggestion =
 
         let appendRankedSnippets
             (current: Snapshot)
+            (leadingInput: string)
             (suggestions: Generic.List<PredictiveSuggestion>)
             (matches: struct (int * int) array)
             count
@@ -517,14 +526,14 @@ module Suggestion =
                         let struct (index, candidateRank) = matches[position]
 
                         if candidateRank = rank then
-                            current.Snippets[index] |> snippetToSuggestion |> suggestions.Add
+                            current.Snippets[index] |> snippetToSuggestion leadingInput |> suggestions.Add
 
         let chooseSnippets (current: Snapshot) pred field (suggestions: Generic.List<PredictiveSuggestion>) query =
             if String.IsNullOrEmpty(query) then
                 appendUnrankedSnippets current pred suggestions
             else
                 let struct (matches, count, ranksPresent) = collectMatches current pred field query
-                appendRankedSnippets current suggestions matches count ranksPresent
+                appendRankedSnippets current "" suggestions matches count ranksPresent
 
             suggestions
 
@@ -562,22 +571,27 @@ module Suggestion =
             current.CompletionIdentifiers
             |> Array.filter (fun identifier -> identifier.StartsWith(prefix, StringComparison.Ordinal))
 
-        abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
+        let chooseContextualSnippets (current: Snapshot) (context: PredictionContext) =
+            let input = context.InputAst.Extent.Text
 
-        default _.CreateWatcher(directory: string, filter: string) =
-            new FileSystemWatcher(directory, filter)
+            match PredictionInput.tryCommandRange context with
+            | ValueNone ->
+                input.Trim()
+                |> chooseSnippets current includeAll _.Snippet (Generic.List<PredictiveSuggestion>())
+            | ValueSome(struct (start, length)) ->
+                let query = input.Substring(start, length).Trim()
+                let suggestions = Generic.List<PredictiveSuggestion>()
 
-        abstract OnRefresh: path: string -> unit
-        default _.OnRefresh(_path: string) = ()
+                let struct (matches, count, ranksPresent) =
+                    collectMatches current includeAll _.Snippet query
 
-        member __.load getSnippetPath =
-            let snippetDirectory, snippetPath = getSnippetPath ()
-            startRefreshTask snippetPath
-            startFileWatchingEvent snippetDirectory
+                if count > 0 then
+                    let leadingInput = input.Substring(0, start)
+                    appendRankedSnippets current leadingInput suggestions matches count ranksPresent
 
-        member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
-            let current = Volatile.Read(&snapshot)
+                suggestions
 
+        let predict (current: Snapshot) context input =
             match input with
             | Empty -> Generic.List<PredictiveSuggestion>()
             | Prefix(groupId, input, hasSeparator) ->
@@ -587,8 +601,8 @@ module Suggestion =
 
                 let pred, field =
                     match groupId with
-                    | Snp -> (fun _ -> true), (fun (snippet: SnippetEntry) -> snippet.Snippet)
-                    | Tip -> (fun _ -> true), (fun snippet -> snippet.Tooltip)
+                    | Snp -> includeAll, (fun (snippet: SnippetEntry) -> snippet.Snippet)
+                    | Tip -> includeAll, (fun snippet -> snippet.Tooltip)
                     | groupId -> (fun snippet -> snippet.Group = groupId), (fun snippet -> snippet.Snippet)
 
                 let suggestions = Generic.List<PredictiveSuggestion>()
@@ -601,8 +615,31 @@ module Suggestion =
                 if current.PredictOnlyWithIdentifier && input <> ":" then
                     Generic.List<PredictiveSuggestion>()
                 else
-                    input
-                    |> chooseSnippets current (fun _ -> true) _.Snippet (Generic.List<PredictiveSuggestion>())
+                    match context with
+                    | ValueSome context when current.HasValidConfiguration -> chooseContextualSnippets current context
+                    | _ ->
+                        input
+                        |> chooseSnippets current includeAll _.Snippet (Generic.List<PredictiveSuggestion>())
+
+        member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
+            predict (Volatile.Read(&snapshot)) ValueNone input
+
+        member __.getContextualSuggestions(context: PredictionContext) : Generic.List<PredictiveSuggestion> =
+            let current = Volatile.Read(&snapshot)
+            predict current (ValueSome context) context.InputAst.Extent.Text
+
+        abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
+
+        default _.CreateWatcher(directory: string, filter: string) =
+            new FileSystemWatcher(directory, filter)
+
+        abstract OnRefresh: path: string -> unit
+        default _.OnRefresh(_path: string) = ()
+
+        member __.load getSnippetPath =
+            let snippetDirectory, snippetPath = getSnippetPath ()
+            startRefreshTask snippetPath
+            startFileWatchingEvent snippetDirectory
 
         member __.getCompletionTexts(input: string) =
             let current = Volatile.Read(&snapshot)
@@ -626,7 +663,7 @@ module Suggestion =
             if current.HasValidConfiguration then
                 match input with
                 | Prefix(Snp, input, false) when String.IsNullOrEmpty(input) ->
-                    (fun _ -> true) |> chooseCompletionTexts current
+                    includeAll |> chooseCompletionTexts current
                 | Prefix(Tip, _, false) -> Array.empty
                 | Prefix(groupId, input, false) when String.IsNullOrEmpty(input) && current.Groups.Contains groupId ->
                     (fun snippet -> snippet.Group = groupId) |> chooseCompletionTexts current

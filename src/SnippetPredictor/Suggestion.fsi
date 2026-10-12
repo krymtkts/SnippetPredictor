@@ -25,6 +25,10 @@ module Suggestion =
             input: string ->
                 System.Collections.Generic.List<System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion>
 
+        member getContextualSuggestions:
+            context: System.Management.Automation.Subsystem.Prediction.PredictionContext ->
+                System.Collections.Generic.List<System.Management.Automation.Subsystem.Prediction.PredictiveSuggestion>
+
         member getCompletionTexts: input: string -> string array
 
         member getExactIdentifierSnippetTexts: input: string -> string array

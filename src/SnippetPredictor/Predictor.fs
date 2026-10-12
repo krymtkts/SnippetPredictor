@@ -33,8 +33,8 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
         member __.GetSuggestion
             (client: PredictionClient, context: PredictionContext, cancellationToken: CancellationToken)
             : SuggestionPackage =
-            context.InputAst.Extent.Text
-            |> cache.getPredictiveSuggestions
+            context
+            |> cache.getContextualSuggestions
             |> function
                 // NOTE: suggestionEntries requires non-empty by Requires.NotNullOrEmpty.
                 // https://github.com/PowerShell/PowerShell/blob/eef334de1b0f648512859bd032356f9c8df7cb91/src/System.Management.Automation/engine/Subsystem/PredictionSubsystem/ICommandPredictor.cs#L278

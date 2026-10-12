@@ -11,6 +11,7 @@
     <ProjectReference Include="../SnippetPredictor/SnippetPredictor.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ContextPrediction.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 </Project>
