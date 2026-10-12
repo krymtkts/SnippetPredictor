@@ -562,19 +562,6 @@ module Suggestion =
             current.CompletionIdentifiers
             |> Array.filter (fun identifier -> identifier.StartsWith(prefix, StringComparison.Ordinal))
 
-        abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
-
-        default _.CreateWatcher(directory: string, filter: string) =
-            new FileSystemWatcher(directory, filter)
-
-        abstract OnRefresh: path: string -> unit
-        default _.OnRefresh(_path: string) = ()
-
-        member __.load getSnippetPath =
-            let snippetDirectory, snippetPath = getSnippetPath ()
-            startRefreshTask snippetPath
-            startFileWatchingEvent snippetDirectory
-
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
             let current = Volatile.Read(&snapshot)
 
@@ -603,6 +590,19 @@ module Suggestion =
                 else
                     input
                     |> chooseSnippets current (fun _ -> true) _.Snippet (Generic.List<PredictiveSuggestion>())
+
+        abstract CreateWatcher: directory: string * filter: string -> FileSystemWatcher
+
+        default _.CreateWatcher(directory: string, filter: string) =
+            new FileSystemWatcher(directory, filter)
+
+        abstract OnRefresh: path: string -> unit
+        default _.OnRefresh(_path: string) = ()
+
+        member __.load getSnippetPath =
+            let snippetDirectory, snippetPath = getSnippetPath ()
+            startRefreshTask snippetPath
+            startFileWatchingEvent snippetDirectory
 
         member __.getCompletionTexts(input: string) =
             let current = Volatile.Read(&snapshot)
