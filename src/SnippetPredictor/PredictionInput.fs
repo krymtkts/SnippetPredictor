@@ -37,6 +37,20 @@ module PredictionInput =
             | _ -> false
         | _ -> false
 
+    let private hasNestedExpression (command: CommandAst) =
+        let elements = command.CommandElements
+
+        let rec loop index =
+            if index >= elements.Count then
+                false
+            else
+                match elements[index] with
+                | :? ScriptBlockExpressionAst
+                | :? SubExpressionAst -> true
+                | _ -> loop (index + 1)
+
+        loop 0
+
     let tryCommandRange (context: PredictionContext) =
         let relatedAsts = context.RelatedAsts
 
@@ -60,20 +74,14 @@ module PredictionInput =
 
         match candidate with
         | ValueSome command when
-            isTerminalCommand context command
+            not (isWhitespace input 0 command.Extent.StartOffset)
+            && isTerminalCommand context command
             && command.Redirections.Count = 0
             && command.InvocationOperator = TokenKind.Unknown
-            && not (
-                command.CommandElements
-                |> Seq.exists (function
-                    | :? ScriptBlockExpressionAst
-                    | :? SubExpressionAst -> true
-                    | _ -> false)
-            )
+            && not (hasNestedExpression command)
             && (match context.TokenAtCursor with
                 | null -> true
                 | token -> token.TokenFlags &&& TokenFlags.TokenInError = TokenFlags.None)
-            && not (isWhitespace input 0 command.Extent.StartOffset)
             && isWhitespace input command.Extent.EndOffset input.Length
             ->
             match command.CommandElements[0] with
