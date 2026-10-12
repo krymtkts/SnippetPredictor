@@ -152,6 +152,22 @@ Without a search term, snippets keep their configuration order.
 Matching identifiers appear before snippets.
 This ranking doesn't change the candidate order used by completion or accept handlers.
 
+For top-level commands, predictions search the final command after `;`, `|`, or a block comment.
+Selecting a prediction replaces that command and its arguments, keeping the preceding input.
+For example, registered snippets can produce these predictions:
+
+```powershell
+Write-Host 'start.'; git status
+<# note #> git status
+Get-Process | Select-Object Name
+```
+
+The search targets the final command even when the cursor is elsewhere in the line.
+Matching doesn't check whether a snippet accepts pipeline input.
+Redirections, invocation operators, script-block arguments, and subexpressions aren't supported.
+These commands use the existing whole-line search instead.
+Replacement inside strings or comments isn't supported.
+
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
 The default value is `false`.

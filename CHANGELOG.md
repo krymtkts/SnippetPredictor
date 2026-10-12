@@ -10,6 +10,7 @@ This project uses prerelease versions such as 0.1.0-alpha.
 ### Added
 
 - Add `PredictOnlyWithIdentifier` to restrict snippet predictions to identifier input.
+- Predict snippets after `;`, `|`, or leading block comments while preserving preceding input.
 
 ### Changed
 
