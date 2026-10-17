@@ -30,8 +30,9 @@ updates:
       dotnet-tools:
         patterns:
           - "fantomas"
-          - "coverlet.console"
           - "dotnet-reportgenerator-globaltool"
+      fsharp-analyzers:
+        patterns:
           - "fsharp-analyzers"
           - "Ionide.Analyzers"
       test:
