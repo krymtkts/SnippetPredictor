@@ -30,14 +30,17 @@ updates:
       dotnet-tools:
         patterns:
           - "fantomas"
-          - "coverlet.console"
           - "dotnet-reportgenerator-globaltool"
+      fsharp-analyzers:
+        patterns:
           - "fsharp-analyzers"
           - "Ionide.Analyzers"
       test:
         patterns:
           - "Expecto"
           - "YoloDev.Expecto.TestSdk"
+          - "coverlet.MTP"
+          - "Microsoft.Testing.Extensions.*"
           - "Microsoft.Management.Infrastructure"
       powershell-sdk:
         patterns:
@@ -55,5 +58,3 @@ updates:
       - dependency-name: "FSharp.Core"
         update-types:
           - "version-update:semver-major"
-          - "version-update:semver-minor"
-          - "version-update:semver-patch"
