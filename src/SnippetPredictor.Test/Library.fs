@@ -111,6 +111,32 @@ module Cmdlets =
 
                 }
 
+                for contexts in
+                    [|
+                        [| PredictionContexts.Command |]
+                        [| PredictionContexts.Pipeline |]
+                        [| PredictionContexts.Command; PredictionContexts.Pipeline |]
+                        [| PredictionContexts.IdentifierOnly |]
+                    |] do
+                    let name = contexts |> Array.map string |> String.concat ","
+
+                    testCase $"saves prediction contexts {name}" (fun () ->
+                        use tmp = new TempFile(Config.snippetFilesName, """{"Snippets":[]}""")
+                        let cmdlet = AddSnippetCommandForTest(Some tmp.GetSnippetPath)
+                        cmdlet.Snippet <- "git status"
+                        cmdlet.Tooltip <- "status"
+                        cmdlet.Group <- "git"
+                        cmdlet.PredictionContexts <- contexts
+                        cmdlet.Test()
+
+                        cmdlet.Runtime.Errors |> Expect.isEmpty "should not report an error"
+
+                        Store.loadSnippets tmp.GetSnippetPath
+                        |> Expect.wantOk "should load the added snippet"
+                        |> Expect.equal
+                            "should save the selected contexts"
+                            [| Store.makeSnippetEntry contexts "git status" "status" "git" |])
+
                 test "when snippet file is invalid" {
                     use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": [}""")
 

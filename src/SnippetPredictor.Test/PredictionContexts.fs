@@ -1,5 +1,6 @@
 module SnippetPredictorTest.PredictionContexts
 
+open System
 open System.Text.Json
 open Expecto
 open Expecto.Flip
@@ -159,7 +160,7 @@ let tests =
                 |] do
                 testCase $"reads {name}" (fun () ->
                     let expected =
-                        { Store.makeSnippetEntry "git status" "status" "git" with
+                        { Store.makeSnippetEntry [| PredictionContexts.Command |] "git status" "status" "git" with
                             PredictionContexts = both
                         }
 
@@ -200,10 +201,10 @@ let tests =
                 |> Expect.equal "should keep identifier-only mode explicit" "IdentifierOnly"
             }
 
-            test "defaults programmatically created entries to command" {
-                Store.makeSnippetEntry "git status" "status" null
+            test "creates entries with an explicit command context" {
+                Store.makeSnippetEntry [| PredictionContexts.Command |] "git status" "status" null
                 |> _.PredictionContexts
-                |> Expect.equal "should retain the default context" PredictionContexts.Command
+                |> Expect.equal "should use the requested context" PredictionContexts.Command
             }
 
             test "defaults null through the property converter to command" {
@@ -211,10 +212,92 @@ let tests =
                 |> Expect.equal "should distinguish null from identifier-only mode" PredictionContexts.Command
             }
 
+            for name, contexts, expected in
+                [|
+                    "command", [| PredictionContexts.Command |], PredictionContexts.Command
+                    "pipeline", [| PredictionContexts.Pipeline |], PredictionContexts.Pipeline
+                    "both", [| PredictionContexts.Command; PredictionContexts.Pipeline |], both
+                    "combined flags", [| both |], both
+                    "duplicates",
+                    [| PredictionContexts.Command; PredictionContexts.Command |],
+                    PredictionContexts.Command
+                    "identifier only", [| PredictionContexts.IdentifierOnly |], PredictionContexts.IdentifierOnly
+                    "repeated identifier only",
+                    [| PredictionContexts.IdentifierOnly; PredictionContexts.IdentifierOnly |],
+                    PredictionContexts.IdentifierOnly
+                |] do
+                testCase $"creates entries for {name}" (fun () ->
+                    let entry = Store.makeSnippetEntry contexts "git status" "status" "git"
+
+                    entry.PredictionContexts
+                    |> Expect.equal "should combine context permissions" expected
+
+                    entry.Snippet |> Expect.equal "should retain snippet" "git status"
+                    entry.Tooltip |> Expect.equal "should retain tooltip" "status"
+                    entry.Group |> Expect.equal "should retain group" "git")
+
+            for name, contexts in
+                [|
+                    "empty", [||]
+                    "unknown", [| enum<PredictionContexts> 4 |]
+                    "negative", [| enum<PredictionContexts> -1 |]
+                    "unknown combined", [| PredictionContexts.Command; enum<PredictionContexts> 4 |]
+                    "identifier with command", [| PredictionContexts.IdentifierOnly; PredictionContexts.Command |]
+                    "pipeline with identifier", [| PredictionContexts.Pipeline; PredictionContexts.IdentifierOnly |]
+                    "identifier with both", [| PredictionContexts.IdentifierOnly; both |]
+                |] do
+                testCase $"rejects entry creation for {name}" (fun () ->
+                    let rejected =
+                        try
+                            Store.makeSnippetEntry contexts "git status" "status" null |> ignore
+                            false
+                        with :? ArgumentException ->
+                            true
+
+                    rejected |> Expect.isTrue "should reject invalid context permissions")
+
+            test "preserves contexts when adding and removing snippets" {
+                let entries =
+                    [|
+                        Store.makeSnippetEntry [| PredictionContexts.Command |] "git status" "status" "git"
+                        Store.makeSnippetEntry [| PredictionContexts.Pipeline |] "Select-Object Name" "select" null
+                        Store.makeSnippetEntry [| both |] "git log" "log" "git"
+                        Store.makeSnippetEntry [| PredictionContexts.IdentifierOnly |] "git push" "push" "git"
+                    |]
+
+                use file = new TempFile(Config.snippetFilesName, """{"Snippets":[]}""")
+
+                entries
+                |> Store.addSnippets file.GetSnippetPath
+                |> Expect.wantOk "should add every context selection"
+                |> ignore
+
+                Store.loadSnippets file.GetSnippetPath
+                |> Expect.wantOk "should load snippets"
+                |> Expect.equal "should retain all entry properties" entries
+
+                let extra =
+                    Store.makeSnippetEntry [| PredictionContexts.Command |] "git diff" "diff" null
+
+                [| extra |]
+                |> Store.addSnippets file.GetSnippetPath
+                |> Expect.wantOk "should append a snippet"
+                |> ignore
+
+                [| extra.Snippet |]
+                |> Store.removeSnippets file.GetSnippetPath
+                |> Expect.wantOk "should remove the extra snippet"
+                |> ignore
+
+                Store.loadSnippets file.GetSnippetPath
+                |> Expect.wantOk "should reload snippets"
+                |> Expect.equal "should preserve contexts through later edits" entries
+            }
+
             test "rejects undefined flags when serializing" {
                 for value in [| enum<PredictionContexts> 4; enum<PredictionContexts> -1 |] do
                     let entry =
-                        { Store.makeSnippetEntry "git status" "status" null with
+                        { Store.makeSnippetEntry [| PredictionContexts.Command |] "git status" "status" null with
                             PredictionContexts = value
                         }
 
