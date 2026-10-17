@@ -17,6 +17,7 @@ module Config =
             Snippet = $"'{errorMessage}'" // NOTE: Wrap in quotes to avoid errors if the error message is executed.
             Tooltip = errorDetail
             Group = null
+            PredictionContexts = PredictionContexts.Command
         }
 
 

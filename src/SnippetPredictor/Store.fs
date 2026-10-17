@@ -28,6 +28,7 @@ module Store =
             Snippet = snippet
             Tooltip = tooltip
             Group = group
+            PredictionContexts = PredictionContexts.Command
         }
 
     let loadSnippets getSnippetPath =

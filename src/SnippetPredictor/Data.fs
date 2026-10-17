@@ -45,6 +45,73 @@ type GroupJsonConverter() =
     override _.Write(writer: Utf8JsonWriter, value: string, options: JsonSerializerOptions) =
         value |> writer.WriteStringValue
 
+[<Flags>]
+type PredictionContexts =
+    | IdentifierOnly = 0
+    | Command = 1
+    | Pipeline = 2
+
+module internal PredictionContextsJson =
+    let invalid () =
+        SnippetConfigValidationException(
+            "PredictionContexts must be null, \"IdentifierOnly\", or a non-empty array containing only \"Command\" and \"Pipeline\"."
+        )
+        |> raise
+
+    let read (element: JsonElement) =
+        match element.ValueKind with
+        | JsonValueKind.Null -> PredictionContexts.Command
+        | JsonValueKind.String when
+            String.Equals(element.GetString(), "IdentifierOnly", StringComparison.OrdinalIgnoreCase)
+            ->
+            PredictionContexts.IdentifierOnly
+        | JsonValueKind.Array when element.GetArrayLength() > 0 ->
+            let mutable contexts = PredictionContexts.IdentifierOnly
+
+            for item in element.EnumerateArray() do
+                let context =
+                    match item.ValueKind with
+                    | JsonValueKind.String ->
+                        let name = item.GetString()
+
+                        if String.Equals(name, "Command", StringComparison.OrdinalIgnoreCase) then
+                            PredictionContexts.Command
+                        elif String.Equals(name, "Pipeline", StringComparison.OrdinalIgnoreCase) then
+                            PredictionContexts.Pipeline
+                        else
+                            invalid ()
+                    | _ -> invalid ()
+
+                contexts <- contexts ||| context
+
+            contexts
+        | _ -> invalid ()
+
+type PredictionContextsJsonConverter() =
+    inherit JsonConverter<PredictionContexts>()
+
+    override _.HandleNull = true
+
+    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, _options: JsonSerializerOptions) =
+        use document = JsonDocument.ParseValue(&reader)
+        PredictionContextsJson.read document.RootElement
+
+    override _.Write(writer: Utf8JsonWriter, value: PredictionContexts, _options: JsonSerializerOptions) =
+        if value = PredictionContexts.IdentifierOnly then
+            writer.WriteStringValue("IdentifierOnly")
+        elif value &&& (PredictionContexts.Command ||| PredictionContexts.Pipeline) = value then
+            writer.WriteStartArray()
+
+            if value &&& PredictionContexts.Command <> PredictionContexts.IdentifierOnly then
+                writer.WriteStringValue("Command")
+
+            if value &&& PredictionContexts.Pipeline <> PredictionContexts.IdentifierOnly then
+                writer.WriteStringValue("Pipeline")
+
+            writer.WriteEndArray()
+        else
+            PredictionContextsJson.invalid ()
+
 type SnippetEntry =
     {
         Snippet: string
@@ -52,6 +119,8 @@ type SnippetEntry =
         [<JsonConverter(typeof<GroupJsonConverter>)>]
         [<JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)>]
         Group: string | null
+        [<JsonConverter(typeof<PredictionContextsJsonConverter>)>]
+        PredictionContexts: PredictionContexts
     }
 
 type SnippetEntryJsonConverter() =
@@ -76,6 +145,7 @@ type SnippetEntryJsonConverter() =
             let mutable snippet: string | null = null
             let mutable tooltip = ""
             let mutable group: string | null = null
+            let mutable predictionContexts = PredictionContexts.Command
 
             for property in document.RootElement.EnumerateObject() do
                 if property.Name.Equals("Snippet", StringComparison.OrdinalIgnoreCase) then
@@ -88,6 +158,8 @@ type SnippetEntryJsonConverter() =
                     match readString "Group" property.Value with
                     | null -> group <- null
                     | value -> group <- Group.validate value
+                elif property.Name.Equals("PredictionContexts", StringComparison.OrdinalIgnoreCase) then
+                    predictionContexts <- PredictionContextsJson.read property.Value
 
             match snippet with
             | null -> invalid "Snippet is required and cannot be empty or whitespace."
@@ -98,6 +170,7 @@ type SnippetEntryJsonConverter() =
                     Snippet = snippet
                     Tooltip = tooltip
                     Group = group
+                    PredictionContexts = predictionContexts
                 }
         | _ -> invalid "Snippet entry must be a JSON object."
 

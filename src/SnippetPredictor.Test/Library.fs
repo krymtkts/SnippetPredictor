@@ -97,7 +97,10 @@ module Cmdlets =
     {
       "Snippet": "Add-Snippet 'echo test'",
       "Tooltip": "add snippet",
-      "Group": "test"
+      "Group": "test",
+      "PredictionContexts": [
+        "Command"
+      ]
     }
   ]
 }"""
@@ -178,6 +181,7 @@ module Cmdlets =
                             Snippet = "Get-Snippet"
                             Tooltip = "get snippet"
                             Group = "test"
+                            PredictionContexts = PredictionContexts.Command
                         }
 
                     cmdlet.Runtime.Output

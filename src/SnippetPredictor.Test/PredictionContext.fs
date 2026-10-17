@@ -23,36 +23,43 @@ let private entries: SnippetEntry array =
             Snippet = "digit"
             Tooltip = "substring"
             Group = null
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "git status --short"
             Tooltip = "status"
             Group = "git"
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "git"
             Tooltip = "exact"
             Group = "git"
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "Write-Host git"
             Tooltip = "word start"
             Group = null
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "git"
             Tooltip = "duplicate"
             Group = null
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "Select-Object Name"
             Tooltip = "select"
             Group = null
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "Out-File result"
             Tooltip = "output"
             Group = null
+            PredictionContexts = PredictionContexts.Command
         }
     |]
 
