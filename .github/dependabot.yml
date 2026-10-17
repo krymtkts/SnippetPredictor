@@ -38,6 +38,8 @@ updates:
         patterns:
           - "Expecto"
           - "YoloDev.Expecto.TestSdk"
+          - "coverlet.MTP"
+          - "Microsoft.Testing.Extensions.*"
           - "Microsoft.Management.Infrastructure"
       powershell-sdk:
         patterns:
