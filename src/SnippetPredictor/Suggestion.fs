@@ -41,6 +41,14 @@ module Suggestion =
 
     let private includeAll (_: SnippetEntry) = true
 
+    let private includeCommand (snippet: SnippetEntry) =
+        snippet.PredictionContexts &&& PredictionContexts.Command
+        <> PredictionContexts.IdentifierOnly
+
+    let private includePipeline (snippet: SnippetEntry) =
+        snippet.PredictionContexts &&& PredictionContexts.Pipeline
+        <> PredictionContexts.IdentifierOnly
+
     [<Literal>]
     let private ExactMatchRank = 0
 
@@ -577,13 +585,19 @@ module Suggestion =
             match PredictionInput.tryCommandRange context with
             | ValueNone ->
                 input.Trim()
-                |> chooseSnippets current includeAll _.Snippet (Generic.List<PredictiveSuggestion>())
-            | ValueSome(struct (start, length)) ->
+                |> chooseSnippets current includeCommand _.Snippet (Generic.List<PredictiveSuggestion>())
+            | ValueSome(struct (start, length, predictionContext)) ->
                 let query = input.Substring(start, length).Trim()
                 let suggestions = Generic.List<PredictiveSuggestion>()
 
+                let pred =
+                    if predictionContext = PredictionContexts.Pipeline then
+                        includePipeline
+                    else
+                        includeCommand
+
                 let struct (matches, count, ranksPresent) =
-                    collectMatches current includeAll _.Snippet query
+                    collectMatches current pred _.Snippet query
 
                 if count > 0 then
                     let leadingInput = input.Substring(0, start)
@@ -615,11 +629,15 @@ module Suggestion =
                 if current.PredictOnlyWithIdentifier && input <> ":" then
                     Generic.List<PredictiveSuggestion>()
                 else
+                    let filterByContext = current.HasValidConfiguration && input <> ":"
+
                     match context with
-                    | ValueSome context when current.HasValidConfiguration -> chooseContextualSnippets current context
+                    | ValueSome context when filterByContext -> chooseContextualSnippets current context
                     | _ ->
+                        let pred = if filterByContext then includeCommand else includeAll
+
                         input
-                        |> chooseSnippets current includeAll _.Snippet (Generic.List<PredictiveSuggestion>())
+                        |> chooseSnippets current pred _.Snippet (Generic.List<PredictiveSuggestion>())
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
             predict (Volatile.Read(&snapshot)) ValueNone input

@@ -28,6 +28,7 @@
     <Compile Include="Snippet.fs" />
     <Compile Include="PredictionScope.fs" />
     <Compile Include="PredictionContexts.fs" />
+    <Compile Include="PredictionFiltering.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

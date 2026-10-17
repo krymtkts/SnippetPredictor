@@ -52,6 +52,48 @@ type TempFile(fileName: string, content: string) =
     member __.GetSnippetContent() =
         File.ReadAllText(path) |> normalizeNewlines
 
+module PredictionFixture =
+    open System.Management.Automation.Language
+    open System.Management.Automation.Subsystem.Prediction
+    open System.Threading
+    open SnippetPredictor
+
+    let context input =
+        let ast, tokens, _ = Parser.ParseInput input
+        PredictionContext(ast, tokens)
+
+    let pairs (suggestions: Collections.Generic.IEnumerable<PredictiveSuggestion>) =
+        suggestions
+        |> Seq.map (fun suggestion -> suggestion.SuggestionText, suggestion.ToolTip)
+        |> Seq.toArray
+
+    let withPredictor content count action =
+        use file = new TempFile(Config.snippetFilesName, content)
+
+        let path () =
+            file.GetSnippetDirectoryPath(), file.GetSnippetPath()
+
+        use cache = new Suggestion.Cache()
+        cache.load path
+        use predictor = new SnippetPredictor(Guid.NewGuid().ToString(), path)
+
+        (fun () ->
+            cache.getCompletionTexts ":snp" |> Array.length = count
+            && predictor.GetCompletionTexts ":snp" |> Array.length = count)
+        |> expectEventually "should load prediction fixture"
+
+        let client = PredictionClient("prediction test", PredictionClientKind.Terminal)
+
+        let suggest input =
+            let package =
+                (predictor :> ICommandPredictor).GetSuggestion(client, context input, CancellationToken.None)
+
+            match package.SuggestionEntries with
+            | null -> Array.empty
+            | suggestions -> pairs suggestions
+
+        action cache suggest
+
 type EnvironmentVariable(value: string) =
     static let gate = new Threading.SemaphoreSlim(1, 1)
     let name = "SNIPPET_PREDICTOR_CONFIG"

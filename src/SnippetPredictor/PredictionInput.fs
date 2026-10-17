@@ -89,6 +89,14 @@ module PredictionInput =
                 if name.Value.StartsWith(":", StringComparison.Ordinal) then
                     ValueNone
                 else
-                    ValueSome(struct (command.Extent.StartOffset, input.Length - command.Extent.StartOffset))
+                    let predictionContext =
+                        match command.Parent with
+                        | :? PipelineAst as pipeline when pipeline.PipelineElements.Count > 1 ->
+                            PredictionContexts.Pipeline
+                        | _ -> PredictionContexts.Command
+
+                    ValueSome(
+                        struct (command.Extent.StartOffset, input.Length - command.Extent.StartOffset, predictionContext)
+                    )
             | _ -> ValueNone
         | _ -> ValueNone
