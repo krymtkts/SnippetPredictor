@@ -4,7 +4,7 @@ external help file: SnippetPredictor-Help.xml
 HelpUri: https://github.com/krymtkts/SnippetPredictor/blob/main/docs/SnippetPredictor/Add-Snippet.md
 Locale: en-US
 Module Name: SnippetPredictor
-ms.date: 12-30-2025
+ms.date: 10-17-2026
 PlatyPS schema version: 2024-05-01
 title: Add-Snippet
 ---
@@ -20,7 +20,8 @@ Add snippets with tooltip to the snippet configuration.
 ### \_\_AllParameterSets
 
 ```
-Add-Snippet [-Snippet] <string> [[-Tooltip] <string>] [[-Group] <string>] [<CommonParameters>]
+Add-Snippet [-Snippet] <string> [[-Tooltip] <string>] [[-Group] <string>]
+ [-PredictionContexts <PredictionContexts[]>] [<CommonParameters>]
 ```
 
 ## ALIASES
@@ -65,6 +66,22 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
 
 Add a snippet through pipeline.
 
+### Example 5
+
+```powershell
+Add-Snippet 'Select-Object Name' -PredictionContexts Command, Pipeline
+```
+
+Suggest the snippet in command and pipeline positions.
+
+### Example 6
+
+```powershell
+Add-Snippet 'git push --force-with-lease' -Group rewrite -PredictionContexts IdentifierOnly
+```
+
+Keep the snippet available through identifiers without suggesting it for ordinary input.
+
 ## PARAMETERS
 
 ### -Group
@@ -79,6 +96,35 @@ Aliases: []
 ParameterSets:
   - Name: (All)
     Position: 2
+    IsRequired: false
+    ValueFromPipeline: false
+    ValueFromPipelineByPropertyName: true
+    ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ""
+```
+
+### -PredictionContexts
+
+The positions in which to suggest the snippet for ordinary input.
+`Command` allows the start of a line, after a leading block comment, and after `;`.
+`Pipeline` allows the second and later commands in a pipeline.
+Use `Command, Pipeline` to allow both positions.
+The default is `Command`.
+Use `IdentifierOnly` alone to omit the snippet from ordinary predictions.
+The parameter rejects null and empty arrays.
+Identifier-based predictions, completion, and accept handlers remain available with every setting.
+This setting doesn't verify whether the snippet accepts pipeline input.
+
+```yaml
+Type: SnippetPredictor.PredictionContexts[]
+DefaultValue: Command
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+  - Name: (All)
+    Position: Named
     IsRequired: false
     ValueFromPipeline: false
     ValueFromPipelineByPropertyName: true
@@ -142,6 +188,10 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ### System.String
 
 The snippet string to add.
+
+### SnippetPredictor.PredictionContexts[]
+
+Prediction contexts supplied through a matching property on a pipeline object.
 
 ## OUTPUTS
 

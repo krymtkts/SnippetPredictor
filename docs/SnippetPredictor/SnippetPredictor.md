@@ -40,6 +40,23 @@ Identifier-based predictions keep their existing behavior.
 Omitting the setting or using `false` or `null` keeps predictions enabled for ordinary input.
 This setting affects predictions, not completion or accept handlers.
 
+Each snippet can specify `PredictionContexts` to control where it appears for ordinary input.
+Use `["Command"]` for the start of a line, after a leading block comment, and after `;`.
+Use `["Pipeline"]` for the second and later commands in a pipeline.
+Use `["Command", "Pipeline"]` for both positions.
+Omitting the property or using `null` defaults to `["Command"]`.
+Use the string `"IdentifierOnly"` to exclude a snippet from ordinary predictions.
+An empty array, an array containing `"IdentifierOnly"`, and unknown values are invalid.
+Identifier-based predictions, completion and accept handlers remain unchanged.
+Standalone `:` also keeps its existing behavior.
+`PredictOnlyWithIdentifier` still suppresses ordinary predictions regardless of per-snippet contexts.
+
+The predictor searches the last top-level command and preserves preceding input.
+Accepting a prediction replaces that command and its arguments with the snippet.
+Context selection assumes the cursor is at the end of the line, regardless of its actual position.
+Unsupported syntax uses the existing whole-line search with Command snippets.
+Prediction contexts don't verify pipeline input compatibility.
+
 ## SnippetPredictor
 
 ### [Add-Snippet](Add-Snippet.md)
