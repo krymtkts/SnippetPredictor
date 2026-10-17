@@ -168,10 +168,13 @@ Write-Host 'start.'; git status
 Get-Process | Select-Object Name
 ```
 
+Snippets need explicit `Pipeline` permission to appear after `|`.
+See [Configure predictions](#configure-predictions) for per-snippet settings.
+
 The search targets the final command even when the cursor is elsewhere in the line.
 Matching doesn't check whether a snippet accepts pipeline input.
 Redirections, invocation operators, script-block arguments, and subexpressions aren't supported.
-These commands use the existing whole-line search instead.
+These commands use the existing whole-line search with `Command` snippets instead.
 Replacement inside strings or comments isn't supported.
 
 ### Configure predictions
@@ -196,10 +199,29 @@ Edit `.snippet-predictor.json`:
 }
 ```
 
-Identifier-based predictions keep their existing behavior.
-`:snp`, `:tip`, group and partial identifiers, and standalone `:` aren't affected.
 Omitting the setting or using `false` or `null` keeps the default behavior.
-This setting affects predictions, not completion or accept handlers.
+
+Use each snippet's `PredictionContexts` property to choose its ordinary prediction positions:
+
+- `["Command"]`: the start of a line, after a leading block comment, or after `;`.
+- `["Pipeline"]`: the second and later commands in a pipeline.
+- `["Command", "Pipeline"]`: both positions.
+- `"IdentifierOnly"`: identifier-based use without ordinary predictions.
+
+Omitting the property or using `null` defaults to `["Command"]`.
+Empty arrays, arrays containing `"IdentifierOnly"`, and unknown values are invalid.
+`PredictOnlyWithIdentifier` still suppresses ordinary predictions regardless of per-snippet contexts.
+
+Neither setting changes identifier-based predictions, completion or accept handlers.
+`:snp`, `:tip`, group and partial identifiers, and standalone `:` keep their existing behavior.
+
+For example, allow a snippet in both positions:
+
+```powershell
+Add-Snippet 'Get-Date -Format "yyyy-MM-ddTHH:mm:ss"' -PredictionContexts Command, Pipeline
+```
+
+This formats the current date and time when used alone, or dates received through a pipeline.
 
 ### List and remove snippets
 

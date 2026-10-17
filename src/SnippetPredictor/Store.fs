@@ -23,11 +23,36 @@ module Store =
     let makeErrorRecord (e: string) =
         new ErrorRecord(new Exception(e), "", ErrorCategory.InvalidData, null)
 
-    let makeSnippetEntry (snippet: string) (tooltip: string) (group: string | null) =
+    let makeSnippetEntry
+        (predictionContexts: PredictionContexts array)
+        (snippet: string)
+        (tooltip: string)
+        (group: string | null)
+        =
+        let permissions =
+            match predictionContexts with
+            | contexts when contexts.Length = 0 ->
+                invalidArg (nameof predictionContexts) "Specify at least one prediction context."
+            | contexts ->
+                let permissions = contexts |> Array.fold (|||) PredictionContexts.IdentifierOnly
+                let supported = PredictionContexts.Command ||| PredictionContexts.Pipeline
+
+                if permissions &&& supported <> permissions then
+                    invalidArg (nameof predictionContexts) "Specify Command, Pipeline, or IdentifierOnly."
+
+                if
+                    permissions <> PredictionContexts.IdentifierOnly
+                    && contexts |> Array.contains PredictionContexts.IdentifierOnly
+                then
+                    invalidArg (nameof predictionContexts) "IdentifierOnly cannot be combined with Command or Pipeline."
+
+                permissions
+
         {
             Snippet = snippet
             Tooltip = tooltip
             Group = group
+            PredictionContexts = permissions
         }
 
     let loadSnippets getSnippetPath =

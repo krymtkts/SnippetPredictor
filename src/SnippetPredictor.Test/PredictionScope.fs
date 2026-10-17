@@ -17,16 +17,19 @@ let private entries =
             Snippet = "git status"
             Tooltip = "working tree"
             Group = "git"
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "git"
             Tooltip = "git command"
             Group = "git"
+            PredictionContexts = PredictionContexts.Command
         }
         {
             Snippet = "Write-Host ':'"
             Tooltip = "colon"
             Group = null
+            PredictionContexts = PredictionContexts.Command
         }
     |]
 
@@ -181,6 +184,7 @@ let tests =
                         Snippet = "git log"
                         Tooltip = "history"
                         Group = "git"
+                        PredictionContexts = PredictionContexts.Command
                     }
                 |]
                 |> Store.addSnippets file.GetSnippetPath

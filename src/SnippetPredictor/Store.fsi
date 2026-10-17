@@ -7,7 +7,12 @@ module Store =
 
     val makeErrorRecord: e: string -> System.Management.Automation.ErrorRecord
 
-    val makeSnippetEntry: snippet: string -> tooltip: string -> group: string | null -> SnippetEntry
+    val makeSnippetEntry:
+        predictionContexts: PredictionContexts array ->
+        snippet: string ->
+        tooltip: string ->
+        group: string | null ->
+            SnippetEntry
 
     val loadSnippets: getSnippetPath: (unit -> string) -> Result<SnippetEntry array, string>
 

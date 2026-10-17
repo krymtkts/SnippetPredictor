@@ -40,6 +40,14 @@ The snippet configuration resides in `~/.snippet-predictor.json`.</maml:para>
             <maml:name>System.String</maml:name>
           </dev:type>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="named" aliases="none">
+          <maml:name>PredictionContexts</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">PredictionContexts[]</command:parameterValue>
+          <dev:type>
+            <maml:name>SnippetPredictor.PredictionContexts[]</maml:name>
+          </dev:type>
+        </command:parameter>
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
@@ -51,6 +59,24 @@ The snippet configuration resides in `~/.snippet-predictor.json`.</maml:para>
         <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
         <dev:type>
           <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="true (ByPropertyName)" position="Named" aliases="none">
+        <maml:name>PredictionContexts</maml:name>
+        <maml:description>
+          <maml:para>The positions in which to suggest the snippet for ordinary input.
+`Command` allows the start of a line, after a leading block comment, and after `;`.
+`Pipeline` allows the second and later commands in a pipeline.
+Use `Command, Pipeline` to allow both positions.
+The default is `Command`.
+Use `IdentifierOnly` alone to omit the snippet from ordinary predictions.
+The parameter rejects null and empty arrays.
+Identifier-based predictions, completion, and accept handlers remain available with every setting.
+This setting doesn't verify whether the snippet accepts pipeline input.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">SnippetPredictor.PredictionContexts[]</command:parameterValue>
+        <dev:type>
+          <maml:name>SnippetPredictor.PredictionContexts[]</maml:name>
         </dev:type>
       </command:parameter>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="none">
@@ -81,6 +107,14 @@ The snippet configuration resides in `~/.snippet-predictor.json`.</maml:para>
         </dev:type>
         <maml:description>
           <maml:para>The snippet string to add.</maml:para>
+        </maml:description>
+      </command:inputType>
+      <command:inputType>
+        <dev:type>
+          <maml:name>SnippetPredictor.PredictionContexts[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>Prediction contexts supplied through a matching property on a pipeline object.</maml:para>
         </maml:description>
       </command:inputType>
     </command:inputTypes>
@@ -145,6 +179,30 @@ You can pass code blocks. Code blocks are implicitly converted to strings throug
 ```</maml:para>
           <maml:para>&#x80;</maml:para>
           <maml:para>Add a snippet through pipeline.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 5 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Add-Snippet 'Select-Object Name' -PredictionContexts Command, Pipeline
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Suggest the snippet in command and pipeline positions.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- Example 6 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>```powershell
+Add-Snippet 'git push --force-with-lease' -Group rewrite -PredictionContexts IdentifierOnly
+```</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>Keep the snippet available through identifiers without suggesting it for ordinary input.</maml:para>
         </maml:introduction>
         <dev:code />
         <dev:remarks />
@@ -471,7 +529,7 @@ The snippet configuration resides in `~/.snippet-predictor.json`.</maml:para>
           <maml:name>SnippetPredictor.SnippetEntry</maml:name>
         </dev:type>
         <maml:description>
-          <maml:para>A record containing a snippet and its tooltip.</maml:para>
+          <maml:para>A record containing snippet text and tooltip, plus group and prediction context flags.</maml:para>
         </maml:description>
       </command:returnValue>
     </command:returnValues>

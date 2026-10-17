@@ -1,18 +1,10 @@
 module SnippetPredictorTest.PredictionContext
 
-open System.Management.Automation.Subsystem.Prediction
-open System.Management.Automation.Language
-open System
 open System.Text.Json
-open System.Threading
 open Expecto
 open Expecto.Flip
 open SnippetPredictor
-open SnippetPredictorTest.Utility
-
-let private context input =
-    let ast, tokens, _ = Parser.ParseInput input
-    PredictionContext(ast, tokens)
+open SnippetPredictorTest.Utility.PredictionFixture
 
 let private range input =
     context input |> PredictionInput.tryCommandRange
@@ -23,36 +15,43 @@ let private entries: SnippetEntry array =
             Snippet = "digit"
             Tooltip = "substring"
             Group = null
+            PredictionContexts = PredictionContexts.Command ||| PredictionContexts.Pipeline
         }
         {
             Snippet = "git status --short"
             Tooltip = "status"
             Group = "git"
+            PredictionContexts = PredictionContexts.Command ||| PredictionContexts.Pipeline
         }
         {
             Snippet = "git"
             Tooltip = "exact"
             Group = "git"
+            PredictionContexts = PredictionContexts.Command ||| PredictionContexts.Pipeline
         }
         {
             Snippet = "Write-Host git"
             Tooltip = "word start"
             Group = null
+            PredictionContexts = PredictionContexts.Command ||| PredictionContexts.Pipeline
         }
         {
             Snippet = "git"
             Tooltip = "duplicate"
             Group = null
+            PredictionContexts = PredictionContexts.Command ||| PredictionContexts.Pipeline
         }
         {
             Snippet = "Select-Object Name"
             Tooltip = "select"
             Group = null
+            PredictionContexts = PredictionContexts.Command ||| PredictionContexts.Pipeline
         }
         {
             Snippet = "Out-File result"
             Tooltip = "output"
             Group = null
+            PredictionContexts = PredictionContexts.Command ||| PredictionContexts.Pipeline
         }
     |]
 
@@ -65,61 +64,31 @@ let private configuration restricted sensitive =
         |}
     )
 
-let private pairs (suggestions: Collections.Generic.IEnumerable<PredictiveSuggestion>) =
-    suggestions
-    |> Seq.map (fun suggestion -> suggestion.SuggestionText, suggestion.ToolTip)
-    |> Seq.toArray
-
-let private withPredictor content count action =
-    use file = new TempFile(Config.snippetFilesName, content)
-
-    let path () =
-        file.GetSnippetDirectoryPath(), file.GetSnippetPath()
-
-    use cache = new Suggestion.Cache()
-    cache.load path
-    use predictor = new SnippetPredictor(Guid.NewGuid().ToString(), path)
-
-    (fun () ->
-        cache.getCompletionTexts ":snp" |> Array.length = count
-        && predictor.GetCompletionTexts ":snp" |> Array.length = count)
-    |> expectEventually "should load context prediction fixture"
-
-    let client = PredictionClient("context test", PredictionClientKind.Terminal)
-
-    let suggest input =
-        let package =
-            (predictor :> ICommandPredictor).GetSuggestion(client, context input, CancellationToken.None)
-
-        match package.SuggestionEntries with
-        | null -> Array.empty
-        | suggestions -> pairs suggestions
-
-    action cache suggest
-
 [<Tests>]
 let tests =
     testList
         "terminal command range"
         [
             test "preserves leading commands comments and pipelines" {
-                for prefix, query in
+                for prefix, query, predictionContext in
                     [|
-                        "Write-Host 'start.'; ", "git"
-                        "<# 調査用 #> ", "git"
-                        "Get-Content file | ", "Select"
-                        "Get-Content file | Select | ", "Out-F"
-                        "Write-Host '; |'; ", "git"
-                        "<# ; | #> ", "git"
-                        "Get-Content 'a|b;c' | ", "Select"
-                        "Write-Host x;   ", "git st --short  "
-                        "Write-Host x;\n", "git"
+                        "Write-Host 'start.'; ", "git", PredictionContexts.Command
+                        "<# 調査用 #> ", "git", PredictionContexts.Command
+                        "Get-Content file | ", "Select", PredictionContexts.Pipeline
+                        "Get-Content file | Select | ", "Out-F", PredictionContexts.Pipeline
+                        "Write-Host '; |'; ", "git", PredictionContexts.Command
+                        "<# ; | #> ", "git", PredictionContexts.Command
+                        "Get-Content 'a|b;c' | ", "Select", PredictionContexts.Pipeline
+                        "Write-Host x;   ", "git st --short  ", PredictionContexts.Command
+                        "Write-Host x;\n", "git", PredictionContexts.Command
+                        "Write-Host x; Get-Content file | ", "Select", PredictionContexts.Pipeline
+                        "Get-Content file | Select; ", "git", PredictionContexts.Command
                     |] do
                     prefix + query
                     |> range
                     |> Expect.equal
                         "should replace the terminal command including trailing whitespace"
-                        (ValueSome(struct (prefix.Length, query.Length)))
+                        (ValueSome(struct (prefix.Length, query.Length, predictionContext)))
             }
 
             test "leaves unsupported input on the existing prediction path" {
@@ -162,7 +131,7 @@ let tests =
                     |> range
                     |> Expect.equal
                         "should consume trailing whitespace without recursive stack growth"
-                        (ValueSome(struct (prefix.Length, query.Length)))
+                        (ValueSome(struct (prefix.Length, query.Length, PredictionContexts.Command)))
             }
 
             test "returns full lines preserving ranking tooltips and duplicates" {

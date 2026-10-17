@@ -596,6 +596,7 @@ let tests_parseSnippets =
                         SnippetEntry.Snippet = "'.snippet-predictor.json is null or invalid format.'"
                         SnippetEntry.Tooltip = ""
                         SnippetEntry.Group = null
+                        SnippetEntry.PredictionContexts = PredictionContexts.Command
                     }
             }
 
@@ -623,6 +624,7 @@ let tests_parseSnippets =
                         SnippetEntry.Tooltip =
                             "Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 0 | BytePositionInLine: 1."
                         SnippetEntry.Group = null
+                        SnippetEntry.PredictionContexts = PredictionContexts.Command
                     }
 
             }
@@ -686,11 +688,13 @@ let tests_parseSnippets =
                                     SnippetEntry.Snippet = "without tooltip"
                                     SnippetEntry.Tooltip = ""
                                     SnippetEntry.Group = null
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                                 {
                                     SnippetEntry.Snippet = "null tooltip"
                                     SnippetEntry.Tooltip = ""
                                     SnippetEntry.Group = null
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                             |]
                     }
@@ -723,6 +727,7 @@ let tests_parseSnippets =
                                     SnippetEntry.Snippet = "echo 'example'"
                                     SnippetEntry.Tooltip = "example tooltip"
                                     SnippetEntry.Group = null
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                             |]
                     }
@@ -743,6 +748,7 @@ let tests_parseSnippets =
                                     SnippetEntry.Snippet = "echo 'example'"
                                     SnippetEntry.Tooltip = "example tooltip"
                                     SnippetEntry.Group = "group"
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                             |]
                     }
@@ -768,6 +774,7 @@ let tests_parseSnippets =
                                     SnippetEntry.Snippet = "echo 'example'"
                                     SnippetEntry.Tooltip = "example tooltip"
                                     SnippetEntry.Group = null
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                             |]
                     }
@@ -788,6 +795,7 @@ let tests_parseSnippets =
                                     SnippetEntry.Snippet = "echo 'example'"
                                     SnippetEntry.Tooltip = "example tooltip"
                                     SnippetEntry.Group = null
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                             |]
                     }
@@ -803,6 +811,7 @@ let tests_parseSnippets =
                         SnippetEntry.Snippet = "'An error occurred while parsing .snippet-predictor.json'"
                         SnippetEntry.Tooltip = "Invalid characters in group: group! Path: $.snippets[0]"
                         SnippetEntry.Group = null
+                        SnippetEntry.PredictionContexts = PredictionContexts.Command
                     }
             }
 
@@ -821,6 +830,7 @@ let tests_parseSnippets =
                                     SnippetEntry.Snippet = "echo 'example'"
                                     SnippetEntry.Tooltip = "example tooltip"
                                     SnippetEntry.Group = null
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                             |]
                     }
@@ -840,6 +850,7 @@ let tests_parseSnippets =
                                     SnippetEntry.Snippet = "echo 'example'"
                                     SnippetEntry.Tooltip = "example tooltip"
                                     SnippetEntry.Group = null
+                                    SnippetEntry.PredictionContexts = PredictionContexts.Command
                                 }
                             |]
                     }
@@ -918,6 +929,7 @@ module getPredictiveSuggestions =
                 SnippetEntry.Snippet = "echo 'example'"
                 SnippetEntry.Tooltip = "example  tooltip"
                 SnippetEntry.Group = "group"
+                SnippetEntry.PredictionContexts = PredictionContexts.Command
             }
 
         let expected2 =
@@ -925,6 +937,7 @@ module getPredictiveSuggestions =
                 SnippetEntry.Snippet = "touch sample.txt"
                 SnippetEntry.Tooltip = "new file"
                 SnippetEntry.Group = null
+                SnippetEntry.PredictionContexts = PredictionContexts.Command
             }
 
         let entryToSuggestion snippet =
@@ -1939,16 +1952,19 @@ let tests_loadSnippets =
                             SnippetEntry.Snippet = "echo 'example'"
                             SnippetEntry.Tooltip = "example  tooltip"
                             SnippetEntry.Group = "group"
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                         {
                             SnippetEntry.Snippet = "touch sample.txt"
                             SnippetEntry.Tooltip = "new file"
                             SnippetEntry.Group = null
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                         {
                             SnippetEntry.Snippet = "Write-Host gr"
                             SnippetEntry.Tooltip = "example 2"
                             SnippetEntry.Group = "gr"
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
 
                     |]
@@ -1979,6 +1995,7 @@ module addAndRemoveSnippets =
                             SnippetEntry.Snippet = "echo '1'"
                             SnippetEntry.Tooltip = "1 tooltip"
                             SnippetEntry.Group = null
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                     ]
                     |> Store.addSnippets (fun () -> path)
@@ -2000,6 +2017,7 @@ module addAndRemoveSnippets =
                             SnippetEntry.Snippet = "echo '1'"
                             SnippetEntry.Tooltip = "1 tooltip"
                             SnippetEntry.Group = null
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                     ]
                     |> Store.addSnippets (fun () -> path)
@@ -2013,7 +2031,10 @@ module addAndRemoveSnippets =
   "Snippets": [
     {
       "Snippet": "echo '1'",
-      "Tooltip": "1 tooltip"
+      "Tooltip": "1 tooltip",
+      "PredictionContexts": [
+        "Command"
+      ]
     }
   ]
 }"""
@@ -2032,6 +2053,7 @@ module addAndRemoveSnippets =
                             SnippetEntry.Snippet = "echo '2'"
                             SnippetEntry.Tooltip = "2 tooltip"
                             SnippetEntry.Group = null
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                     ]
                     |> Store.addSnippets tmp.GetSnippetPath
@@ -2049,6 +2071,7 @@ module addAndRemoveSnippets =
                             SnippetEntry.Snippet = "echo '3'"
                             SnippetEntry.Tooltip = "3 tooltip"
                             SnippetEntry.Group = null
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                     |]
                     |> Store.addSnippets tmp.GetSnippetPath
@@ -2062,7 +2085,10 @@ module addAndRemoveSnippets =
   "Snippets": [
     {
       "Snippet": "echo '3'",
-      "Tooltip": "3 tooltip"
+      "Tooltip": "3 tooltip",
+      "PredictionContexts": [
+        "Command"
+      ]
     }
   ]
 }"""
@@ -2081,6 +2107,7 @@ module addAndRemoveSnippets =
                             SnippetEntry.Snippet = "echo '3'"
                             SnippetEntry.Tooltip = "3 tooltip"
                             SnippetEntry.Group = null
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                     |]
                     |> Store.addSnippets tmp.GetSnippetPath
@@ -2094,7 +2121,10 @@ module addAndRemoveSnippets =
   "Snippets": [
     {
       "Snippet": "echo '3'",
-      "Tooltip": "3 tooltip"
+      "Tooltip": "3 tooltip",
+      "PredictionContexts": [
+        "Command"
+      ]
     }
   ]
 }"""
@@ -2113,6 +2143,7 @@ module addAndRemoveSnippets =
                             SnippetEntry.Snippet = "echo '4'"
                             SnippetEntry.Tooltip = "4 tooltip"
                             SnippetEntry.Group = "group4"
+                            SnippetEntry.PredictionContexts = PredictionContexts.Command
                         }
                     |]
                     |> Store.addSnippets tmp.GetSnippetPath
@@ -2127,7 +2158,10 @@ module addAndRemoveSnippets =
     {
       "Snippet": "echo '4'",
       "Tooltip": "4 tooltip",
-      "Group": "group4"
+      "Group": "group4",
+      "PredictionContexts": [
+        "Command"
+      ]
     }
   ]
 }"""

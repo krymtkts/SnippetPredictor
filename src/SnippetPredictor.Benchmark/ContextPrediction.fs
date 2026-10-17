@@ -15,6 +15,7 @@ type ContextScenario =
     | Pipeline = 2
     | NoMatch = 3
     | Restricted = 4
+    | Disallowed = 5
 
 type ContextFixture(count: int, scenario: ContextScenario) =
     let directory =
@@ -26,7 +27,8 @@ type ContextFixture(count: int, scenario: ContextScenario) =
     let leadingInput =
         match scenario with
         | ContextScenario.BlockComment -> "<# benchmark #> "
-        | ContextScenario.Pipeline -> "Get-Content file | "
+        | ContextScenario.Pipeline
+        | ContextScenario.Disallowed -> "Get-Content file | "
         | _ -> "Write-Host 'start.'; "
 
     let query =
@@ -45,6 +47,11 @@ type ContextFixture(count: int, scenario: ContextScenario) =
                     {|
                         Snippet = samples[index % samples.Length]
                         Tooltip = "benchmark"
+                        PredictionContexts =
+                            if scenario = ContextScenario.Disallowed then
+                                [| "Command" |]
+                            else
+                                [| "Command"; "Pipeline" |]
                     |})
 
             File.WriteAllText(
@@ -82,7 +89,11 @@ type ContextFixture(count: int, scenario: ContextScenario) =
             invalidOp "Context benchmark configuration did not finish loading."
 
         let expected =
-            if scenario = ContextScenario.NoMatch || scenario = ContextScenario.Restricted then
+            if
+                scenario = ContextScenario.NoMatch
+                || scenario = ContextScenario.Restricted
+                || scenario = ContextScenario.Disallowed
+            then
                 0
             else
                 count - count / samples.Length

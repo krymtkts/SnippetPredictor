@@ -43,11 +43,18 @@ type AddSnippetCommand() =
     [<ValidatePattern(Group.pattern)>]
     member val Group: string | null = null with get, set
 
+    [<Parameter(Mandatory = false,
+                ValueFromPipelineByPropertyName = true,
+                HelpMessage = "The contexts in which to suggest the snippet")>]
+    [<ValidateNotNullOrEmpty>]
+    member val PredictionContexts: PredictionContexts array = [| PredictionContexts.Command |] with get, set
+
     abstract member GetSnippetPath: unit -> string
     default __.GetSnippetPath() = Store.getSnippetPath ()
 
     override __.ProcessRecord() =
-        Store.makeSnippetEntry __.Snippet __.Tooltip __.Group |> snippets.Add
+        Store.makeSnippetEntry __.PredictionContexts __.Snippet __.Tooltip __.Group
+        |> snippets.Add
 
     override __.EndProcessing() =
         snippets

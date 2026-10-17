@@ -937,4 +937,104 @@ Describe 'SnippetPredictor' {
             Get-Snippet | Should -Be $null
         }
     }
+    Context 'PredictionContexts' {
+        BeforeEach {
+            [System.IO.File]::WriteAllText($configFilePath, '{"Snippets":[]}')
+        }
+        It 'should keep PredictionContexts optional and named-only' {
+            $parameter = (Get-Command Add-Snippet).Parameters['PredictionContexts']
+            $attributes = $parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
+
+            $attributes.Count | Should -Be 1
+            $attributes[0].Mandatory | Should -BeFalse
+            $attributes[0].Position | Should -Be ([int]::MinValue)
+            $attributes[0].ValueFromPipelineByPropertyName | Should -BeTrue
+        }
+        It 'should default existing positional arguments to Command' {
+            Add-Snippet 'git status' 'status' 'git'
+            $snippet = Get-Snippet
+
+            $snippet.Snippet | Should -Be 'git status'
+            $snippet.Tooltip | Should -Be 'status'
+            $snippet.Group | Should -Be 'git'
+            [int]$snippet.PredictionContexts | Should -Be 1
+        }
+        It 'should save <Contexts> as <ExpectedJson>' -TestCases @(
+            @{ Contexts = @('Command'); Expected = 1; ExpectedJson = '["Command"]' }
+            @{ Contexts = @('Pipeline'); Expected = 2; ExpectedJson = '["Pipeline"]' }
+            @{ Contexts = @('Command', 'Pipeline'); Expected = 3; ExpectedJson = '["Command","Pipeline"]' }
+            @{ Contexts = @('Pipeline', 'Command', 'Pipeline'); Expected = 3; ExpectedJson = '["Command","Pipeline"]' }
+            @{ Contexts = @('command', 'pIpElInE'); Expected = 3; ExpectedJson = '["Command","Pipeline"]' }
+            @{ Contexts = @('IdentifierOnly'); Expected = 0; ExpectedJson = '"IdentifierOnly"' }
+        ) {
+            Add-Snippet 'git status' -PredictionContexts $Contexts
+            $snippet = Get-Snippet
+            [int]$snippet.PredictionContexts | Should -Be $Expected
+
+            $json = [System.IO.File]::ReadAllText($configFilePath) | ConvertFrom-Json
+            ConvertTo-Json -InputObject $json.Snippets[0].PredictionContexts -Compress |
+                Should -Be $ExpectedJson
+        }
+        It 'should reject <Contexts> without changing the configuration' -TestCases @(
+            @{ Contexts = $null }
+            @{ Contexts = @() }
+            @{ Contexts = @('') }
+            @{ Contexts = @(' ') }
+            @{ Contexts = @('Unsupported') }
+            @{ Contexts = @('IdentifierOnly', 'Command') }
+            @{ Contexts = @('Pipeline', 'IdentifierOnly') }
+            @{ Contexts = @('Command', 'Pipeline', 'IdentifierOnly') }
+            @{ Contexts = @(4) }
+            @{ Contexts = @(-1) }
+        ) {
+            $original = [System.IO.File]::ReadAllText($configFilePath)
+
+            { Add-Snippet 'git status' -PredictionContexts $Contexts -ErrorAction Stop } | Should -Throw
+
+            [System.IO.File]::ReadAllText($configFilePath) | Should -Be $original
+        }
+        It 'should retain contexts from pipeline properties for every input record' {
+            @(
+                [pscustomobject]@{ Snippet = 'git status'; Tooltip = 'status'; PredictionContexts = @('Command') }
+                [pscustomobject]@{ Snippet = 'Select-Object Name'; Tooltip = 'select'; PredictionContexts = @('Pipeline') }
+                [pscustomobject]@{ Snippet = 'git log'; Tooltip = 'log'; PredictionContexts = @('Command', 'Pipeline') }
+                [pscustomobject]@{ Snippet = 'git push'; Tooltip = 'push'; PredictionContexts = 'IdentifierOnly' }
+                [pscustomobject]@{ Snippet = 'git diff'; Tooltip = 'diff' }
+            ) | Add-Snippet
+
+            $snippets = @(Get-Snippet)
+            $snippets.Count | Should -Be 5
+            [int]$snippets[0].PredictionContexts | Should -Be 1
+            [int]$snippets[1].PredictionContexts | Should -Be 2
+            [int]$snippets[2].PredictionContexts | Should -Be 3
+            [int]$snippets[3].PredictionContexts | Should -Be 0
+            [int]$snippets[4].PredictionContexts | Should -Be 1
+        }
+        It 'should retain Get-Snippet permissions when copying and later removing entries' {
+            Add-Snippet 'git status' -Group test -PredictionContexts Command
+            Add-Snippet 'Select-Object Name' -Group test -PredictionContexts Pipeline
+            Add-Snippet 'git log' -Group test -PredictionContexts Command, Pipeline
+            Add-Snippet 'git push' -Group test -PredictionContexts IdentifierOnly
+            $original = @(Get-Snippet)
+            [System.IO.File]::WriteAllText($configFilePath, '{"Snippets":[]}')
+
+            $original | Add-Snippet
+            $copied = @(Get-Snippet)
+            $copied.Count | Should -Be 4
+            for ($index = 0; $index -lt $original.Count; $index++) {
+                $copied[$index].Snippet | Should -Be $original[$index].Snippet
+                $copied[$index].Tooltip | Should -Be $original[$index].Tooltip
+                $copied[$index].Group | Should -Be $original[$index].Group
+                $copied[$index].PredictionContexts | Should -Be $original[$index].PredictionContexts
+            }
+
+            Add-Snippet 'git diff'
+            Remove-Snippet 'git diff'
+            $retained = @(Get-Snippet)
+            $retained.Count | Should -Be 4
+            for ($index = 0; $index -lt $original.Count; $index++) {
+                $retained[$index].PredictionContexts | Should -Be $original[$index].PredictionContexts
+            }
+        }
+    }
 }

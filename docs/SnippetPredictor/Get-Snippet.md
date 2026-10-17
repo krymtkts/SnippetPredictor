@@ -56,7 +56,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### SnippetPredictor.SnippetEntry
 
-A record containing a snippet and its tooltip.
+A record containing snippet text and tooltip, plus group and prediction context flags.
 
 ## NOTES
 
