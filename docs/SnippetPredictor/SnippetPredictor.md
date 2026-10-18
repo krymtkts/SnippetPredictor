@@ -47,6 +47,7 @@ Use `["Command", "Pipeline"]` for both positions.
 Omitting the property or using `null` defaults to `["Command"]`.
 Use the string `"IdentifierOnly"` to exclude a snippet from ordinary predictions.
 An empty array, an array containing `"IdentifierOnly"`, and unknown values are invalid.
+Repeated contexts are invalid, even with different letter casing.
 Identifier-based predictions, completion and accept handlers remain unchanged.
 Standalone `:` also keeps its existing behavior.
 `PredictOnlyWithIdentifier` still suppresses ordinary predictions regardless of per-snippet contexts.
