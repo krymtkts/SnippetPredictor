@@ -210,6 +210,7 @@ Use each snippet's `PredictionContexts` property to choose its ordinary predicti
 
 Omitting the property or using `null` defaults to `["Command"]`.
 Empty arrays, arrays containing `"IdentifierOnly"`, and unknown values are invalid.
+Repeated contexts are invalid, even with different letter casing.
 `PredictOnlyWithIdentifier` still suppresses ordinary predictions regardless of per-snippet contexts.
 
 Neither setting changes identifier-based predictions, completion or accept handlers.
