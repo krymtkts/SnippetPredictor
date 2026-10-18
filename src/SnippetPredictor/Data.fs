@@ -1,6 +1,7 @@
 ﻿namespace SnippetPredictor
 
 open System
+open System.Collections.Generic
 open System.Text.Json
 open System.Text.Json.Serialization
 open System.Text.RegularExpressions
@@ -20,6 +21,11 @@ type internal SnippetConfigValidationException(message: string) =
     inherit JsonException(message)
 
     member _.Detail = message
+
+module internal JsonProperties =
+    let add (names: HashSet<string>) (name: string) =
+        if not (names.Add name) then
+            raise (SnippetConfigValidationException($"Duplicate property: {name}"))
 
 // NOTE: A static let generates unreachable code, so this module is used instead for coverage.
 module Group =
@@ -50,6 +56,14 @@ type PredictionContexts =
     | IdentifierOnly = 0
     | Command = 1
     | Pipeline = 2
+
+module PredictionContexts =
+    let overlaps context contexts =
+        contexts &&& context <> PredictionContexts.IdentifierOnly
+
+    let isValid contexts =
+        let supported = PredictionContexts.Command ||| PredictionContexts.Pipeline
+        contexts &&& supported = contexts
 
 module internal PredictionContextsJson =
     let invalid () =
@@ -82,6 +96,9 @@ module internal PredictionContextsJson =
                             invalid ()
                     | _ -> invalid ()
 
+                if contexts |> PredictionContexts.overlaps context then
+                    raise (SnippetConfigValidationException($"Duplicate value in PredictionContexts: {context}"))
+
                 contexts <- contexts ||| context
 
             contexts
@@ -99,13 +116,13 @@ type PredictionContextsJsonConverter() =
     override _.Write(writer: Utf8JsonWriter, value: PredictionContexts, _options: JsonSerializerOptions) =
         if value = PredictionContexts.IdentifierOnly then
             writer.WriteStringValue("IdentifierOnly")
-        elif value &&& (PredictionContexts.Command ||| PredictionContexts.Pipeline) = value then
+        elif value |> PredictionContexts.isValid then
             writer.WriteStartArray()
 
-            if value &&& PredictionContexts.Command <> PredictionContexts.IdentifierOnly then
+            if value |> PredictionContexts.overlaps PredictionContexts.Command then
                 writer.WriteStringValue("Command")
 
-            if value &&& PredictionContexts.Pipeline <> PredictionContexts.IdentifierOnly then
+            if value |> PredictionContexts.overlaps PredictionContexts.Pipeline then
                 writer.WriteStringValue("Pipeline")
 
             writer.WriteEndArray()
@@ -146,8 +163,11 @@ type SnippetEntryJsonConverter() =
             let mutable tooltip = ""
             let mutable group: string | null = null
             let mutable predictionContexts = PredictionContexts.Command
+            let names = HashSet<string>(StringComparer.OrdinalIgnoreCase)
 
             for property in document.RootElement.EnumerateObject() do
+                JsonProperties.add names property.Name
+
                 if property.Name.Equals("Snippet", StringComparison.OrdinalIgnoreCase) then
                     snippet <- readString "Snippet" property.Value
                 elif property.Name.Equals("Tooltip", StringComparison.OrdinalIgnoreCase) then
@@ -214,3 +234,26 @@ type SnippetConfig =
         // A type-level attribute would also affect serialization.
         Snippets: SnippetEntry array | null
     }
+
+type internal SnippetConfigJsonConverter(options: JsonSerializerOptions) =
+    inherit JsonConverter<SnippetConfig>()
+
+    let readOptions = JsonSerializerOptions(options)
+
+    do readOptions.Converters.Add(SnippetEntryJsonConverter())
+
+    override _.Read(reader: byref<Utf8JsonReader>, _typeToConvert: Type, _options: JsonSerializerOptions) =
+        use document = JsonDocument.ParseValue(&reader)
+        let root = document.RootElement
+
+        if root.ValueKind = JsonValueKind.Object then
+            let names = HashSet<string>(StringComparer.OrdinalIgnoreCase)
+
+            for property in root.EnumerateObject() do
+                JsonProperties.add names property.Name
+
+        JsonSerializer.Deserialize<SnippetConfig>(root, readOptions)
+
+    override _.Write(_writer: Utf8JsonWriter, _value: SnippetConfig, _options: JsonSerializerOptions) =
+        NotSupportedException("SnippetConfigJsonConverter is only used for deserialization.")
+        |> raise

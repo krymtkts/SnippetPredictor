@@ -42,12 +42,12 @@ module Suggestion =
     let private includeAll (_: SnippetEntry) = true
 
     let private includeCommand (snippet: SnippetEntry) =
-        snippet.PredictionContexts &&& PredictionContexts.Command
-        <> PredictionContexts.IdentifierOnly
+        snippet.PredictionContexts
+        |> PredictionContexts.overlaps PredictionContexts.Command
 
     let private includePipeline (snippet: SnippetEntry) =
-        snippet.PredictionContexts &&& PredictionContexts.Pipeline
-        <> PredictionContexts.IdentifierOnly
+        snippet.PredictionContexts
+        |> PredictionContexts.overlaps PredictionContexts.Pipeline
 
     [<Literal>]
     let private ExactMatchRank = 0

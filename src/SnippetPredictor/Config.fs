@@ -38,33 +38,31 @@ module Config =
             WriteIndented = true
         )
 
-    let private jsonReadOptions =
+    let parseSnippets =
         let options = JsonSerializerOptions(jsonOptions)
-        // NOTE: Register this read-only converter only for deserialization.
-        options.Converters.Add(SnippetEntryJsonConverter())
-        options
+        options.Converters.Add(SnippetConfigJsonConverter(jsonOptions))
 
-    let parseSnippets (json: string) =
-        try
-            json.Trim()
-            |> function
-                | json when String.length json = 0 -> ConfigState.Empty
-                | json ->
-                    JsonSerializer.Deserialize<SnippetConfig>(json, jsonReadOptions)
-                    |> function
-                        | null ->
-                            makeErrorEntry $"{snippetFilesName} is null or invalid format." ""
-                            |> ConfigState.Invalid
-                        | config -> ConfigState.Valid config
-        with e ->
-            let errorDetail =
-                match e with
-                | :? SnippetConfigValidationException as validationError ->
-                    $"{validationError.Detail} Path: {validationError.Path}"
-                | _ -> e.Message
+        fun (json: string) ->
+            try
+                json.Trim()
+                |> function
+                    | json when String.length json = 0 -> ConfigState.Empty
+                    | json ->
+                        JsonSerializer.Deserialize<SnippetConfig>(json, options)
+                        |> function
+                            | null ->
+                                makeErrorEntry $"{snippetFilesName} is null or invalid format." ""
+                                |> ConfigState.Invalid
+                            | config -> ConfigState.Valid config
+            with e ->
+                let errorDetail =
+                    match e with
+                    | :? SnippetConfigValidationException as validationError ->
+                        $"{validationError.Detail} Path: {validationError.Path}"
+                    | _ -> e.Message
 
-            makeErrorEntry $"An error occurred while parsing {snippetFilesName}" errorDetail
-            |> ConfigState.Invalid
+                makeErrorEntry $"An error occurred while parsing {snippetFilesName}" errorDetail
+                |> ConfigState.Invalid
 
     let private readToConfigState (read: Result<string option, string>) =
         match read with

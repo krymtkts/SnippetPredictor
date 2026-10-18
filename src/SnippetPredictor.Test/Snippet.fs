@@ -1929,7 +1929,7 @@ let tests_loadSnippets =
                 |> Expect.wantError "should return Error"
                 |> Expect.equal
                     "should return Error entry"
-                    "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $.Snippets[0] | LineNumber: 1 | BytePositionInLine: 15."
+                    "'An error occurred while parsing .snippet-predictor.json': Expected depth to be zero at the end of the JSON payload. There is an open JSON object or array that should be closed. Path: $ | LineNumber: 1 | BytePositionInLine: 15."
             }
 
             test "when snippet file is valid and null" {
@@ -2060,7 +2060,7 @@ module addAndRemoveSnippets =
                     |> Expect.wantError "should return Error"
                     |> Expect.equal
                         "should return Error entry"
-                        "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
+                        "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 13."
                 }
 
                 test "when snippet file is valid" {
@@ -2201,7 +2201,7 @@ module addAndRemoveSnippets =
                     |> Expect.wantError "should return Error"
                     |> Expect.equal
                         "should return Error entry"
-                        "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 13."
+                        "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 13."
                 }
 
                 test "when snippet file is valid" {

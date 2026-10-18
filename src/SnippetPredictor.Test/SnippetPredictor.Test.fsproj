@@ -26,6 +26,7 @@
     <Compile Include="Utility.fs" />
     <Compile Include="PredictionContext.fs" />
     <Compile Include="Snippet.fs" />
+    <Compile Include="DuplicateKeys.fs" />
     <Compile Include="PredictionScope.fs" />
     <Compile Include="PredictionContexts.fs" />
     <Compile Include="PredictionFiltering.fs" />

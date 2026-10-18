@@ -16,7 +16,7 @@ module Config =
         | Invalid of errorEntry: ErrorEntry
 
 #if DEBUG
-    val parseSnippets: json: string -> ConfigState
+    val parseSnippets: (string -> ConfigState)
 #endif
 
     val parseSnippetFile: path: string -> Task<ConfigState>
