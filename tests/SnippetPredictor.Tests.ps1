@@ -963,7 +963,7 @@ Describe 'SnippetPredictor' {
             @{ Contexts = @('Command'); Expected = 1; ExpectedJson = '["Command"]' }
             @{ Contexts = @('Pipeline'); Expected = 2; ExpectedJson = '["Pipeline"]' }
             @{ Contexts = @('Command', 'Pipeline'); Expected = 3; ExpectedJson = '["Command","Pipeline"]' }
-            @{ Contexts = @('Pipeline', 'Command', 'Pipeline'); Expected = 3; ExpectedJson = '["Command","Pipeline"]' }
+            @{ Contexts = @('Pipeline', 'Command'); Expected = 3; ExpectedJson = '["Command","Pipeline"]' }
             @{ Contexts = @('command', 'pIpElInE'); Expected = 3; ExpectedJson = '["Command","Pipeline"]' }
             @{ Contexts = @('IdentifierOnly'); Expected = 0; ExpectedJson = '"IdentifierOnly"' }
         ) {
@@ -986,12 +986,28 @@ Describe 'SnippetPredictor' {
             @{ Contexts = @('Command', 'Pipeline', 'IdentifierOnly') }
             @{ Contexts = @(4) }
             @{ Contexts = @(-1) }
+            @{ Contexts = @('Command', 'Command') }
+            @{ Contexts = @('Pipeline', 'Pipeline') }
+            @{ Contexts = @('Command', 'command') }
+            @{ Contexts = @('Command', 'Pipeline', 'Command') }
+            @{ Contexts = @('IdentifierOnly', 'IdentifierOnly') }
+            @{ Contexts = @(3, 1) }
+            @{ Contexts = @(2, 3) }
+            @{ Contexts = @(3, 3) }
         ) {
             $original = [System.IO.File]::ReadAllText($configFilePath)
 
             { Add-Snippet 'git status' -PredictionContexts $Contexts -ErrorAction Stop } | Should -Throw
 
             [System.IO.File]::ReadAllText($configFilePath) | Should -Be $original
+        }
+        It 'should allow repeated registration of the same snippet' {
+            Add-Snippet 'git status' -Group git -PredictionContexts Command, Pipeline
+            Add-Snippet 'git status' -Group git -PredictionContexts Command, Pipeline
+            $snippets = @(Get-Snippet)
+            $snippets.Count | Should -Be 2
+            $snippets[0].Snippet | Should -Be $snippets[1].Snippet
+            $snippets[0].PredictionContexts | Should -Be $snippets[1].PredictionContexts
         }
         It 'should retain contexts from pipeline properties for every input record' {
             @(

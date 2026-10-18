@@ -11,11 +11,15 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 - Add `PredictOnlyWithIdentifier` to restrict snippet predictions to identifier input.
 - Predict snippets after `;`, `|`, or leading block comments while preserving preceding input.
-- Add `PredictionContexts` to snippet configuration and `Add-Snippet`. Pipeline predictions require explicit permission.
+- Add `PredictionContexts` to snippet configuration and `Add-Snippet`. Pipeline predictions require explicit permission. Repeated contexts are invalid.
 
 ### Changed
 
 - Rank predictions by exact, prefix, word-start, then substring matches; keep ties in existing order.
+
+### Fixed
+
+- Reject duplicate configuration keys using case-insensitive name comparison.
 
 ## [0.9.0] - 2026-09-27
 

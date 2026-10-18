@@ -52,10 +52,6 @@ let tests =
                     ""","PredictionContexts":["Pipeline","Command"]""",
                     both,
                     """["Command","Pipeline"]"""
-                    "duplicates",
-                    ""","PredictionContexts":["Pipeline","Command","Pipeline","Command"]""",
-                    both,
-                    """["Command","Pipeline"]"""
                     "case insensitive",
                     ""","predictioncontexts":["pIpElInE","COMMAND"]""",
                     both,
@@ -121,6 +117,13 @@ let tests =
                     """["Command"," "]"""
                     """["Command"," Pipeline"]"""
                     """["Command","Unsupported"]"""
+                    """["Command","Command"]"""
+                    """["Pipeline","Pipeline"]"""
+                    """["Command","command"]"""
+                    """["Pipeline","PIPELINE"]"""
+                    """["Command","Pipeline","Command"]"""
+                    """["Pipeline","Command","Pipeline"]"""
+                    """["Command","\u0043ommand"]"""
                 |] do
                 testCase $"rejects {value}" (fun () ->
                     match configuration (",\"PredictionContexts\":" + value) |> load with
@@ -175,7 +178,7 @@ let tests =
                     """{"SearchCaseSensitive":true,"PredictOnlyWithIdentifier":true,"Snippets":[
                         {"Snippet":"git status","PredictionContexts":null},
                         {"Snippet":"Select-Object Name","PredictionContexts":["Pipeline"]},
-                        {"Snippet":"git log","PredictionContexts":["Pipeline","Command","Pipeline"]},
+                        {"Snippet":"git log","PredictionContexts":["Pipeline","Command"]},
                         {"Snippet":"git push --force-with-lease","PredictionContexts":"IdentifierOnly"}
                     ]}"""
 
@@ -201,6 +204,51 @@ let tests =
                 |> Expect.equal "should keep identifier-only mode explicit" "IdentifierOnly"
             }
 
+            test "identifies duplicate context values in diagnostics" {
+                for value in [| """["Command","command"]"""; """["Pipeline","\u0050ipeline"]""" |] do
+                    match configuration (",\"PredictionContexts\":" + value) |> load with
+                    | Config.ConfigState.Invalid entry ->
+                        entry.Tooltip.Contains("Duplicate value in PredictionContexts:")
+                        |> Expect.isTrue "should identify the repeated context setting"
+
+                        entry.Tooltip.Contains("$.Snippets[0]")
+                        |> Expect.isTrue "should preserve the entry path"
+                    | _ -> failtest "Expected an invalid configuration"
+            }
+
+            test "preserves repeated entries and independent field values" {
+                let first = Store.makeSnippetEntry [| both |] "git status" "status" "git"
+
+                let entries =
+                    [|
+                        first
+                        first
+                        { first with Tooltip = "other" }
+                        { first with Group = "other" }
+                        { first with
+                            PredictionContexts = PredictionContexts.Command
+                        }
+                        { first with Snippet = "git log" }
+                        { first with Tooltip = first.Snippet }
+                    |]
+
+                use file = new TempFile(Config.snippetFilesName, """{"Snippets":[]}""")
+
+                entries
+                |> Store.addSnippets file.GetSnippetPath
+                |> Expect.wantOk "should retain independent entries"
+                |> ignore
+
+                [| first |]
+                |> Store.addSnippets file.GetSnippetPath
+                |> Expect.wantOk "should allow repeated registration"
+                |> ignore
+
+                Store.loadSnippets file.GetSnippetPath
+                |> Expect.wantOk "should load every entry"
+                |> Expect.equal "should preserve values and configuration order" (Array.append entries [| first |])
+            }
+
             test "creates entries with an explicit command context" {
                 Store.makeSnippetEntry [| PredictionContexts.Command |] "git status" "status" null
                 |> _.PredictionContexts
@@ -218,13 +266,7 @@ let tests =
                     "pipeline", [| PredictionContexts.Pipeline |], PredictionContexts.Pipeline
                     "both", [| PredictionContexts.Command; PredictionContexts.Pipeline |], both
                     "combined flags", [| both |], both
-                    "duplicates",
-                    [| PredictionContexts.Command; PredictionContexts.Command |],
-                    PredictionContexts.Command
                     "identifier only", [| PredictionContexts.IdentifierOnly |], PredictionContexts.IdentifierOnly
-                    "repeated identifier only",
-                    [| PredictionContexts.IdentifierOnly; PredictionContexts.IdentifierOnly |],
-                    PredictionContexts.IdentifierOnly
                 |] do
                 testCase $"creates entries for {name}" (fun () ->
                     let entry = Store.makeSnippetEntry contexts "git status" "status" "git"
@@ -245,6 +287,19 @@ let tests =
                     "identifier with command", [| PredictionContexts.IdentifierOnly; PredictionContexts.Command |]
                     "pipeline with identifier", [| PredictionContexts.Pipeline; PredictionContexts.IdentifierOnly |]
                     "identifier with both", [| PredictionContexts.IdentifierOnly; both |]
+                    "duplicate command", [| PredictionContexts.Command; PredictionContexts.Command |]
+                    "duplicate pipeline", [| PredictionContexts.Pipeline; PredictionContexts.Pipeline |]
+                    "separated duplicate",
+                    [|
+                        PredictionContexts.Command
+                        PredictionContexts.Pipeline
+                        PredictionContexts.Command
+                    |]
+                    "repeated identifier only",
+                    [| PredictionContexts.IdentifierOnly; PredictionContexts.IdentifierOnly |]
+                    "overlapping combined flags", [| both; PredictionContexts.Command |]
+                    "reverse overlapping flags", [| PredictionContexts.Pipeline; both |]
+                    "repeated combined flags", [| both; both |]
                 |] do
                 testCase $"rejects entry creation for {name}" (fun () ->
                     let rejected =

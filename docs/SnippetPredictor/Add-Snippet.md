@@ -113,7 +113,7 @@ The positions in which to suggest the snippet for ordinary input.
 Use `Command, Pipeline` to allow both positions.
 The default is `Command`.
 Use `IdentifierOnly` alone to omit the snippet from ordinary predictions.
-The parameter rejects null and empty arrays.
+The parameter rejects null, empty arrays and overlapping contexts.
 Identifier-based predictions, completion, and accept handlers remain available with every setting.
 This setting doesn't verify whether the snippet accepts pipeline input.
 

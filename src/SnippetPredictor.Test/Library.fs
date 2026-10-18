@@ -156,7 +156,7 @@ module Cmdlets =
                     let expected =
                         ErrorRecord(
                             Exception(
-                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 14."
                             ),
                             "",
                             ErrorCategory.InvalidData,
@@ -232,7 +232,7 @@ module Cmdlets =
                     let expected =
                         ErrorRecord(
                             Exception(
-                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 14."
                             ),
                             "",
                             ErrorCategory.InvalidData,
@@ -307,7 +307,7 @@ module Cmdlets =
                     let expected =
                         ErrorRecord(
                             Exception(
-                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $.Snippets[0] | LineNumber: 0 | BytePositionInLine: 14."
+                                "'An error occurred while parsing .snippet-predictor.json': '}' is an invalid start of a value. Path: $ | LineNumber: 0 | BytePositionInLine: 14."
                             ),
                             "",
                             ErrorCategory.InvalidData,

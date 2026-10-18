@@ -34,17 +34,24 @@ module Store =
             | contexts when contexts.Length = 0 ->
                 invalidArg (nameof predictionContexts) "Specify at least one prediction context."
             | contexts ->
-                let permissions = contexts |> Array.fold (|||) PredictionContexts.IdentifierOnly
-                let supported = PredictionContexts.Command ||| PredictionContexts.Pipeline
+                let permissions =
+                    contexts
+                    |> Array.fold
+                        (fun permissions context ->
+                            if permissions |> PredictionContexts.overlaps context then
+                                invalidArg (nameof predictionContexts) "Prediction contexts must not overlap."
 
-                if permissions &&& supported <> permissions then
+                            permissions ||| context)
+                        PredictionContexts.IdentifierOnly
+
+                if not (permissions |> PredictionContexts.isValid) then
                     invalidArg (nameof predictionContexts) "Specify Command, Pipeline, or IdentifierOnly."
 
                 if
-                    permissions <> PredictionContexts.IdentifierOnly
+                    contexts.Length > 1
                     && contexts |> Array.contains PredictionContexts.IdentifierOnly
                 then
-                    invalidArg (nameof predictionContexts) "IdentifierOnly cannot be combined with Command or Pipeline."
+                    invalidArg (nameof predictionContexts) "IdentifierOnly must be specified alone."
 
                 permissions
 
