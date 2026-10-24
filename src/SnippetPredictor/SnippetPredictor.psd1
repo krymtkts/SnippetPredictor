@@ -126,6 +126,23 @@
             # ReleaseNotes of this module
 
             ReleaseNotes = @'
+## [0.10.0] - 2026-10-24
+
+### Added
+
+- Add `PredictOnlyWithIdentifier` to restrict snippet predictions to identifier input.
+- Predict snippets after `;`, `|`, or leading block comments while preserving preceding input.
+- Add `PredictionContexts` to snippet configuration and `Add-Snippet`. Pipeline predictions require explicit permission. Repeated contexts are invalid.
+- Bundle JSON Schema for editor completion, hover help and configuration validation.
+
+### Changed
+
+- Rank predictions by exact, prefix, word-start, then substring matches; keep ties in existing order.
+
+### Fixed
+
+- Reject duplicate configuration keys using case-insensitive name comparison.
+
 ## [0.9.0] - 2026-09-27
 
 ### Added
@@ -148,14 +165,6 @@
 ### Added
 
 - Add optional accept handling for partial and complete `:snp` and group identifiers. Use `-AcceptChord` to keep the line open.
-
-## [0.7.0] - 2026-08-09
-
-### Added
-
-- Add `Enable-SnippetPredictorKeyHandler` to register opt-in key bindings. The default Tab and Shift+Tab bindings cycle through `:snp` completion candidates. Provide composable handlers for custom completion and prediction ListView bindings.
-- Add identifier and group-scoped snippet completion to the opt-in key bindings. Complete `:snp` and group identifiers from `:` or partial input. Complete matching snippets after an exact identifier.
-- Add lifecycle cleanup for the opt-in PSReadLine key bindings. Provide `Disable-SnippetPredictorKeyHandler` for explicit cleanup. Clean up registered bindings automatically on module removal.
 
 Full CHANGELOG: https://github.com/krymtkts/SnippetPredictor/blob/main/CHANGELOG.md
 '@
