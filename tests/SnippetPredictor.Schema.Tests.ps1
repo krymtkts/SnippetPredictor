@@ -70,13 +70,24 @@ BeforeDiscovery {
 }
 
 BeforeAll {
-    $schemaPath = Join-Path $PSScriptRoot '../schemas/snippet-predictor.schema.json'
+    $module = Get-Module SnippetPredictor
+    $schemaPath = Join-Path $module.ModuleBase 'schemas/snippet-predictor.schema.json'
+    $sourceSchemaPath = Join-Path $PSScriptRoot '../schemas/snippet-predictor.schema.json'
     # NOTE: Vendored from https://json-schema.org/draft-07/schema; tests require no downloads.
     $metaSchemaPath = Join-Path $PSScriptRoot 'fixtures/json-schema-draft-07.schema.json'
     $configPath = Join-Path $TestDrive '.snippet-predictor.json'
 }
 
 Describe 'Snippet configuration JSON Schema' {
+    It 'bundles the source schema with the imported module' {
+        (Get-FileHash -LiteralPath $schemaPath).Hash | Should -Be (Get-FileHash -LiteralPath $sourceSchemaPath).Hash
+    }
+
+    It 'includes the schema in the module file list' {
+        $manifest = Import-PowerShellDataFile -LiteralPath (Join-Path $module.ModuleBase 'SnippetPredictor.psd1')
+        $manifest.FileList | Should -Contain 'schemas/snippet-predictor.schema.json'
+    }
+
     It 'validates <Name> with expected validity <Valid>' -TestCases $cases {
         [System.IO.File]::WriteAllText($configPath, $Json)
         $state = [SnippetPredictor.Config]::parseSnippetFile($configPath).GetAwaiter().GetResult()
