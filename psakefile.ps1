@@ -66,6 +66,7 @@ Task Lint {
         './psakefile.ps1'
         "./src/$ModuleName/$ModuleName.PSReadLine.psm1"
         "./tests/$ModuleName.Tests.ps1"
+        "./tests/$ModuleName.Schema.Tests.ps1"
     ) | ForEach-Object {
         $warn = Invoke-ScriptAnalyzer -Path $_ -Settings .\PSScriptAnalyzerSettings.psd1
         if ($warn) {
