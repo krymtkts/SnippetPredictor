@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SnippetPredictor configuration",
+  "description": "Snippet configuration. Property names are case-insensitive; unknown properties are allowed.",
+  "type": "object",
+  "properties": {
+    "Snippets": { "$ref": "#/definitions/Snippets" },
+    "SearchCaseSensitive": { "$ref": "#/definitions/SearchCaseSensitive" },
+    "PredictOnlyWithIdentifier": {
+      "$ref": "#/definitions/PredictOnlyWithIdentifier"
+    }
+  },
+  "patternProperties": {
+    "^[sS][nN][iI][pP][pP][eE][tT][sS]$(?![\\s\\S])": {
+      "$ref": "#/definitions/Snippets"
+    },
+    "^[sS][eE][aA][rR][cC][hH][cC][aA][sS][eE][sS][eE][nN][sS][iI][tT][iI][vV][eE]$(?![\\s\\S])": {
+      "$ref": "#/definitions/SearchCaseSensitive"
+    },
+    "^[pP][rR][eE][dD][iI][cC][tT][oO][nN][lL][yY][wW][iI][tT][hH][iI][dD][eE][nN][tT][iI][fF][iI][eE][rR]$(?![\\s\\S])": {
+      "$ref": "#/definitions/PredictOnlyWithIdentifier"
+    }
+  },
+  "definitions": {
+    "Snippets": {
+      "description": "Registered snippets in configuration order.",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/definitions/SnippetEntry" }
+    },
+    "SearchCaseSensitive": {
+      "description": "Use case-sensitive snippet matching. Omitted or null means false.",
+      "type": ["boolean", "null"],
+      "default": false
+    },
+    "PredictOnlyWithIdentifier": {
+      "description": "Restrict predictions to identifier input. Omitted or null means false.",
+      "type": ["boolean", "null"],
+      "default": false
+    },
+    "SnippetEntry": {
+      "description": "A snippet entry. Snippet is required; property names are case-insensitive.",
+      "type": "object",
+      "properties": {
+        "Snippet": { "$ref": "#/definitions/Snippet" },
+        "Tooltip": { "$ref": "#/definitions/Tooltip" },
+        "Group": { "$ref": "#/definitions/Group" },
+        "PredictionContexts": { "$ref": "#/definitions/PredictionContexts" }
+      },
+      "patternProperties": {
+        "^[sS][nN][iI][pP][pP][eE][tT]$(?![\\s\\S])": {
+          "$ref": "#/definitions/Snippet"
+        },
+        "^[tT][oO][oO][lL][tT][iI][pP]$(?![\\s\\S])": {
+          "$ref": "#/definitions/Tooltip"
+        },
+        "^[gG][rR][oO][uU][pP]$(?![\\s\\S])": {
+          "$ref": "#/definitions/Group"
+        },
+        "^[pP][rR][eE][dD][iI][cC][tT][iI][oO][nN][cC][oO][nN][tT][eE][xX][tT][sS]$(?![\\s\\S])": {
+          "$ref": "#/definitions/PredictionContexts"
+        }
+      },
+      "not": {
+        "propertyNames": {
+          "not": {
+            "pattern": "^[sS][nN][iI][pP][pP][eE][tT]$(?![\\s\\S])"
+          }
+        }
+      }
+    },
+    "Snippet": {
+      "description": "Snippet text; must contain a non-whitespace character.",
+      "type": "string",
+      "pattern": "[^\\u0009-\\u000D\\u0020\\u0085\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]"
+    },
+    "Tooltip": {
+      "description": "Suggestion tooltip. Omitted or null uses an empty string.",
+      "type": ["string", "null"],
+      "default": ""
+    },
+    "Group": {
+      "$comment": "NOTE: The runtime regex accepts a final LF. Preserve this compatibility until the runtime contract changes.",
+      "description": "Alphanumeric group identifier. Omitted or null leaves the snippet ungrouped.",
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9]+\\n?$(?![\\s\\S])"
+    },
+    "PredictionContexts": {
+      "description": "Ordinary prediction positions. Omitted or null uses Command; identifier-based predictions, completion and accept handlers remain available.",
+      "default": ["Command"],
+      "oneOf": [
+        { "type": "null" },
+        {
+          "description": "Only suggest this snippet through identifiers.",
+          "type": "string",
+          "pattern": "^[iI][dD][eE][nN][tT][iI][fF][iI][eE][rR][oO][nN][lL][yY]$(?![\\s\\S])",
+          "examples": ["IdentifierOnly"]
+        },
+        {
+          "$comment": "NOTE: With two supported contexts, two items must contain both positions to reject case-insensitive duplicates.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "anyOf": [
+              { "$ref": "#/definitions/CommandContext" },
+              { "$ref": "#/definitions/PipelineContext" }
+            ]
+          },
+          "if": { "minItems": 2 },
+          "then": {
+            "allOf": [
+              { "contains": { "$ref": "#/definitions/CommandContext" } },
+              { "contains": { "$ref": "#/definitions/PipelineContext" } }
+            ]
+          }
+        }
+      ]
+    },
+    "CommandContext": {
+      "description": "At line start, after a leading block comment, or after a semicolon.",
+      "type": "string",
+      "pattern": "^[cC][oO][mM][mM][aA][nN][dD]$(?![\\s\\S])",
+      "examples": ["Command"]
+    },
+    "PipelineContext": {
+      "description": "For the second and later commands in a pipeline.",
+      "type": "string",
+      "pattern": "^[pP][iI][pP][eE][lL][iI][nN][eE]$(?![\\s\\S])",
+      "examples": ["Pipeline"]
+    }
+  }
+}
