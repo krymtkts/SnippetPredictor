@@ -224,6 +224,40 @@ Add-Snippet 'Get-Date -Format "yyyy-MM-ddTHH:mm:ss"' -PredictionContexts Command
 
 This formats the current date and time when used alone, or dates received through a pipeline.
 
+### Edit configuration with JSON Schema
+
+The JSON Schema provides completion, hover help and validation in Visual Studio Code.
+Add this association to your Visual Studio Code user settings.
+
+```json
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["**/.snippet-predictor.json"],
+      "url": "https://raw.githubusercontent.com/krymtkts/SnippetPredictor/main/schemas/snippet-predictor.schema.json"
+    }
+  ]
+}
+```
+
+Schemas are available from version 0.10.0 onward.
+The `main` schema may include unreleased changes.
+To match your installed version, replace `main` with its release tag, such as `v0.10.0`.
+
+For offline use, import SnippetPredictor and get the bundled schema's file URI.
+Set `url` to the resulting URI and update it when changing the module version.
+
+```powershell
+$schema = Join-Path (Get-Module SnippetPredictor).ModuleBase 'schemas/snippet-predictor.schema.json'
+([uri]$schema).AbsoluteUri
+```
+
+Use editor settings rather than a `$schema` property, which snippet cmdlets don't preserve.
+
+The schema allows unknown properties and doesn't detect every duplicate key.
+Runtime validation remains authoritative.
+When changing configuration settings, update the schema and its tests too.
+
 ### List and remove snippets
 
 You can list your registered snippets with the `Get-Snippet` command.
