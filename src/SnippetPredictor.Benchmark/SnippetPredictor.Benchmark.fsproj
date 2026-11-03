@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ContextPrediction.fs" />
+    <Compile Include="HistoryFiltering.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 </Project>
