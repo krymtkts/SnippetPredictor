@@ -1,6 +1,7 @@
 $script:SnippetPredictorKeyHandlerSession = $null
 $script:SnippetPredictorPredictionKeyHandlerSession = $null
 $script:SnippetPredictorKeyHandlerBindings = @()
+$script:SnippetPredictorHistoryFilter = $null
 $script:SnippetPredictorDefaultFunctionsByChord = @{
     'Tab' = 'TabCompleteNext'
     'Shift+Tab' = 'TabCompletePrevious'
@@ -409,11 +410,100 @@ function New-SnippetPredictorKeyHandler {
     }
 }
 
+function Remove-SnippetPredictorHistoryFilter {
+    [CmdletBinding()]
+    param()
+
+    $registration = $script:SnippetPredictorHistoryFilter
+    if ($null -eq $registration) {
+        return
+    }
+
+    $registration.Active = $false
+    $current = (Get-PSReadLineOption).AddToHistoryHandler
+    # NOTE: Restore only the exact delegate instance registered by this module.
+    # NOTE: Delegate equality can also match another instance with the same target and invocation list.
+    if ([object]::ReferenceEquals($current, $registration.Handler)) {
+        Set-PSReadLineOption -AddToHistoryHandler $registration.Previous -ErrorAction Stop
+    }
+    $script:SnippetPredictorHistoryFilter = $null
+}
+
+function Register-SnippetPredictorHistoryFilter {
+    [CmdletBinding()]
+    param()
+
+    $registration = [pscustomobject]@{
+        Active = $false
+        Previous = (Get-PSReadLineOption).AddToHistoryHandler
+        Handler = $null
+    }
+    $callback = {
+        param([string] $line)
+
+        if ($registration.Active -and [SnippetPredictor.Integration]::IsRegisteredSnippet($line)) {
+            [Microsoft.PowerShell.AddToHistoryOption]::SkipAdding
+        }
+        elseif ($null -ne $registration.Previous) {
+            $registration.Previous.Invoke($line)
+        }
+        else {
+            [Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile
+        }
+    }.GetNewClosure()
+    $registration.Handler = [System.Func[string, object]] $callback
+    $script:SnippetPredictorHistoryFilter = $registration
+
+    try {
+        Set-PSReadLineOption -AddToHistoryHandler $registration.Handler -ErrorAction Stop
+        $registration.Active = $true
+    }
+    catch {
+        $registrationError = $_
+        try {
+            Remove-SnippetPredictorHistoryFilter
+        }
+        catch {
+            Write-Error -ErrorRecord $_ -ErrorAction Continue
+        }
+        throw $registrationError
+    }
+}
+
 function Disable-SnippetPredictorKeyHandler {
     [CmdletBinding()]
     param()
 
-    Remove-SnippetPredictorKeyHandlerBindings
+    $cleanupErrors = [System.Collections.Generic.List[System.Management.Automation.ErrorRecord]]::new()
+    try {
+        Remove-SnippetPredictorKeyHandlerBindings
+    }
+    catch {
+        $cleanupErrors.Add($_)
+    }
+    try {
+        Remove-SnippetPredictorHistoryFilter
+    }
+    catch {
+        $cleanupErrors.Add($_)
+    }
+
+    if ($cleanupErrors.Count -eq 1) {
+        $PSCmdlet.ThrowTerminatingError($cleanupErrors[0])
+    }
+    if ($cleanupErrors.Count -gt 1) {
+        $exception = [System.AggregateException]::new(
+            'Failed to clean up SnippetPredictor key bindings and history filtering.',
+            [System.Exception[]] $cleanupErrors.Exception
+        )
+        $errorRecord = [System.Management.Automation.ErrorRecord]::new(
+            $exception,
+            'SnippetPredictorCleanupFailed',
+            [System.Management.Automation.ErrorCategory]::CloseError,
+            $cleanupErrors.ToArray()
+        )
+        $PSCmdlet.ThrowTerminatingError($errorRecord)
+    }
 }
 
 function Enable-SnippetPredictorKeyHandler {
@@ -424,7 +514,8 @@ function Enable-SnippetPredictorKeyHandler {
         [ValidateNotNullOrWhiteSpace()]
         [string] $PreviousChord = 'Shift+Tab',
         [ValidateNotNullOrWhiteSpace()]
-        [string] $AcceptChord
+        [string] $AcceptChord,
+        [switch] $ExcludeSnippetsFromHistory
     )
 
     $acceptChordSpecified = $PSBoundParameters.ContainsKey('AcceptChord')
@@ -436,7 +527,7 @@ function Enable-SnippetPredictorKeyHandler {
         throw 'AcceptChord must be different from NextChord and PreviousChord.'
     }
 
-    Remove-SnippetPredictorKeyHandlerBindings
+    Disable-SnippetPredictorKeyHandler
     $script:SnippetPredictorKeyHandlerSession = $null
 
     $acceptViMode = if ($acceptChordSpecified -and (Get-PSReadLineOption).EditMode.ToString() -ceq 'Vi') {
@@ -489,6 +580,9 @@ function Enable-SnippetPredictorKeyHandler {
             Set-PSReadLineKeyHandler @parameters
             $registeredBindings.Add($binding)
         }
+        if ($ExcludeSnippetsFromHistory) {
+            Register-SnippetPredictorHistoryFilter
+        }
     }
     catch {
         $registrationError = $_
@@ -512,7 +606,7 @@ function Enable-SnippetPredictorKeyHandler {
 }
 
 $ExecutionContext.SessionState.Module.OnRemove += {
-    Remove-SnippetPredictorKeyHandlerBindings
+    Disable-SnippetPredictorKeyHandler
 }
 
 Export-ModuleMember -Function @(

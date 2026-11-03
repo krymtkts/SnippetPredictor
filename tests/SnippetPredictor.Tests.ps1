@@ -900,6 +900,279 @@ Describe 'SnippetPredictor' {
             }
         }
     }
+    Context 'history filtering' {
+        BeforeAll {
+            $historyConfigBytes = [System.IO.File]::ReadAllBytes($configFilePath)
+            $historySnippet = "Write-Output 'history test'"
+            [System.IO.File]::WriteAllText($configFilePath, (@{ Snippets = @(@{ Snippet = $historySnippet }) } | ConvertTo-Json -Depth 4))
+            $historyModulePath = Join-Path (Get-Module SnippetPredictor).ModuleBase 'SnippetPredictor.psd1'
+            Remove-Module SnippetPredictor -Force
+            Import-Module $historyModulePath -Global
+            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+            while (-not [SnippetPredictor.Integration]::IsRegisteredSnippet($historySnippet) -and $stopwatch.ElapsedMilliseconds -lt 5000) {
+                Start-Sleep -Milliseconds 20
+            }
+            [SnippetPredictor.Integration]::IsRegisteredSnippet($historySnippet) | Should -BeTrue
+            $historySetter = Get-Command PSReadLine\Set-PSReadLineOption
+        }
+        AfterAll {
+            Disable-SnippetPredictorKeyHandler
+            [System.IO.File]::WriteAllBytes($configFilePath, $historyConfigBytes)
+        }
+        BeforeEach {
+            Disable-SnippetPredictorKeyHandler
+            $originalHistoryHandler = (Get-PSReadLineOption).AddToHistoryHandler
+            Mock Set-PSReadLineKeyHandler -ModuleName SnippetPredictor.PSReadLine
+            Mock Remove-PSReadLineKeyHandler -ModuleName SnippetPredictor.PSReadLine
+        }
+        AfterEach {
+            try {
+                Disable-SnippetPredictorKeyHandler
+            }
+            finally {
+                & $historySetter -AddToHistoryHandler $originalHistoryHandler
+            }
+        }
+
+        It 'should leave history unchanged without the switch' {
+            Enable-SnippetPredictorKeyHandler
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $originalHistoryHandler) | Should -BeTrue
+        }
+        It 'should support history filtering with AcceptChord specified as <WithAccept>' -TestCases @(
+            @{ WithAccept = $false }
+            @{ WithAccept = $true }
+        ) {
+            $parameters = @{ ExcludeSnippetsFromHistory = $true }
+            if ($WithAccept) { $parameters.AcceptChord = 'Enter' }
+            Enable-SnippetPredictorKeyHandler @parameters
+            $handler = (Get-PSReadLineOption).AddToHistoryHandler
+            $handler.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::SkipAdding)
+            $handler.Invoke($historySnippet.ToUpperInvariant()) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            $handler.Invoke("$historySnippet ") | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            $handler.Invoke("Write-Output before; $historySnippet") | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+        }
+        It 'should preserve custom handler result <Value>' -TestCases @(
+            @{ Value = $false }
+            @{ Value = $true }
+            @{ Value = 'MemoryOnly' }
+            @{ Value = 'SkipAdding' }
+            @{ Value = 'MemoryAndFile' }
+            @{ Value = 'EnumMemoryOnly' }
+            @{ Value = $null }
+        ) {
+            if ($Value -ceq 'EnumMemoryOnly') {
+                $Value = [Microsoft.PowerShell.AddToHistoryOption]::MemoryOnly
+            }
+            $calls = [System.Collections.Generic.List[string]]::new()
+            $callback = { param($line) $calls.Add($line); $Value }.GetNewClosure()
+            [System.Func[string, object]] $previous = $callback
+            Set-PSReadLineOption -AddToHistoryHandler $previous
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            $handler = (Get-PSReadLineOption).AddToHistoryHandler
+            $handler.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::SkipAdding)
+            $calls.Count | Should -Be 0
+            $handler.Invoke('other command') | Should -Be $Value
+            $calls.ToArray() | Should -Be @('other command')
+            Disable-SnippetPredictorKeyHandler
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $previous) | Should -BeTrue
+        }
+        It 'should preserve a null original handler' {
+            Set-PSReadLineOption -AddToHistoryHandler $null
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            (Get-PSReadLineOption).AddToHistoryHandler.Invoke('other') | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            Disable-SnippetPredictorKeyHandler
+            (Get-PSReadLineOption).AddToHistoryHandler | Should -BeNullOrEmpty
+        }
+        It 'should propagate an exception from a previous handler' {
+            Set-PSReadLineOption -AddToHistoryHandler { throw 'history failure' }
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            { (Get-PSReadLineOption).AddToHistoryHandler.Invoke('other') } | Should -Throw '*history failure*'
+        }
+        It 'should not carry matching state between invocations' {
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            $handler = (Get-PSReadLineOption).AddToHistoryHandler
+            $handler.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::SkipAdding)
+            $handler.Invoke('') | Should -Be $originalHistoryHandler.Invoke('')
+            $handler.Invoke('other') | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            $handler.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::SkipAdding)
+        }
+        It 'should disable filtering when re-enabled with <Mode>' -TestCases @(
+            @{ Mode = 'omitted' }
+            @{ Mode = 'false' }
+        ) {
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            if ($Mode -eq 'false') { Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory:$false }
+            else { Enable-SnippetPredictorKeyHandler }
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $originalHistoryHandler) | Should -BeTrue
+        }
+        It 'should avoid nested active registrations on repeated enable' {
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            $old = (Get-PSReadLineOption).AddToHistoryHandler
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            $old.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            (Get-PSReadLineOption).AddToHistoryHandler.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::SkipAdding)
+            Disable-SnippetPredictorKeyHandler
+            Disable-SnippetPredictorKeyHandler
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $originalHistoryHandler) | Should -BeTrue
+        }
+        It 'should preserve a later user handler and deactivate retained callbacks' {
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            $old = (Get-PSReadLineOption).AddToHistoryHandler
+            [System.Func[string, object]] $replacement = { param($line) $old.Invoke($line) }.GetNewClosure()
+            Set-PSReadLineOption -AddToHistoryHandler $replacement
+            Disable-SnippetPredictorKeyHandler
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $replacement) | Should -BeTrue
+            $replacement.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            (Get-PSReadLineOption).AddToHistoryHandler.Invoke('other') | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            Disable-SnippetPredictorKeyHandler
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $replacement) | Should -BeTrue
+        }
+        It 'should leave existing filtering intact when chord validation fails' {
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            $handler = (Get-PSReadLineOption).AddToHistoryHandler
+            { Enable-SnippetPredictorKeyHandler -NextChord Tab -PreviousChord Tab } | Should -Throw
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $handler) | Should -BeTrue
+            $handler.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::SkipAdding)
+        }
+        It 'should roll back bindings if history registration fails' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                Mock Set-PSReadLineOption { throw 'history registration failed' }
+                Mock Get-PSReadLineKeyHandler {
+                    [pscustomobject]@{ Function = $Chord -eq 'Tab' ? 'SnippetPredictorTabCompleteNext' : 'SnippetPredictorTabCompletePrevious' }
+                }
+                { Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory } | Should -Throw '*history registration failed*'
+                $script:SnippetPredictorKeyHandlerBindings | Should -BeNullOrEmpty
+                $script:SnippetPredictorHistoryFilter | Should -BeNullOrEmpty
+                Should -Invoke Remove-PSReadLineKeyHandler -Times 0 -Exactly
+                Should -Invoke Set-PSReadLineKeyHandler -Times 4 -Exactly
+            }
+        }
+        It 'should retain retry state when history restoration fails' {
+            InModuleScope SnippetPredictor.PSReadLine {
+                Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+                $script:historyRestoreFails = $true
+                Mock Set-PSReadLineOption {
+                    if ($script:historyRestoreFails) { throw 'restore failed' }
+                }
+                { Disable-SnippetPredictorKeyHandler } | Should -Throw '*restore failed*'
+                $script:SnippetPredictorHistoryFilter.Active | Should -BeFalse
+                $script:SnippetPredictorHistoryFilter.Handler | Should -Not -BeNullOrEmpty
+                $script:historyRestoreFails = $false
+                Disable-SnippetPredictorKeyHandler
+                $script:SnippetPredictorHistoryFilter | Should -BeNullOrEmpty
+            }
+        }
+        It 'should try history cleanup even when binding cleanup fails' {
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            InModuleScope SnippetPredictor.PSReadLine {
+                $script:keyCleanupFails = $true
+                Mock Remove-SnippetPredictorKeyHandlerBindings {
+                    if ($script:keyCleanupFails) { throw 'key cleanup failed' }
+                    $script:SnippetPredictorKeyHandlerBindings = @()
+                }
+                { Disable-SnippetPredictorKeyHandler } | Should -Throw '*key cleanup failed*'
+                $script:SnippetPredictorHistoryFilter | Should -BeNullOrEmpty
+                $script:keyCleanupFails = $false
+                Disable-SnippetPredictorKeyHandler
+            }
+            [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $originalHistoryHandler) | Should -BeTrue
+        }
+        It 'should preserve a single <Failure> error with ErrorAction <ActionPreference>' -TestCases @(
+            @{ Failure = 'bindings'; ActionPreference = 'Continue' }
+            @{ Failure = 'bindings'; ActionPreference = 'Stop' }
+            @{ Failure = 'bindings'; ActionPreference = 'SilentlyContinue' }
+            @{ Failure = 'history'; ActionPreference = 'Continue' }
+            @{ Failure = 'history'; ActionPreference = 'Stop' }
+            @{ Failure = 'history'; ActionPreference = 'SilentlyContinue' }
+        ) {
+            InModuleScope SnippetPredictor.PSReadLine -Parameters @{ Failure = $Failure; ActionPreference = $ActionPreference } {
+                $script:cleanupFailure = $Failure
+                $script:sourceCleanupError = [System.Management.Automation.ErrorRecord]::new(
+                    [System.InvalidOperationException]::new('single cleanup failure'),
+                    'OriginalCleanupError',
+                    [System.Management.Automation.ErrorCategory]::InvalidOperation,
+                    'original target'
+                )
+                Mock Remove-SnippetPredictorKeyHandlerBindings {
+                    if ($script:cleanupFailure -ceq 'bindings') { throw $script:sourceCleanupError }
+                }
+                Mock Remove-SnippetPredictorHistoryFilter {
+                    if ($script:cleanupFailure -ceq 'history') { throw $script:sourceCleanupError }
+                }
+                try {
+                    $caught = try { Disable-SnippetPredictorKeyHandler -ErrorAction $ActionPreference } catch { $_ }
+                    $caught | Should -Not -BeNullOrEmpty
+                    [object]::ReferenceEquals($caught.Exception, $script:sourceCleanupError.Exception) | Should -BeTrue
+                    $caught.FullyQualifiedErrorId | Should -Match '^OriginalCleanupError'
+                    $caught.CategoryInfo.Category | Should -Be $script:sourceCleanupError.CategoryInfo.Category
+                    $caught.TargetObject | Should -Be 'original target'
+                    Should -Invoke Remove-SnippetPredictorKeyHandlerBindings -Times 1 -Exactly
+                    Should -Invoke Remove-SnippetPredictorHistoryFilter -Times 1 -Exactly
+                }
+                finally {
+                    $script:cleanupFailure = $null
+                }
+            }
+        }
+        It 'should report both cleanup errors with ErrorAction <ActionPreference>' -TestCases @(
+            @{ ActionPreference = 'Continue' }
+            @{ ActionPreference = 'Stop' }
+            @{ ActionPreference = 'SilentlyContinue' }
+        ) {
+            InModuleScope SnippetPredictor.PSReadLine -Parameters @{ ActionPreference = $ActionPreference } {
+                $script:cleanupFailure = 'both'
+                $script:bindingCleanupError = [System.Management.Automation.ErrorRecord]::new(
+                    [System.InvalidOperationException]::new('key cleanup failure'),
+                    'OriginalBindingError',
+                    [System.Management.Automation.ErrorCategory]::InvalidOperation,
+                    'binding target'
+                )
+                $script:historyCleanupError = [System.Management.Automation.ErrorRecord]::new(
+                    [System.ArgumentException]::new('history cleanup failure'),
+                    'OriginalHistoryError',
+                    [System.Management.Automation.ErrorCategory]::InvalidArgument,
+                    'history target'
+                )
+                Mock Remove-SnippetPredictorKeyHandlerBindings {
+                    if ($script:cleanupFailure -ceq 'both') { throw $script:bindingCleanupError }
+                }
+                Mock Remove-SnippetPredictorHistoryFilter {
+                    if ($script:cleanupFailure -ceq 'both') { throw $script:historyCleanupError }
+                }
+                try {
+                    $caught = try { Disable-SnippetPredictorKeyHandler -ErrorAction $ActionPreference } catch { $_ }
+                    $caught.Exception | Should -BeOfType ([System.AggregateException])
+                    $caught.FullyQualifiedErrorId | Should -Match '^SnippetPredictorCleanupFailed'
+                    $caught.Exception.InnerExceptions.Count | Should -Be 2
+                    [object]::ReferenceEquals($caught.Exception.InnerExceptions[0], $script:bindingCleanupError.Exception) | Should -BeTrue
+                    [object]::ReferenceEquals($caught.Exception.InnerExceptions[1], $script:historyCleanupError.Exception) | Should -BeTrue
+                    $caught.TargetObject.Count | Should -Be 2
+                    $caught.TargetObject[0].FullyQualifiedErrorId | Should -Be 'OriginalBindingError'
+                    $caught.TargetObject[1].FullyQualifiedErrorId | Should -Be 'OriginalHistoryError'
+                    $caught.TargetObject[0].TargetObject | Should -Be 'binding target'
+                    $caught.TargetObject[1].TargetObject | Should -Be 'history target'
+                    Should -Invoke Remove-SnippetPredictorKeyHandlerBindings -Times 1 -Exactly
+                    Should -Invoke Remove-SnippetPredictorHistoryFilter -Times 1 -Exactly
+                }
+                finally {
+                    $script:cleanupFailure = $null
+                }
+            }
+        }
+        It 'should restore history when the module is removed' {
+            Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+            $handler = (Get-PSReadLineOption).AddToHistoryHandler
+            try {
+                Remove-Module SnippetPredictor -Force
+                [object]::ReferenceEquals((Get-PSReadLineOption).AddToHistoryHandler, $originalHistoryHandler) | Should -BeTrue
+                $handler.Invoke($historySnippet) | Should -Be ([Microsoft.PowerShell.AddToHistoryOption]::MemoryAndFile)
+            }
+            finally {
+                Import-Module $historyModulePath -Global
+            }
+        }
+    }
     BeforeAll {
         $originalConfigPath = $env:SNIPPET_PREDICTOR_CONFIG
         $configFilePath = Join-Path $PSScriptRoot '.snippet-predictor.json'
