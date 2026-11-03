@@ -13,7 +13,7 @@ title: Enable-SnippetPredictorKeyHandler
 
 ## SYNOPSIS
 
-Registers opt-in PSReadLine key bindings for SnippetPredictor.
+Registers opt-in PSReadLine key bindings and history filtering for SnippetPredictor.
 
 ## SYNTAX
 
@@ -21,7 +21,7 @@ Registers opt-in PSReadLine key bindings for SnippetPredictor.
 
 ```
 Enable-SnippetPredictorKeyHandler [[-NextChord] <string>] [[-PreviousChord] <string>]
- [[-AcceptChord] <string>]
+ [[-AcceptChord] <string>] [-ExcludeSnippetsFromHistory]
  [<CommonParameters>]
 ```
 
@@ -67,6 +67,11 @@ In Vi mode, the command registers the accept handler in Insert mode.
 The command doesn't change prediction ListView navigation.
 Use the standard PSReadLine UpArrow and DownArrow bindings to navigate the ListView.
 
+Specify `-ExcludeSnippetsFromHistory` to filter new PSReadLine history entries.
+The filter skips full-line matches with registered snippets, including matching manual input.
+Comparison includes case, whitespace and line endings, regardless of prediction settings.
+Other input uses the previous `AddToHistoryHandler`.
+
 ## EXAMPLES
 
 ### Example 1
@@ -98,6 +103,14 @@ Disable-SnippetPredictorKeyHandler
 
 Registers and then removes completion bindings for custom chords.
 
+### Example 4
+
+```powershell
+Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+```
+
+Registers default completion bindings and excludes exact snippet matches from PSReadLine history.
+
 ## PARAMETERS
 
 ### -AcceptChord
@@ -113,6 +126,28 @@ Aliases: []
 ParameterSets:
   - Name: (All)
     Position: 2
+    IsRequired: false
+    ValueFromPipeline: false
+    ValueFromPipelineByPropertyName: false
+    ValueFromRemainingArguments: false
+DontShow: false
+AcceptedValues: []
+HelpMessage: ""
+```
+
+### -ExcludeSnippetsFromHistory
+
+Excludes exact snippet matches from PSReadLine's in-memory history and history file.
+Disabled by default and independent of `-AcceptChord`.
+
+```yaml
+Type: System.Management.Automation.SwitchParameter
+DefaultValue: False
+SupportsWildcards: false
+Aliases: []
+ParameterSets:
+  - Name: (All)
+    Position: Named
     IsRequired: false
     ValueFromPipeline: false
     ValueFromPipelineByPropertyName: false
@@ -183,8 +218,9 @@ The command doesn't change the PSReadLine prediction source or view style.
 The command overwrites existing bindings for the selected chords.
 It doesn't preserve an arbitrary custom action for later restoration.
 The bindings apply to the current PowerShell session.
-Enabling the handlers again first cleans up bindings from the previous call.
-Use `Disable-SnippetPredictorKeyHandler` to remove the registered bindings explicitly.
+Enabling the handlers again first cleans up bindings and history filtering from the previous call.
+Omitting `-ExcludeSnippetsFromHistory` on that call disables previous history filtering.
+Use `Disable-SnippetPredictorKeyHandler` to remove the bindings and history filtering explicitly.
 Removing the SnippetPredictor module performs the same cleanup automatically.
 Identifier matching is case-sensitive.
 Snippet matching follows the `SearchCaseSensitive` configuration value.
@@ -193,6 +229,11 @@ During cleanup, the command assigns `TabCompleteNext` to Tab and `TabCompletePre
 It assigns `AcceptLine` to Enter when Enter is a registered chord.
 The command removes bindings for other registered chords.
 A binding replaced by the user after this command runs isn't changed during cleanup.
+
+Cleanup restores the previous `AddToHistoryHandler` unless the user replaced the installed one.
+Existing history entries aren't deleted.
+PSReadLine 2.2.2 also applies the filter when loading history files; 2.4.5 doesn't.
+The filter doesn't affect PowerShell's `Get-History`.
 
 ## RELATED LINKS
 

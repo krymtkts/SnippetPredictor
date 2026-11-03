@@ -95,7 +95,21 @@ PSReadLine's `Ding()` has no visual effect in this case.
 The terminal handles the BEL according to its notification settings.
 Other inputs without a matching candidate use the standard PSReadLine `AcceptLine` action.
 
-Use `Disable-SnippetPredictorKeyHandler` to remove the bindings.
+To exclude exact snippet matches from new PSReadLine history entries, enable history filtering.
+
+```powershell
+Enable-SnippetPredictorKeyHandler -ExcludeSnippetsFromHistory
+```
+
+This also excludes matching manual input.
+Comparison is case-sensitive and includes whitespace.
+Other lines use the previous history handler.
+Existing history isn't deleted.
+The switch is independent of `-AcceptChord`.
+When enabling again, specify both options if you want both behaviors.
+
+Use `Disable-SnippetPredictorKeyHandler` to remove the bindings and history filtering.
+Removing the module performs the same cleanup.
 See [`Enable-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/Enable-SnippetPredictorKeyHandler.md) for input, fallback, and cleanup details.
 Use [`New-SnippetPredictorKeyHandler.md`](./docs/SnippetPredictor/New-SnippetPredictorKeyHandler.md) to compose custom handlers.
 

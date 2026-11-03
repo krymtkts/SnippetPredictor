@@ -7,6 +7,10 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 ## [Unreleased]
 
+### Added
+
+- Add `ExcludeSnippetsFromHistory` to skip exact snippet matches in PSReadLine history.
+
 ## [0.10.0] - 2026-10-24
 
 ### Added
