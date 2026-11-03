@@ -13,7 +13,7 @@ title: Disable-SnippetPredictorKeyHandler
 
 ## SYNOPSIS
 
-Removes PSReadLine key bindings registered by SnippetPredictor.
+Removes PSReadLine key bindings and history filtering registered by SnippetPredictor.
 
 ## SYNTAX
 
@@ -38,6 +38,9 @@ The command removes bindings for custom chords.
 The command doesn't restore a custom binding that `Enable-SnippetPredictorKeyHandler` overwrote.
 PSReadLine doesn't expose the original script block required to restore an arbitrary custom action.
 
+For history filtering, the command restores the previous `AddToHistoryHandler`.
+It preserves a handler that the user replaced after enabling filtering.
+
 Removing the SnippetPredictor module performs the same cleanup automatically.
 Calling this command more than once is safe.
 
@@ -49,7 +52,7 @@ Calling this command more than once is safe.
 Disable-SnippetPredictorKeyHandler
 ```
 
-Removes the current SnippetPredictor key bindings.
+Removes the current SnippetPredictor key bindings and history filtering.
 
 ## PARAMETERS
 
@@ -68,7 +71,7 @@ No output.
 
 ## NOTES
 
-The binding state applies to the current PowerShell session.
+The binding and history filtering state applies to the current PowerShell session.
 This command doesn't manage key bindings created by user code.
 This includes bindings that use handlers returned by `New-SnippetPredictorKeyHandler`.
 User code controls those bindings.

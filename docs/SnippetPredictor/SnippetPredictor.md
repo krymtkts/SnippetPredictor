@@ -28,7 +28,7 @@ Use the following identifiers to filter snippets:
 
 Use `Enable-SnippetPredictorKeyHandler` to register PSReadLine bindings.
 Use `Disable-SnippetPredictorKeyHandler` to remove them.
-The key handler command help describes completion, accept handling, and cleanup.
+The key handler command help describes completion, accept handling, history filtering, and cleanup.
 
 By default, the predictor searches snippets in a case-insensitive manner.
 To enable case-sensitive search, set `SearchCaseSensitive` to `true` in `.snippet-predictor.json`.
@@ -66,11 +66,11 @@ Add snippets with tooltip to the snippet configuration.
 
 ### [Disable-SnippetPredictorKeyHandler](Disable-SnippetPredictorKeyHandler.md)
 
-Remove PSReadLine key bindings registered by SnippetPredictor.
+Remove PSReadLine key bindings and history filtering registered by SnippetPredictor.
 
 ### [Enable-SnippetPredictorKeyHandler](Enable-SnippetPredictorKeyHandler.md)
 
-Register opt-in PSReadLine key bindings for SnippetPredictor.
+Register opt-in PSReadLine key bindings and history filtering for SnippetPredictor.
 
 ### [Get-Snippet](Get-Snippet.md)
 
