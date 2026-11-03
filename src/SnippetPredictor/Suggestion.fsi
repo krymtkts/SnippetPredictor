@@ -35,6 +35,8 @@ module Suggestion =
 
         member isUnknownGroupIdentifier: input: string -> bool
 
+        member isRegisteredSnippet: input: string -> bool
+
         member load: getSnippetPath: (unit -> string * string) -> unit
 
     val getSnippetPath: (unit -> string * string)

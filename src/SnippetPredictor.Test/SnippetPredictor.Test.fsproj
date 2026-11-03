@@ -30,6 +30,7 @@
     <Compile Include="PredictionScope.fs" />
     <Compile Include="PredictionContexts.fs" />
     <Compile Include="PredictionFiltering.fs" />
+    <Compile Include="HistoryFiltering.fs" />
     <Compile Include="Library.fs" />
   </ItemGroup>
 

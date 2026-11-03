@@ -387,13 +387,25 @@ module SnippetPredictorInitialization =
             [
 
                 test "run" {
-                    use tmp = new TempFile(".snippet-predictor.json", """{"Snippets": []}""")
+                    use tmp =
+                        new TempFile(".snippet-predictor.json", """{"Snippets": [{"Snippet":"echo history"}]}""")
+
                     use _ = new EnvironmentVariable(tmp.GetSnippetDirectoryPath())
                     let subsystem = Init()
+
+                    Integration.isRegisteredSnippet "echo history"
+                    |> Expect.isFalse "should not match before import"
+
                     (subsystem :> IModuleAssemblyInitializer).OnImport()
 
-                    (fun () -> Integration.isUnknownGroupIdentifier ":unsupported")
+                    (fun () -> Integration.isRegisteredSnippet "echo history")
                     |> expectEventually "should load config before checking registered predictor integration"
+
+                    Integration.isRegisteredSnippet "echo history"
+                    |> Expect.isTrue "should match a registered snippet"
+
+                    Integration.isRegisteredSnippet "ECHO history"
+                    |> Expect.isFalse "should use ordinal case-sensitive matching"
 
                     let predictor = getSnippetPredictorSubsystem ()
                     let predictor = predictor |> Expect.wantSome "should have Snippet predictor"
@@ -426,6 +438,9 @@ module SnippetPredictorInitialization =
 
                     Integration.isUnknownGroupIdentifier ":unsupported"
                     |> Expect.isFalse "should clear the predictor integration"
+
+                    Integration.isRegisteredSnippet "echo history"
+                    |> Expect.isFalse "should clear registered snippet matching"
                 }
 
             ]

@@ -24,6 +24,8 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
 
     member __.IsUnknownGroupIdentifier(input: string) = cache.isUnknownGroupIdentifier input
 
+    member __.IsRegisteredSnippet(input: string) = cache.isRegisteredSnippet input
+
     interface ICommandPredictor with
         member __.Id = id
         member __.Name = Noun.snippet
@@ -61,6 +63,10 @@ module Integration =
     let internal setPredictor (predictor: SnippetPredictor) = current <- Some predictor
 
     let internal clearPredictor () = current <- None
+
+    [<CompiledName("IsRegisteredSnippet")>]
+    let isRegisteredSnippet (input: string) =
+        current |> Option.exists (fun predictor -> predictor.IsRegisteredSnippet input)
 
     [<CompiledName("GetCompletionTexts")>]
     let getCompletionTexts (input: string) =

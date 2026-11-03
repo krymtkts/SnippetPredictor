@@ -39,6 +39,8 @@ module Suggestion =
 
     let private snpCompletionIdentifiers = [| $":{Snp}" |]
 
+    let private emptySnippetTexts = Generic.HashSet<string>(StringComparer.Ordinal)
+
     let private includeAll (_: SnippetEntry) = true
 
     let private includeCommand (snippet: SnippetEntry) =
@@ -83,6 +85,7 @@ module Suggestion =
     type private Snapshot =
         {
             Snippets: SnippetEntry array
+            SnippetTexts: Generic.HashSet<string>
             GroupIds: string array
             Groups: Set<string>
             CompletionIdentifiers: string array
@@ -96,6 +99,7 @@ module Suggestion =
         let mutable snapshot =
             {
                 Snippets = Array.empty
+                SnippetTexts = emptySnippetTexts
                 GroupIds = Array.empty
                 Groups = Set.empty
                 CompletionIdentifiers = snpCompletionIdentifiers
@@ -135,6 +139,7 @@ module Suggestion =
         let createFallbackSnapshot snippets searchComparison : Snapshot =
             {
                 Snippets = snippets
+                SnippetTexts = emptySnippetTexts
                 GroupIds = Array.empty
                 Groups = Set.empty
                 CompletionIdentifiers = snpCompletionIdentifiers
@@ -152,15 +157,18 @@ module Suggestion =
                                     PredictOnlyWithIdentifier = predictOnlyWithIdentifier
                                     Snippets = entries
                                 } ->
-                let snippets =
+                let snippets, snippetTexts =
                     match entries with
-                    | null -> Array.empty
-                    | snippets -> snippets
+                    | null
+                    | [||] -> Array.empty, emptySnippetTexts
+                    | snippets -> snippets, Generic.HashSet<string>(StringComparer.Ordinal)
 
                 let groups = new Concurrent.ConcurrentDictionary<string, unit>()
 
                 snippets
                 |> Array.iter (fun snippet ->
+                    snippetTexts.Add snippet.Snippet |> ignore
+
                     match snippet.Group with
                     | null
                     | Snp
@@ -182,6 +190,7 @@ module Suggestion =
 
                 {
                     Snippets = snippets
+                    SnippetTexts = snippetTexts
                     GroupIds = groupIds
                     Groups = groupLookup
                     CompletionIdentifiers = completionIdentifiers
@@ -641,6 +650,13 @@ module Suggestion =
 
         member __.getPredictiveSuggestions(input: string) : Generic.List<PredictiveSuggestion> =
             predict (Volatile.Read(&snapshot)) ValueNone input
+
+        member __.isRegisteredSnippet(input: string) =
+            let current = Volatile.Read(&snapshot)
+
+            not disposed.IsDisposed
+            && current.HasValidConfiguration
+            && current.SnippetTexts.Contains input
 
         member __.getContextualSuggestions(context: PredictionContext) : Generic.List<PredictiveSuggestion> =
             let current = Volatile.Read(&snapshot)
