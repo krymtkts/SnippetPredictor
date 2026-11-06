@@ -79,7 +79,10 @@ module PredictionFixture =
 
         (fun () ->
             cache.getCompletionTexts ":snp" |> Array.length = count
-            && predictor.GetCompletionTexts ":snp" |> Array.length = count)
+            && predictor.GetCompletionTexts ":snp" |> Array.length = count
+            && (count <> 0
+                || (cache.isUnknownGroupIdentifier ":unsupported"
+                    && predictor.IsUnknownGroupIdentifier ":unsupported")))
         |> expectEventually "should load prediction fixture"
 
         let client = PredictionClient("prediction test", PredictionClientKind.Terminal)
