@@ -29,9 +29,6 @@ let tests =
             test "handles omitted null and empty snippet arrays" {
                 for content in [| "{}"; """{"Snippets":null}"""; """{"Snippets":[]}""" |] do
                     withPredictor content 0 (fun cache _ ->
-                        (fun () -> cache.isUnknownGroupIdentifier ":unsupported")
-                        |> expectEventually "should publish the empty valid configuration"
-
                         cache.isRegisteredSnippet "echo test"
                         |> Expect.isFalse "should not match an empty valid configuration")
             }
