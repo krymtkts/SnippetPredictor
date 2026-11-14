@@ -15,7 +15,8 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.GitHubActionsReport" Version="2.5.3" />
     <!-- NOTE: Use HangDump on 2.x to match YoloDev.Expecto.TestSdk's MTP v2 line. -->
     <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.5.3" />
-    <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.2.24" />
+    <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.2.24" Condition="'$(TargetFramework)' == 'net6.0'" />
+    <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.7.0" Condition="'$(TargetFramework)' == 'net11.0'" />
     <PackageVersion Include="Microsoft.Management.Infrastructure" Version="3.0.0" />
     <!-- NOTE: Benchmark dependencies. -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.16.0-preview.2" />
