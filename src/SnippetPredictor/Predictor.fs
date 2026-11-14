@@ -30,7 +30,6 @@ type SnippetPredictor(guid: string, getSnippetPath: unit -> string * string) =
         member __.Id = id
         member __.Name = Noun.snippet
         member __.Description: string = description
-        member __.FunctionsToDefine: Dictionary<string, string> = Dictionary<string, string>()
 
         member __.GetSuggestion
             (client: PredictionClient, context: PredictionContext, cancellationToken: CancellationToken)
