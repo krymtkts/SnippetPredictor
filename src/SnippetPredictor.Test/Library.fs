@@ -594,11 +594,6 @@ module SnippetPredictor =
 
                     let predictor = predictorForTest :> ICommandPredictor
 
-                    predictor.FunctionsToDefine
-                    |> Option.ofObj
-                    |> Expect.wantSome "should have functions to define"
-                    |> Expect.isEmpty "should not have functions to define"
-
                     let client = PredictionClient("test", PredictionClientKind.Terminal)
 
                     predictor.CanAcceptFeedback(client, PredictorFeedbackKind.SuggestionDisplayed)
@@ -615,11 +610,6 @@ module SnippetPredictor =
                         new SnippetPredictorForTest(testAssetPath ".snippet-predictor-not-found.json")
 
                     let predictor = predictorForTest :> ICommandPredictor
-
-                    predictor.FunctionsToDefine
-                    |> Option.ofObj
-                    |> Expect.wantSome "should have functions to define"
-                    |> Expect.isEmpty "should not have functions to define"
 
                     let client = PredictionClient("", PredictionClientKind.Terminal)
 

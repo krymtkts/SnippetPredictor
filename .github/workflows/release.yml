@@ -102,6 +102,12 @@ jobs:
           ./scripts/Initialize-PSResourceRepository.ps1 -InstallPslrm
           Restore-PSLResource
 
+      - name: Setup .NET SDK
+        if: github.event_name != 'workflow_dispatch' || inputs.mode == 'full'
+        uses: actions/setup-dotnet@v6.1.0
+        with:
+          global-json-file: ./global.json
+
       - name: Execute release tests
         if: github.event_name != 'workflow_dispatch' || inputs.mode == 'full'
         run: |
@@ -129,6 +135,11 @@ jobs:
         run: |
           ./scripts/Initialize-PSResourceRepository.ps1 -InstallPslrm
           Restore-PSLResource
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6.1.0
+        with:
+          global-json-file: ./global.json
 
       - name: Publish module to PSGallery
         run: |
