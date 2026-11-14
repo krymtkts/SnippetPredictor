@@ -13,7 +13,7 @@ This project uses prerelease versions such as 0.1.0-alpha.
 
 ### Changed
 
-- Bump FSharp.Core to 11.0.101. Build and test with .NET 11 and PowerShell 7.7. Keep the module's .NET 6 target. Loading an older FSharp.Core first can prevent module import.
+- Bump FSharp.Core to 11.0.101. Import can fail if an older FSharp.Core is already loaded.
 
 ## [0.10.0] - 2026-10-24
 
