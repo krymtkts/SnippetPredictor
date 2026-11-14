@@ -18,6 +18,7 @@ workflows:
         - 'krymtkts/pslrm-bump-action@v0.0.3'
     '.github/workflows/release.yml':
         - 'actions/checkout@v7.0.1'
+        - 'actions/setup-dotnet@v6.1.0'
 dependencies:
     'actions/checkout@v7.0.1':
         ref: 'v7.0.1'

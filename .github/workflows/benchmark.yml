@@ -33,10 +33,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           path: head
           persist-credentials: false
-      - name: Setup .NET
+      - name: Setup base .NET SDK
         uses: actions/setup-dotnet@v6.1.0
         with:
           global-json-file: base/global.json
+      - name: Setup head .NET SDK
+        uses: actions/setup-dotnet@v6.1.0
+        with:
+          global-json-file: head/global.json
       - name: Check benchmark workload changes
         run: |
           git diff --no-index --quiet ./base/src/SnippetPredictor.Benchmark ./head/src/SnippetPredictor.Benchmark
