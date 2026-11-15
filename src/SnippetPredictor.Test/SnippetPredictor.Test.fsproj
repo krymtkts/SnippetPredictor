@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Compile Include="Utility.fs" />
+    <Compile Include="ConfigReading.fs" />
     <Compile Include="PredictionContext.fs" />
     <Compile Include="Snippet.fs" />
     <Compile Include="DuplicateKeys.fs" />
