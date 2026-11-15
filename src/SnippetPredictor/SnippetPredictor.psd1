@@ -12,7 +12,7 @@
     RootModule = 'SnippetPredictor.dll'
 
     # Version number of this module.
-    ModuleVersion = '0.10.0'
+    ModuleVersion = '0.11.0'
 
     # Supported PSEditions
     CompatiblePSEditions = @(
@@ -126,6 +126,16 @@
             # ReleaseNotes of this module
 
             ReleaseNotes = @'
+## [0.11.0] - 2026-11-15
+
+### Added
+
+- Add `ExcludeSnippetsFromHistory` to skip exact snippet matches in PSReadLine history.
+
+### Changed
+
+- Bump FSharp.Core to 11.0.101. Import can fail if an older FSharp.Core is already loaded.
+
 ## [0.10.0] - 2026-10-24
 
 ### Added
@@ -159,12 +169,6 @@
 - Reject null entries and missing, null, empty, or blank `Snippet` values. Treat missing or null `Tooltip` values as empty strings and include JSON paths in diagnostics.
 - Surface snippet configuration file read failures as diagnostics.
 - Reject null, empty, or all-whitespace values for `NextChord` and `PreviousChord`.
-
-## [0.8.0] - 2026-09-12
-
-### Added
-
-- Add optional accept handling for partial and complete `:snp` and group identifiers. Use `-AcceptChord` to keep the line open.
 
 Full CHANGELOG: https://github.com/krymtkts/SnippetPredictor/blob/main/CHANGELOG.md
 '@
