@@ -113,10 +113,7 @@ module Config =
         path |> readSnippetFileSync |> readToConfigState
 
     let parseSnippetFile (path: string) =
-        task {
-            let! read = readSnippetFile path
-            return read |> readToConfigState
-        }
+        readSnippetFile path |> Task.map readToConfigState
 
     let getSnippetPathWith (getEnvironmentVariable: string -> string | null) (getUserProfilePath: unit -> string) =
         let snippetDirectory =
